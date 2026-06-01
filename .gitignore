@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# Spike outputs (rendered pages, cached results, extraction JSON)
+spike/out/
+spike/.cache/
+
+# Large sample bid documents — keep out of git
+Projects/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log

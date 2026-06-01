@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Set up your pricing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+.field{transition:border-color .12s ease,box-shadow .12s ease;}
+.field:focus{outline:none;border-color:#14A800;box-shadow:0 0 0 3px rgba(20,168,0,0.15);}
+.opt{cursor:pointer;}
+.opt input{display:none;}
+.opt input:checked + div{border-color:#14A800;background:#E8F5E4;color:#001E00;}
+.step{display:none;}
+.step.active{display:block;}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.rise{animation:rise .5s ease both;}
+@keyframes scan{0%{transform:translateY(-10%);opacity:0;}30%{opacity:1;}100%{transform:translateY(320%);opacity:0;}}
+.scanline{animation:scan 1.6s ease-in-out infinite;}
+.confirmed div.card-inner{border-color:#14A800 !important;}
+.confirmed .confirm-btn{background:#14A800;color:#fff;border-color:#14A800;}
+.confirmed .confirm-btn .lbl{display:none;}
+.confirmed .confirm-btn .lbl-done{display:inline;}
+.confirm-btn .lbl-done{display:none;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== HEADER ===== -->
+<header class="bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="dashboard.html" class="flex items-center gap-2">
+      <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+    </a>
+    <a href="dashboard.html" class="text-[13px] text-bw-muted hover:text-bw-text transition">Skip for now</a>
+  </div>
+</header>
+
+<main class="max-w-[820px] mx-auto px-6 py-10 pb-28">
+
+  <!-- step rail -->
+  <div class="flex items-center gap-2 mb-8 text-[12px] font-medium">
+    <div id="rail1" class="flex items-center gap-2 text-bw-text">
+      <span class="w-6 h-6 rounded-full bg-bw-green text-white flex items-center justify-center text-[12px] font-bold">1</span> Show us your bids
+    </div>
+    <span class="flex-1 h-px bg-bw-border"></span>
+    <div id="rail2" class="flex items-center gap-2 text-bw-muted">
+      <span class="w-6 h-6 rounded-full bg-bw-border text-bw-body flex items-center justify-center text-[12px] font-bold">2</span> Confirm what we read
+    </div>
+    <span class="flex-1 h-px bg-bw-border"></span>
+    <div id="rail3" class="flex items-center gap-2 text-bw-muted">
+      <span class="w-6 h-6 rounded-full bg-bw-border text-bw-body flex items-center justify-center text-[12px] font-bold">3</span> A few last things
+    </div>
+  </div>
+
+  <!-- privacy banner (persistent) -->
+  <div class="flex items-start gap-3 bg-white border border-bw-border rounded-2xl px-5 py-4 mb-7">
+    <div class="w-9 h-9 rounded-xl bg-bw-green-tint flex items-center justify-center flex-shrink-0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </div>
+    <div>
+      <div class="font-semibold text-[14px]">Your pricing is private.</div>
+      <p class="text-[13px] text-bw-body leading-snug">Encrypted, and yours alone — never shared with GCs, never shown to other contractors, never used to build anyone else's bids. We learn how <span class="font-medium text-bw-text">you</span> price, for <span class="font-medium text-bw-text">you</span>.</p>
+    </div>
+  </div>
+
+  <!-- ================= STEP 1: UPLOAD ================= -->
+  <section id="step1" class="step active rise">
+    <div class="eyebrow mb-3">Window Treatments · base pricing</div>
+    <h1 class="text-[2rem] font-extrabold tracking-tight mb-2">Show us how you bid.</h1>
+    <p class="text-[15px] text-bw-body mb-7 max-w-[56ch]">Drop in 2–3 recent proposals. We'll read them the way a sharp new estimator would — learning your products, your prices, your exclusions, and your voice. You confirm everything in the next step.</p>
+
+    <!-- dropzone -->
+    <div id="dropzone" onclick="startScan()" class="cursor-pointer border-2 border-dashed border-bw-border hover:border-bw-green rounded-2xl bg-white p-10 text-center transition">
+      <div class="w-14 h-14 rounded-full bg-bw-green-tint flex items-center justify-center mx-auto mb-4">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.2"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      </div>
+      <div class="font-semibold text-[15px] mb-1">Drop your recent bids here</div>
+      <div class="text-[13px] text-bw-muted">PDF or Word · or <span class="text-bw-green font-semibold">browse files</span></div>
+    </div>
+
+    <!-- scanning state (hidden initially) -->
+    <div id="scanning" class="hidden bg-white border border-bw-border rounded-2xl p-6 mt-1">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="w-2 h-2 rounded-full bg-bw-green animate-pulse"></span>
+        <span class="text-[14px] font-semibold">Reading your proposals…</span>
+      </div>
+      <div class="space-y-2.5">
+        <div class="flex items-center gap-3 bg-bw-surface rounded-xl px-4 py-3 relative overflow-hidden">
+          <div class="absolute left-0 right-0 h-8 bg-gradient-to-b from-transparent via-bw-green/15 to-transparent scanline"></div>
+          <div class="w-8 h-10 bg-bw-green-tint rounded flex items-center justify-center"><span class="font-mono text-[8px] font-bold text-bw-green">PDF</span></div>
+          <div class="flex-1 text-[13px] font-medium">520-Madison-proposal.pdf</div>
+          <span class="text-[12px] text-bw-green font-semibold">extracting…</span>
+        </div>
+        <div class="flex items-center gap-3 bg-bw-surface rounded-xl px-4 py-3">
+          <div class="w-8 h-10 bg-bw-green-tint rounded flex items-center justify-center"><span class="font-mono text-[8px] font-bold text-bw-green">PDF</span></div>
+          <div class="flex-1 text-[13px] font-medium">WeWork-9FL-bid.pdf</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="flex items-center gap-3 bg-bw-surface rounded-xl px-4 py-3">
+          <div class="w-8 h-10 bg-bw-green-tint rounded flex items-center justify-center"><span class="font-mono text-[8px] font-bold text-bw-green">DOC</span></div>
+          <div class="flex-1 text-[13px] font-medium">Brooklyn-Point-amenity.docx</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- no-bids fallback -->
+    <div class="mt-5 text-center">
+      <button onclick="goStep(3)" class="text-[13px] text-bw-body hover:text-bw-text font-medium">Don't have bids handy? <span class="text-bw-green font-semibold">Enter your prices manually →</span></button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 2: CONFIRM EXTRACTED ================= -->
+  <section id="step2" class="step rise">
+    <div class="flex items-center gap-2 eyebrow mb-3">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Read 3 proposals · 92% confidence
+    </div>
+    <h1 class="text-[2rem] font-extrabold tracking-tight mb-2">Here's your pricing DNA.</h1>
+    <p class="text-[15px] text-bw-body mb-7 max-w-[56ch]">This is what we learned from your own bids. Confirm what's right, fix what's not. Everything here is a <span class="font-medium text-bw-text">charged price</span> — what you quote the customer. We never ask your cost or margin.</p>
+
+    <!-- products & prices -->
+    <div class="bg-white rounded-2xl border border-bw-border p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="font-semibold">Products &amp; charged prices</div>
+        <button class="text-[12px] text-bw-green font-semibold">+ Add product</button>
+      </div>
+      <div class="space-y-3">
+
+        <div class="dna confirmed">
+          <div class="card-inner border border-bw-border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Solar Shade · 5% openness <span class="font-normal text-bw-muted">(manual)</span></div>
+              <div class="text-[12px] text-bw-muted mt-0.5">from <span class="font-mono">520-Madison-proposal.pdf</span> + 1 other</div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <div class="flex items-center gap-1"><span class="text-bw-muted text-[13px]">$</span><input class="field w-20 border border-bw-border rounded-lg px-2 py-1.5 font-mono text-right text-[14px]" value="640"><span class="text-bw-muted text-[12px]">/win</span></div>
+              <button onclick="toggleConfirm(this)" class="confirm-btn inline-flex items-center gap-1.5 border border-bw-border rounded-full px-3 py-1.5 text-[12px] font-semibold">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                <span class="lbl">Confirm</span><span class="lbl-done">Confirmed</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dna confirmed">
+          <div class="card-inner border border-bw-border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Motorized Roller Shade</div>
+              <div class="text-[12px] text-bw-muted mt-0.5">from <span class="font-mono">520-Madison-proposal.pdf</span></div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <div class="flex items-center gap-1"><span class="text-bw-muted text-[13px]">$</span><input class="field w-20 border border-bw-border rounded-lg px-2 py-1.5 font-mono text-right text-[14px]" value="1480"><span class="text-bw-muted text-[12px]">/win</span></div>
+              <button onclick="toggleConfirm(this)" class="confirm-btn inline-flex items-center gap-1.5 border border-bw-border rounded-full px-3 py-1.5 text-[12px] font-semibold">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                <span class="lbl">Confirm</span><span class="lbl-done">Confirmed</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dna">
+          <div class="card-inner border border-bw-border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Continuous fascia &amp; closure <span class="font-normal text-bw-muted">(per linear ft)</span></div>
+              <div class="text-[12px] text-amber-700 mt-0.5 flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                seen once — please confirm this rate
+              </div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <div class="flex items-center gap-1"><span class="text-bw-muted text-[13px]">$</span><input class="field w-20 border border-bw-border rounded-lg px-2 py-1.5 font-mono text-right text-[14px]" value="18"><span class="text-bw-muted text-[12px]">/lf</span></div>
+              <button onclick="toggleConfirm(this)" class="confirm-btn inline-flex items-center gap-1.5 border border-bw-border rounded-full px-3 py-1.5 text-[12px] font-semibold">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                <span class="lbl">Confirm</span><span class="lbl-done">Confirmed</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- detected exclusions + voice -->
+    <div class="grid sm:grid-cols-2 gap-4 mb-2">
+      <div class="bg-white rounded-2xl border border-bw-border p-6">
+        <div class="font-semibold mb-1">Your standard exclusions</div>
+        <div class="text-[12px] text-bw-muted mb-3">Pulled from your proposals' boilerplate</div>
+        <ul class="text-[13px] text-bw-body space-y-1.5">
+          <li class="flex gap-2"><svg width="13" height="13" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Electrical rough-in (by others)</li>
+          <li class="flex gap-2"><svg width="13" height="13" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Structural blocking / backing</li>
+          <li class="flex gap-2"><svg width="13" height="13" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Permits &amp; filing</li>
+          <li class="flex gap-2"><svg width="13" height="13" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Removal of existing treatments</li>
+        </ul>
+      </div>
+      <div class="bg-white rounded-2xl border border-bw-border p-6">
+        <div class="font-semibold mb-1">Terms we found</div>
+        <div class="text-[12px] text-bw-muted mb-3">Reused on every generated proposal</div>
+        <div class="space-y-2.5 text-[13px]">
+          <div class="flex justify-between"><span class="text-bw-body">Payment</span><span class="font-medium">50% deposit / 50% completion</span></div>
+          <div class="flex justify-between border-t border-bw-border pt-2.5"><span class="text-bw-body">Warranty</span><span class="font-medium">2 yr labor + mfr</span></div>
+          <div class="flex justify-between border-t border-bw-border pt-2.5"><span class="text-bw-body">Quote valid</span><span class="font-medium">30 days</span></div>
+        </div>
+        <p class="text-[12px] text-bw-muted mt-3 pt-3 border-t border-bw-border">Edit these terms, exclusions &amp; disclaimers anytime in <a href="settings.html" class="text-bw-green font-semibold">Settings</a>.</p>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-5">
+      <button onclick="goStep(1)" class="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
+      <button onclick="goStep(3)" class="btn-fill inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3 rounded-full">
+        Looks right — continue
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 3: GAP-FILL (non-sensitive) ================= -->
+  <section id="step3" class="step rise">
+    <div class="eyebrow mb-3">Window Treatments · base pricing</div>
+    <h1 class="text-[2rem] font-extrabold tracking-tight mb-2">A few things your bids don't say.</h1>
+    <p class="text-[15px] text-bw-body mb-7 max-w-[56ch]">Quick, non-sensitive details that make your auto-generated bids sharper. Nothing about cost or margin — just how you operate.</p>
+
+    <form onsubmit="event.preventDefault();window.location='dashboard.html';" class="space-y-5">
+
+      <!-- default product when unspecified -->
+      <div class="bg-white rounded-2xl border border-bw-border p-6">
+        <label class="block font-semibold mb-1">When the spec doesn't name a product, default to…</label>
+        <p class="text-[13px] text-bw-body mb-4">Your safest assumption for a first-pass bid.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <label class="opt"><input type="radio" name="product" checked><div class="border border-bw-border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center text-bw-body">Solar 5%</div></label>
+          <label class="opt"><input type="radio" name="product"><div class="border border-bw-border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center text-bw-body">Solar 3%</div></label>
+          <label class="opt"><input type="radio" name="product"><div class="border border-bw-border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center text-bw-body">Roller</div></label>
+          <label class="opt"><input type="radio" name="product"><div class="border border-bw-border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center text-bw-body">Ask me</div></label>
+        </div>
+      </div>
+
+      <!-- minimum charge + lead time -->
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="bg-white rounded-2xl border border-bw-border p-6">
+          <label class="block font-semibold mb-1">Minimum job charge</label>
+          <p class="text-[13px] text-bw-body mb-4">We won't generate a bid below this.</p>
+          <div class="flex items-center gap-1.5"><span class="text-bw-muted">$</span><input class="field w-32 border border-bw-border rounded-lg px-3 py-2.5 font-mono text-right" value="2500"></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-bw-border p-6">
+          <label class="block font-semibold mb-1">Typical lead time</label>
+          <p class="text-[13px] text-bw-body mb-4">Stated on the proposal.</p>
+          <div class="flex items-center gap-2"><input class="field w-20 border border-bw-border rounded-lg px-3 py-2.5 font-mono text-right" value="6-8"><span class="text-[14px] text-bw-body">weeks ARO</span></div>
+        </div>
+      </div>
+
+      <!-- service area -->
+      <div class="bg-white rounded-2xl border border-bw-border p-6">
+        <label class="block font-semibold mb-1">Where do you take work?</label>
+        <p class="text-[13px] text-bw-body mb-4">Projects outside this get flagged as no-bid before you waste time.</p>
+        <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="NYC five boroughs, Westchester, Northern NJ">
+      </div>
+
+      <!-- what you skip -->
+      <div class="bg-white rounded-2xl border border-bw-border p-6">
+        <label class="block font-semibold mb-1">Anything you don't bid?</label>
+        <p class="text-[13px] text-bw-body mb-4">Helps us auto-skip the wrong projects. Optional.</p>
+        <div class="grid sm:grid-cols-2 gap-2 text-[13px]">
+          <label class="flex items-center gap-2.5"><input type="checkbox" class="accent-bw-green w-4 h-4"> Residential / single-family</label>
+          <label class="flex items-center gap-2.5"><input type="checkbox" checked class="accent-bw-green w-4 h-4"> Drive-thru / QSR only</label>
+          <label class="flex items-center gap-2.5"><input type="checkbox" class="accent-bw-green w-4 h-4"> Drapery / soft goods</label>
+          <label class="flex items-center gap-2.5"><input type="checkbox" class="accent-bw-green w-4 h-4"> Jobs under 10 windows</label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button type="button" onclick="goStep(2)" class="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
+        <button type="submit" class="btn-fill inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3 rounded-full">
+          Save my base model
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </section>
+
+</main>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Prototype:</span>
+  <a href="onboarding.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Onboarding</a>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Dashboard</a>
+  <a href="bid.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Bid</a>
+  <a href="network.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Network</a>
+  <a href="sent.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Sent</a>
+  <a href="settings.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Settings</a>
+</div>
+
+<script>
+function setRail(n){
+  for(var i=1;i<=3;i++){
+    var r=document.getElementById('rail'+i);
+    var dot=r.querySelector('span');
+    if(i<n){dot.className='w-6 h-6 rounded-full bg-bw-green text-white flex items-center justify-center text-[12px] font-bold';r.className='flex items-center gap-2 text-bw-text';}
+    else if(i===n){dot.className='w-6 h-6 rounded-full bg-bw-green text-white flex items-center justify-center text-[12px] font-bold';r.className='flex items-center gap-2 text-bw-text';}
+    else{dot.className='w-6 h-6 rounded-full bg-bw-border text-bw-body flex items-center justify-center text-[12px] font-bold';r.className='flex items-center gap-2 text-bw-muted';}
+  }
+}
+function goStep(n){
+  for(var i=1;i<=3;i++){document.getElementById('step'+i).classList.remove('active');}
+  document.getElementById('step'+n).classList.add('active');
+  setRail(n);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function startScan(){
+  document.getElementById('dropzone').classList.add('hidden');
+  document.getElementById('scanning').classList.remove('hidden');
+  setTimeout(function(){goStep(2);
+    // reset step1 visuals for if user goes back
+    document.getElementById('dropzone').classList.remove('hidden');
+    document.getElementById('scanning').classList.add('hidden');
+  },1900);
+}
+function toggleConfirm(btn){
+  btn.closest('.dna').classList.toggle('confirmed');
+}
+</script>
+
+</body>
+</html>

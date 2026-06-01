@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+.field{transition:border-color .12s ease,box-shadow .12s ease;}
+.field:focus{outline:none;border-color:#14A800;box-shadow:0 0 0 3px rgba(20,168,0,0.15);}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== APP HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="dashboard.html" class="flex items-center gap-2">
+        <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[14px] font-medium">
+        <a href="dashboard.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Bids</a>
+        <a href="network.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Network</a>
+        <a href="settings.html" class="px-3 py-2 rounded-lg bg-bw-green-tint text-bw-text">Settings</a>
+      </nav>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-bw-green to-bw-green-deep flex items-center justify-center text-white font-bold text-[13px]">TS</div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[840px] mx-auto px-6 py-10 pb-28">
+
+  <h1 class="text-[2rem] font-extrabold tracking-tight mb-1">Settings</h1>
+  <p class="text-[14px] text-bw-body mb-8">This information brands every bid we generate for you.</p>
+
+  <form onsubmit="event.preventDefault();window.location='dashboard.html';" class="space-y-6">
+
+    <!-- Company branding -->
+    <div class="bg-white rounded-2xl border border-bw-border p-6">
+      <div class="eyebrow mb-4">Company branding</div>
+
+      <div class="flex items-center gap-5 mb-6">
+        <div class="w-20 h-20 rounded-2xl bg-bw-surface border border-bw-border flex items-center justify-center flex-shrink-0">
+          <svg width="52" height="52" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="9" fill="#14A800"/>
+            <rect x="10" y="9" width="20" height="3" rx="1.5" fill="#fff"/>
+            <rect x="10" y="15" width="20" height="3" rx="1.5" fill="#fff" opacity=".82"/>
+            <rect x="10" y="21" width="20" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+            <line x1="20" y1="24" x2="20" y2="30.5" stroke="#fff" stroke-width="1.5"/>
+            <circle cx="20" cy="31.5" r="1.6" fill="#fff"/>
+          </svg>
+        </div>
+        <div>
+          <button type="button" class="btn-outline inline-flex items-center gap-1.5 bg-white text-bw-text font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+            Upload logo
+          </button>
+          <p class="text-[12px] text-bw-muted mt-2">PNG or SVG · appears on your letterhead</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[13px] font-medium mb-1.5">Company name</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="The Shade Company">
+        </div>
+        <div>
+          <label class="block text-[13px] font-medium mb-1.5">Website</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="www.shadesco.com">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-[13px] font-medium mb-1.5">Address</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="11 W 42nd St, Suite 900, New York, NY 10036">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-[13px] font-medium mb-1.5">One-line description</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="Commercial window treatments for hotels, offices & government — NYC metro.">
+        </div>
+      </div>
+    </div>
+
+    <!-- Sending identity -->
+    <div class="bg-white rounded-2xl border border-bw-border p-6">
+      <div class="flex items-center justify-between mb-1">
+        <div class="eyebrow">Sending identity</div>
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Verified
+        </span>
+      </div>
+      <p class="text-[13px] text-bw-body mb-4">How bids leave the platform. Replies route back to you — we never see them.</p>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="text-[14px] font-medium">Reply-to address</div>
+            <div class="text-[12px] text-bw-muted">GC replies land here</div>
+          </div>
+          <input class="field w-64 border border-bw-border rounded-lg px-3 py-2 text-[14px]" value="you@shadesco.com">
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-bw-border pt-3">
+          <div>
+            <div class="text-[14px] font-medium">Sending domain</div>
+            <div class="text-[12px] text-bw-muted">SPF + DKIM verified via Mailgun</div>
+          </div>
+          <span class="font-mono text-[13px] text-bw-body">bid.shadesco.com</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proposal boilerplate -->
+    <div class="bg-white rounded-2xl border border-bw-border p-6">
+      <div class="eyebrow mb-1">Proposal boilerplate</div>
+      <p class="text-[13px] text-bw-body mb-5">The standing text that appears on every bid we generate. Edit it here anytime. <a href="onboarding.html" class="text-bw-green font-semibold">Edit full pricing model →</a></p>
+
+      <!-- terms -->
+      <div class="grid sm:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label class="block text-[13px] font-medium mb-1.5">Payment terms</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="50% deposit / 50% on completion">
+        </div>
+        <div>
+          <label class="block text-[13px] font-medium mb-1.5">Warranty</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="2 yr labor + mfr warranty">
+        </div>
+        <div>
+          <label class="block text-[13px] font-medium mb-1.5">Quote valid for</label>
+          <input class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px]" value="30 days">
+        </div>
+      </div>
+
+      <!-- standard exclusions -->
+      <div class="border-t border-bw-border pt-5 mb-6">
+        <label class="block text-[13px] font-medium mb-1.5">Standard exclusions</label>
+        <p class="text-[12px] text-bw-muted mb-3">Listed on every proposal so scope is clear.</p>
+        <div id="exclusions" class="space-y-2">
+          <div class="excl flex items-center gap-2">
+            <input class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]" value="Electrical rough-in (by others)">
+            <button type="button" onclick="removeExcl(this)" class="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="excl flex items-center gap-2">
+            <input class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]" value="Structural blocking / backing">
+            <button type="button" onclick="removeExcl(this)" class="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="excl flex items-center gap-2">
+            <input class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]" value="Permits &amp; filing">
+            <button type="button" onclick="removeExcl(this)" class="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="excl flex items-center gap-2">
+            <input class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]" value="Removal of existing treatments">
+            <button type="button" onclick="removeExcl(this)" class="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+        <button type="button" onclick="addExcl()" class="mt-3 text-[13px] text-bw-green font-semibold">+ Add exclusion</button>
+      </div>
+
+      <!-- disclaimer / standard notes -->
+      <div class="border-t border-bw-border pt-5">
+        <label class="block text-[13px] font-medium mb-1.5">Disclaimer &amp; standard notes</label>
+        <p class="text-[12px] text-bw-muted mb-3">Appended to the bottom of every proposal — legal disclaimers, measurement caveats, anything you always say.</p>
+        <textarea rows="4" class="field w-full border border-bw-border rounded-lg px-3 py-2.5 text-[14px] leading-relaxed resize-y">Quantities are based on drawings provided and subject to field verification. Final measurements taken at site. Pricing assumes a single mobilization; additional trips billed at prevailing rates. Color/fabric subject to availability at time of order.</textarea>
+      </div>
+    </div>
+
+    <!-- save -->
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <a href="dashboard.html" class="text-[14px] font-semibold text-bw-body hover:text-bw-text">Cancel</a>
+      <button type="submit" class="btn-fill inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3 rounded-full">Save settings</button>
+    </div>
+  </form>
+</main>
+
+<script>
+function removeExcl(btn){ btn.closest('.excl').remove(); }
+function addExcl(){
+  var row=document.createElement('div');
+  row.className='excl flex items-center gap-2';
+  row.innerHTML='<input class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]" placeholder="New exclusion…">'+
+    '<button type="button" onclick="removeExcl(this)" class="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+  document.getElementById('exclusions').appendChild(row);
+  row.querySelector('input').focus();
+}
+</script>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Prototype:</span>
+  <a href="onboarding.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Onboarding</a>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Dashboard</a>
+  <a href="bid.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Bid</a>
+  <a href="network.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Network</a>
+  <a href="sent.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Sent</a>
+  <a href="settings.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Settings</a>
+</div>
+
+</body>
+</html>

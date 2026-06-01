@@ -1,0 +1,57 @@
+{
+  "project": "2160-Sunrise-Hwy-Merrick",
+  "source": "Estimate #14473 — The Shade Company, 05/21/2026 (the proposal actually submitted)",
+  "purpose": "Accuracy yardstick. The engine reads 'Permit and Bid Set.pdf' and we compare its extracted scope against this.",
+  "billTo": "U.S. Army Corps of Engineers — USACE Tenant Space, 2160 Sunrise Hwy, Merrick, NY 11566-4022",
+  "windowTreatmentTypes": [
+    {
+      "code": "WT1",
+      "product": "Motorized Roller Shade",
+      "motor": "Somfy Sonesse Ultra 50 HW",
+      "control": "HW wall switch (installed by electrician)",
+      "fabric": "Screen Shade 3% open (Rollease HD equivalent)",
+      "color": "White / White",
+      "fascia": "Anodized fascia valance"
+    },
+    {
+      "code": "MB1",
+      "product": "Manual Aluminum Blind",
+      "control": "Cordless",
+      "material": "1\" Classic Aluminum",
+      "color": "TBD",
+      "mounting": "Hold-down brackets"
+    },
+    {
+      "code": "FPS1",
+      "product": "Fixed Roller Shade",
+      "control": "Chain loop (secured)",
+      "fabric": "Screen Shade 3% open (Rollease HD equivalent)",
+      "color": "White / White",
+      "fascia": "Anodized fascia valance"
+    }
+  ],
+  "lineItems": [
+    { "code": "WT1", "config": "2 shades on 1 motor set", "qtySets": 2, "shadesPerSet": 2, "rate": 2143.0, "amount": 4286.0 },
+    { "code": "WT1", "config": "3 shades on 1 motor set", "qtySets": 2, "shadesPerSet": 3, "rate": 2927.0, "amount": 5854.0 },
+    { "code": "WT1", "config": "1 shade set", "qtySets": 1, "shadesPerSet": 1, "rate": 1359.0, "amount": 1359.0 },
+    { "code": "MB1", "config": "manual cordless 1\"", "qty": 8, "rate": 500.0, "amount": 4000.0 },
+    { "code": "MB1", "config": "manual cordless 1\"", "qty": 4, "rate": 350.0, "amount": 1400.0 },
+    { "code": "FPS1", "config": "fixed chain loop", "qty": 2, "rate": 264.0, "amount": 528.0 },
+    { "code": "DISCOUNT", "config": "20% off", "qty": 1, "rate": -3485.0, "amount": -3485.0 },
+    { "code": "INSTALL", "config": "installation fee", "qty": 1, "rate": 1675.0, "amount": 1675.0 }
+  ],
+  "unitTotals": {
+    "motorizedRollerShades": 11,
+    "manualAluminumBlinds": 12,
+    "fixedRollerShades": 2,
+    "totalWindowTreatments": 25
+  },
+  "totals": {
+    "partsSubtotal": 15617.0,
+    "subtotal": 15617.0,
+    "salesTaxRate": 0.08875,
+    "salesTax": 1386.01,
+    "total": 17003.01
+  },
+  "notes": "Pricing is by motor-set configuration, not flat per-shade: shared-motor ganging changes the per-shade price (2-on-1 = $1,071.50/shade, 3-on-1 = $975.67/shade, single = $1,359/shade). The engine must read shade ganging from the drawings, not just count units."
+}

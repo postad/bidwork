@@ -1,0 +1,44 @@
+{
+  "tradeId": "epoxy-floors",
+  "label": "Epoxy / Resinous Flooring",
+  "version": "0.1.0",
+
+  "groupBy": ["level", "room"],
+
+  "router": {
+    "comment": "CRITICAL disambiguation: 'epoxy' in construction docs is usually epoxy ANCHORS/ADHESIVE (structural) or epoxy nose filler (stair treads) — NOT epoxy flooring. Route on FLOORING context, and treat anchor/adhesive mentions as negative signals.",
+    "keywords": [
+      "epoxy floor", "epoxy flooring", "resinous flooring", "fluid-applied flooring", "fluid applied",
+      "09 67 00", "09 61 00", "09 62 00", "self-leveling epoxy", "urethane cement", "urethane mortar",
+      "broadcast quartz", "MMA flooring", "methyl methacrylate", "polished concrete", "sealed concrete floor",
+      "floor coating", "seamless flooring", "troweled flooring", "cove base integral"
+    ],
+    "negativeKeywords": [
+      "epoxy anchor", "epoxy adhesive", "adhesive anchor", "hit-hy", "hit-z", "re-500", "rebar dowel",
+      "doweled", "post-installed", "epoxy nose filler", "nose filler", "epoxy cartridge", "anchor bolt"
+    ]
+  },
+
+  "noBidSignals": [
+    "floor finishes specified are resilient only (VCT, LVT, sheet vinyl, rubber, carpet, wood) with no epoxy/resinous system",
+    "every 'epoxy' reference is an adhesive/anchor or nose filler, not a floor coating",
+    "no Division 09 6x fluid-applied/resinous flooring specification present",
+    "structural-only set with no architectural floor-finish schedule"
+  ],
+
+  "scopeDrivers": [
+    { "key": "epoxy_area",    "label": "Epoxy/resinous floor area by room (SF)", "pricingUnit": "per-sqft", "blocking": true },
+    { "key": "system",        "label": "Coating system & build (primer/broadcast/topcoat, mils)", "pricingUnit": "per-system" },
+    { "key": "substrate_prep","label": "Substrate prep (shot-blast, grind, moisture mitigation)", "pricingUnit": "per-sqft" },
+    { "key": "cove_base",     "label": "Integral cove base (LF)", "pricingUnit": "per-lf" }
+  ],
+
+  "requiredEvidence": [
+    { "key": "finish_schedule", "label": "Floor-finish schedule (which rooms get epoxy)", "blocking": true },
+    { "key": "div09_spec",      "label": "Division 09 6x resinous/fluid-applied flooring spec", "blocking": true },
+    { "key": "floor_areas",     "label": "Floor areas by room (SF)", "blocking": true },
+    { "key": "substrate_info",  "label": "Slab / substrate condition", "blocking": false }
+  ],
+
+  "expectedDocuments": ["architectural finish schedule", "floor-finish plans", "Division 09 67 00 specification"]
+}

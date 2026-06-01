@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — New bid request (admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7','bw-blue':'#1D4ED8','bw-blue-tint':'#DBEAFE','bw-red':'#B91C1C','bw-red-tint':'#FEE2E2','bw-purple':'#6D28D9','bw-purple-tint':'#EDE9FE'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+.field{transition:border-color .12s ease,box-shadow .12s ease;}
+.field:focus{outline:none;border-color:#14A800;box-shadow:0 0 0 3px rgba(20,168,0,0.15);}
+.drop{transition:border-color .15s ease,background-color .15s ease;}
+.drop.over{border-color:#14A800;background:#E8F5E4;}
+input[type=range]{accent-color:#14A800;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== ADMIN HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="admin-queue.html" class="flex items-center gap-2">
+        <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[14px] font-medium">
+        <a href="admin-queue.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Bid requests</a>
+        <a href="#" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Contractors</a>
+        <a href="#" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Trades</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-purple bg-bw-purple-tint rounded-full px-3 py-1.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4z"/></svg> Operator console
+      </span>
+      <div class="w-9 h-9 rounded-full bg-bw-dark flex items-center justify-center text-white font-bold text-[13px]">OP</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[760px] mx-auto px-6 py-10">
+
+  <!-- breadcrumb + heading -->
+  <a href="admin-queue.html" class="inline-flex items-center gap-1.5 text-[13px] text-bw-body hover:text-bw-text mb-5">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+    Bid requests
+  </a>
+  <div class="eyebrow mb-2">Operator · BidWork</div>
+  <h1 class="text-[2rem] font-extrabold tracking-tight mb-1">New bid request</h1>
+  <p class="text-[14px] text-bw-body mb-8 max-w-[58ch]">Upload the full document set and set the area. You don't pick a trade — BidWork scores <span class="font-medium text-bw-text">every trade in the system</span> and dispatches a priced proposal only to the trades it's relevant to.</p>
+
+  <!-- STEP 1 · Upload -->
+  <div class="bg-white rounded-2xl border border-bw-border p-6 mb-5">
+    <div class="flex items-center gap-2.5 mb-4">
+      <span class="w-6 h-6 rounded-full bg-bw-green text-white text-[12px] font-bold flex items-center justify-center">1</span>
+      <h2 class="font-bold text-[16px]">The documents</h2>
+    </div>
+
+    <!-- drop zone -->
+    <div id="drop" class="drop border-2 border-dashed border-bw-border rounded-xl px-6 py-10 text-center cursor-pointer">
+      <div class="w-12 h-12 rounded-xl bg-bw-green-tint flex items-center justify-center mx-auto mb-3">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg>
+      </div>
+      <div class="font-semibold text-[15px]">Drop the bid package here</div>
+      <div class="text-[13px] text-bw-body mt-1">ITB / RFP, drawings, specs — PDFs up to the full 100–200 page set. <span class="text-bw-muted">Or <span class="text-bw-green font-medium underline">browse files</span>.</span></div>
+    </div>
+
+    <!-- file list (sample) -->
+    <div class="mt-4 space-y-2" id="fileList">
+      <div class="flex items-center gap-3 bg-bw-surface rounded-lg px-3.5 py-2.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0"><div class="text-[13px] font-medium truncate">520-Madison-ITB-full-set.pdf</div></div>
+        <span class="text-[12px] text-bw-muted font-mono">182 pp · 28.4 MB</span>
+      </div>
+      <div class="flex items-center gap-3 bg-bw-surface rounded-lg px-3.5 py-2.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0"><div class="text-[13px] font-medium truncate">A-200-series-drawings.pdf</div></div>
+        <span class="text-[12px] text-bw-muted font-mono">36 pp · 11.1 MB</span>
+      </div>
+      <div class="flex items-center gap-3 bg-bw-surface rounded-lg px-3.5 py-2.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0"><div class="text-[13px] font-medium truncate">Division-12-specs.pdf</div></div>
+        <span class="text-[12px] text-bw-muted font-mono">24 pp · 3.2 MB</span>
+      </div>
+      <div class="text-[12px] text-bw-muted px-1">3 files · 242 pages · stored in Supabase Storage</div>
+    </div>
+  </div>
+
+  <!-- STEP 2 · Area -->
+  <div class="bg-white rounded-2xl border border-bw-border p-6 mb-5">
+    <div class="flex items-center gap-2.5 mb-1">
+      <span class="w-6 h-6 rounded-full bg-bw-green text-white text-[12px] font-bold flex items-center justify-center">2</span>
+      <h2 class="font-bold text-[16px]">The area</h2>
+    </div>
+    <p class="text-[13px] text-bw-body mb-4 pl-[34px]">A radius from a center ZIP. The same bid fans out to every matched contractor in range.</p>
+
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-2">Center ZIP</label>
+        <input value="10018" class="field w-full border border-bw-border rounded-lg px-3.5 py-2.5 text-[15px] font-mono">
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-2">Radius</label>
+        <div class="flex items-center gap-3">
+          <input id="radius" type="range" min="10" max="250" value="100" step="5" class="flex-1" oninput="document.getElementById('rv').textContent=this.value">
+          <span class="text-[15px] font-mono font-semibold w-[78px] text-right"><span id="rv">100</span> mi</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 mt-4 bg-bw-surface rounded-lg px-3.5 py-3 text-[13px] text-bw-body">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span><span class="font-semibold text-bw-text">100 mi from 10018</span> — covers the NYC metro, Long Island, lower Hudson Valley, northern NJ and parts of CT.</span>
+    </div>
+  </div>
+
+  <!-- auto-trade note -->
+  <div class="bg-bw-green-tint border border-bw-green-tint-2 rounded-2xl p-5 mb-6 flex items-start gap-3">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B6B00" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <div>
+      <div class="font-semibold text-[14px] text-bw-green-deep mb-0.5">No trade to pick.</div>
+      <p class="text-[13px] text-bw-body">On upload, BidWork triages the package and scores it against <span class="font-medium text-bw-text">all 6 trades</span> in the system — bid / no-bid each, with a reason. One package can be relevant to several trades; off-scope trades drop out. You confirm the matches on the next screen.</p>
+    </div>
+  </div>
+
+  <!-- actions -->
+  <div class="flex items-center justify-end gap-3">
+    <a href="admin-queue.html" class="btn-outline bg-white text-bw-body font-semibold text-[14px] px-5 py-2.5 rounded-full border border-bw-border">Cancel</a>
+    <a href="admin-review.html" class="btn-fill inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[14px] px-6 py-2.5 rounded-full">
+      Upload &amp; analyze
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+  <p class="text-[12px] text-bw-muted text-right mt-3">~$1.50 / package · Haiku triage → trade scoring → Opus extraction. Nothing dispatches until you review.</p>
+
+</main>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Admin:</span>
+  <a href="admin-queue.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Queue</a>
+  <a href="admin-upload.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Upload</a>
+  <a href="admin-review.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Review &amp; dispatch</a>
+  <span class="text-bw-border px-1">|</span>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Contractor app →</a>
+</div>
+
+<script>
+var drop=document.getElementById('drop');
+['dragenter','dragover'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add('over');});});
+['dragleave','drop'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove('over');});});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Project brief for Claude Code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7','bw-blue':'#1D4ED8','bw-blue-tint':'#DBEAFE','bw-red':'#B91C1C','bw-red-tint':'#FEE2E2','bw-purple':'#6D28D9','bw-purple-tint':'#EDE9FE'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+.card{background:#fff;border:1px solid #E5E7EB;border-radius:1rem;}
+h2{scroll-margin-top:90px;}
+.tag{display:inline-flex;align-items:center;gap:.35rem;font-size:11px;font-weight:600;border-radius:9999px;padding:.2rem .6rem;}
+.toc a{display:block;padding:.3rem .6rem;border-radius:.5rem;color:#5E6D55;font-size:13px;font-weight:500;}
+.toc a:hover{background:#E8F5E4;color:#001E00;}
+.prose p{line-height:1.65;}
+code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;background:#F7F7F7;border:1px solid #E5E7EB;border-radius:.35rem;padding:.05rem .35rem;}
+.step-num{flex-shrink:0;width:26px;height:26px;border-radius:9999px;background:#E8F5E4;color:#0B6B00;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1100px] mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2">
+      <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      <span class="ml-2 text-[13px] text-bw-muted font-medium hidden sm:inline">Project brief</span>
+    </a>
+    <span class="tag bg-bw-green-tint text-bw-green-deep">For Claude Code · greenfield rebuild</span>
+  </div>
+</header>
+
+<div id="top" class="max-w-[1100px] mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-10">
+
+  <!-- ===== TOC ===== -->
+  <aside class="hidden lg:block">
+    <div class="sticky top-24 toc">
+      <div class="text-[11px] font-semibold text-bw-muted uppercase tracking-wider px-1.5 mb-2">On this page</div>
+      <a href="#overview">1 · What we're building</a>
+      <a href="#who">2 · Who it's for</a>
+      <a href="#values">3 · Core values</a>
+      <a href="#engine">4 · The bid engine ★</a>
+      <a href="#flow">5 · End-to-end flow</a>
+      <a href="#system">6 · The system, screen by screen</a>
+      <a href="#network">7 · Network &amp; say-hi</a>
+      <a href="#replies">8 · Reply tracking</a>
+      <a href="#stack">9 · Tech stack</a>
+      <a href="#billing">10 · Plans &amp; billing</a>
+      <a href="#constraints">11 · Hard constraints</a>
+      <a href="#open">12 · Decisions</a>
+      <a href="#proto">13 · The prototype</a>
+    </div>
+  </aside>
+
+  <!-- ===== CONTENT ===== -->
+  <main class="prose max-w-none">
+
+    <!-- HERO -->
+    <div class="eyebrow mb-3">Product brief · v2 · 2026-06-01</div>
+    <h1 class="text-[2.4rem] font-extrabold tracking-tight leading-tight mb-3">BidWork — multi-tenant auto-bidding for trade subcontractors</h1>
+    <p class="text-[16px] text-bw-body max-w-[62ch] mb-5">
+      BidWork takes an incoming bid invitation (ITB/RFP), reads the drawings and specs, and auto-drafts a professional, branded proposal for the subcontractor — priced from <em>their own</em> charged prices. The contractor reviews, optionally edits, and sends in one click. Replies route straight back to their inbox. Alongside bidding, the platform builds the contractor's <strong>network</strong> by surfacing every relevant person found in the project documents and sending warm "say-hi" intros.
+    </p>
+    <div class="card p-4 text-[13px] text-bw-body flex flex-wrap gap-x-6 gap-y-2 mb-2">
+      <span><span class="text-bw-muted">Brand</span> &nbsp;<strong class="text-bw-text">BidWork</strong></span>
+      <span><span class="text-bw-muted">First tenant</span> &nbsp;<strong class="text-bw-text">The Shade Company</strong> (commercial window treatments, NYC metro)</span>
+      <span><span class="text-bw-muted">Predecessor</span> &nbsp;<strong class="text-bw-text">BidER MVP</strong> (single-company, retired)</span>
+      <span><span class="text-bw-muted">Direction</span> &nbsp;<strong class="text-bw-text">Greenfield rebuild</strong></span>
+    </div>
+    <p class="text-[13px] text-bw-muted mb-10">This document is the source of truth for the rebuild. The current repo (BidER) is a tiny single-company MVP whose UI/UX and data model are wrong for a multi-tenant product — start fresh, carry over only what's noted.</p>
+
+    <!-- 1 OVERVIEW -->
+    <h2 id="overview" class="text-[1.5rem] font-extrabold tracking-tight mb-3">1 · What we're building</h2>
+    <p class="text-[15px] text-bw-body mb-4">
+      A multi-tenant SaaS that automates the most painful, repetitive part of running a specialty trade business: <strong>responding to bid invitations</strong>. The operator (admin) sources bid opportunities and distributes them to subscribing contractors, each receiving a finished draft bid built from their own pricing — effectively a <strong>lead-distribution + auto-bid marketplace</strong>, not just a self-serve tool.
+    </p>
+    <div class="grid sm:grid-cols-2 gap-3 mb-10">
+      <div class="card p-4">
+        <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Phase 1</div>
+        <p class="text-[14px] text-bw-body">Operator sources ITBs, uploads them, and the system assigns each to the relevant contractors with an auto-drafted bid ready to review.</p>
+      </div>
+      <div class="card p-4">
+        <div class="tag bg-bw-blue-tint text-bw-blue mb-2">Phase 2</div>
+        <p class="text-[14px] text-bw-body">Contractors upload their own bid documents directly; the same pipeline drafts the proposal.</p>
+      </div>
+    </div>
+
+    <!-- 2 WHO -->
+    <h2 id="who" class="text-[1.5rem] font-extrabold tracking-tight mb-3">2 · Who it's for</h2>
+    <p class="text-[15px] text-bw-body mb-4">
+      <strong>Local service contractors</strong> who bid frequently and price from repeatable units. We start with <strong>window treatments</strong> and expand across local trades. The architecture is <strong>vertical-agnostic</strong>: a per-vertical knowledgebase defines what "a unit" and "a price" mean for each trade (see §4 and <a href="../UPGRADE-PLAN.md" class="text-bw-green font-medium">UPGRADE-PLAN.md</a>).
+    </p>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <span class="tag bg-bw-green-tint text-bw-green-deep">Window treatments <span class="font-normal opacity-70">· first</span></span>
+      <span class="tag bg-bw-surface text-bw-body border border-bw-border">Epoxy floors</span>
+      <span class="tag bg-bw-surface text-bw-body border border-bw-border">Garbage removal &amp; cleaning</span>
+      <span class="tag bg-bw-surface text-bw-body border border-bw-border">HVAC</span>
+      <span class="tag bg-bw-surface text-bw-body border border-bw-border">…more local services</span>
+    </div>
+    <div class="card p-4 text-[14px] text-bw-body mb-3">
+      <strong class="text-bw-text">Two roles:</strong>
+      <ul class="list-disc pl-5 mt-2 space-y-1">
+        <li><strong>Admin / operator</strong> — sources bid-request documents and uploads each with a <strong>geo location as a radius</strong> (e.g. "100&nbsp;mi from zip 10018"). Admin does <em>not</em> pick the trade — the system suggests it (see below).</li>
+        <li><strong>Contractor (tenant user)</strong> — sets up their Pricing DNA, receives ready bids, reviews/edits/sends, grows their network.</li>
+      </ul>
+    </div>
+    <div class="card p-4 text-[14px] text-bw-body mb-10 border-l-4 border-bw-green">
+      <strong class="text-bw-text">Auto trade-relevance + geo dispatch.</strong> On upload, the system scores the document against <strong>every trade in the system</strong> and suggests <strong>bid / no-bid per trade</strong> — one bid can apply to several trades, while trades with no relevant scope score no-bid and drop out. Each relevant trade then dispatches a tailored, individually-priced proposal to every contractor in that trade <strong>within the geo radius</strong>.
+    </div>
+
+    <!-- 3 VALUES -->
+    <h2 id="values" class="text-[1.5rem] font-extrabold tracking-tight mb-3">3 · Core values <span class="text-[13px] font-medium text-bw-muted">— the things that must be excellent</span></h2>
+    <div class="grid sm:grid-cols-2 gap-3 mb-10">
+      <div class="card p-4"><div class="font-semibold mb-1">Accuracy in bidding</div><p class="text-[13px] text-bw-body">Drafts must be trustworthy, and the system <strong>learns from every bid</strong> as the data grows (per-tenant).</p></div>
+      <div class="card p-4"><div class="font-semibold mb-1">One-click send</div><p class="text-[13px] text-bw-body">From "bid ready" to "delivered to the GC" with a preview and a single confirm.</p></div>
+      <div class="card p-4"><div class="font-semibold mb-1">Network building</div><p class="text-[13px] text-bw-body">Warm intro emails to GCs, architects, owners — get on more bid lists. Considered possibly the biggest value-add.</p></div>
+      <div class="card p-4"><div class="font-semibold mb-1">Ease of use</div><p class="text-[13px] text-bw-body">A contractor should never feel like they're operating software.</p></div>
+    </div>
+
+    <!-- 4 BID ENGINE -->
+    <h2 id="engine" class="text-[1.5rem] font-extrabold tracking-tight mb-3">4 · The bid engine <span class="tag bg-bw-green text-white align-middle ml-1">The core ★</span></h2>
+    <p class="text-[15px] text-bw-body mb-4">
+      This is the heart of the product: take a <strong>100–200 page bid-request document</strong> (drawings + specs) and produce a finished, sendable proposal <strong>for each matched contractor</strong>, priced from <em>their own</em> Pricing DNA. Everything else (network, send flow) orbits this. Detailed design lives in <a href="../UPGRADE-PLAN.md" class="text-bw-green font-medium">UPGRADE-PLAN.md</a> — summary below.
+    </p>
+
+    <div class="card p-5 mb-3">
+      <div class="text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-3">Pipeline · one document → relevant trades → one proposal per matched contractor</div>
+      <ol class="space-y-3 text-[14px] text-bw-body">
+        <li class="flex gap-3"><span class="step-num">1</span><span><strong>Route &amp; render</strong> — a deterministic router pre-classifies pages; each renders to an image with <strong>rotation auto-corrected</strong> and <strong>large drawing sheets tiled</strong>. <strong>Page-hash caching</strong> makes re-runs cheap; respects the 32&nbsp;MB / 100-page API limits.</span></li>
+        <li class="flex gap-3"><span class="step-num">2</span><span><strong>Triage (Haiku)</strong> — cheaply identifies the pages that actually matter (schedules, plans, relevant CSI sections) so the expensive model only reads what counts.</span></li>
+        <li class="flex gap-3"><span class="step-num">3</span><span><strong>Score trades (no-bid gate)</strong> — evaluate the package against <strong>every vertical's signals</strong> and emit a <strong>bid / no-bid relevance score per trade</strong>. One document can be relevant to several trades; trades with no scope score no-bid and drop out. Admin sees these suggestions on upload. Reuses the MVP's yes-bid / no-bid signal logic (e.g. the 7&nbsp;Brew drive-thru → no window scope pattern).</span></li>
+        <li class="flex gap-3"><span class="step-num">4</span><span><strong>Extract (Opus)</strong> — for <em>each relevant trade</em>, structured extraction into that vertical's schema: units, room types, area, attributes (motorization, blackout vs. solar…), timeline, contacts. Every field carries a <strong>confidence score + page citation</strong>, and the result is <strong>schema-validated</strong>. ~$1.50/project. Replaces the MVP's regex <code>scanner.py</code>.</span></li>
+        <li class="flex gap-3"><span class="step-num">5</span><span><strong>Flag gaps</strong> — measure the extracted scope against the vertical's <strong>required-evidence checklist</strong> + the document <strong>reference graph</strong>, and flag anything required-but-empty, low-confidence, conflicting, or pointing to a sheet that wasn't uploaded. <em>Absence is only detectable against an expectation</em> — see the card below.</span></li>
+        <li class="flex gap-3"><span class="step-num">6</span><span><strong>Price from Pricing DNA</strong> — apply the contractor's charged prices (per-unit / per-sqft / per-ton / hourly / mixed) to the extracted scope. <strong>Per-tenant</strong> — never another contractor's numbers.</span></li>
+        <li class="flex gap-3"><span class="step-num">7</span><span><strong>Draft the proposal</strong> — assemble a branded, client-ready document per contractor (one per relevant trade × matched contractor): scope, line-item pricing, exclusions, terms, timeline — using their logo + boilerplate. Pricing is grouped <strong>by location to match the drawings</strong> (see Proposal structure below).</span></li>
+      </ol>
+      <div class="card p-4 border-l-4 border-bw-green mt-4">
+        <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Decided · proposal structure</div>
+        <p class="text-[13px] text-bw-body"><strong>Group the proposal by location, not by product.</strong> Plans are organized by floor → room/area/zone, so the proposal mirrors that — <em>Floor 23 · Boardroom 2302 · 3 motorized rollers · $4,440</em> — instead of one product roll-up (<em>14 motorized × $1,480</em>). It proves we read the drawings and lets the GC verify line-by-line against their own set. The grouping dimension is <strong>vertical-configurable</strong> (floor/room for shades &amp; cleaning, area/slab for epoxy, system/zone for HVAC) — one pattern, every trade.</p>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1 mt-2">
+          <li><strong>Pricing DNA is unchanged</strong> — each location line still ties to a charged-price item (per-unit/sqft/LF). We only re-group the same line items; learning-loop diffs still work per line.</li>
+          <li><strong>"By product" toggle</strong> — a one-click roll-up by product/system for the GC's value-engineering view. Location is the default; product is the summary.</li>
+          <li><strong>Per-line "what we read" note</strong> — a tap-to-open, plain-language tooltip on each location line (source sheet, assumptions, any open flag). It's a <strong>contractor-facing sanity check</strong> during review — confirm our read matches reality — and does <strong>not</strong> print on the GC proposal. The separate "Notes to GC" block (§6) is what prints. Prototyped in <code>bid.html</code>.</li>
+        </ul>
+      </div>
+      <p class="text-[12px] text-bw-muted mt-3 pt-3 border-t border-bw-border">Why not regex: text-only scraping can't count units, garbles drawing text, and reads only a handful of title blocks. Vision reading the rendered pages is what makes the scope trustworthy.</p>
+    </div>
+
+    <div class="card p-5 mb-3 border-l-4 border-bw-green">
+      <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Decided · single-pass multi-trade scan</div>
+      <p class="text-[13px] text-bw-body"><strong>One upload is read once and scored against every trade in the system</strong> — not a per-trade upload. The expensive 100–200&nbsp;page read (render + route + relevance scan) happens <strong>a single time</strong> and emits a <strong>bid/no-bid score per trade</strong> in one pass; the costly Opus extraction then runs <strong>only for the trades that scored bid</strong>. A package relevant to 1 of 6 trades costs ≈ one scan + one extraction, not six full runs.</p>
+      <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1 mt-2">
+        <li><strong>Prompt caching</strong> caches the document so any per-trade calls pay the document tokens ~once (~10% on cache reads); combined with the <strong>page-hash render cache</strong>, re-runs and multi-trade scoring are cheap.</li>
+        <li><strong>The relevance gate is semantic, not keyword</strong> — validated on a real epoxy package where all 12 “epoxy” mentions were anchors/adhesive, not flooring (a keyword router would have mis-bid it). Borderline scores are <strong>admin-confirmed</strong>, never silently dropped.</li>
+        <li>Validated across three live verticals (window treatments priced to the penny; cleaning; epoxy). See <code>spike/FINDINGS.md</code> and <a href="BUILD-PLAN.md" class="text-bw-green font-medium">BUILD-PLAN.md</a>.</li>
+      </ul>
+    </div>
+
+    <!-- gap detection -->
+    <div class="card p-5 mb-3">
+      <div class="font-semibold mb-1">How gaps are detected <span class="text-[13px] font-normal text-bw-muted">— including the "unknown unknowns"</span></div>
+      <p class="text-[13px] text-bw-body mb-3">You can't detect an absence in a vacuum. A gap is only knowable <strong>relative to an expectation</strong>, so the system compares what extraction returned against the vertical's <strong>required-evidence checklist</strong> + the document <strong>reference graph</strong> — not against "what the model happened to notice." Five distinct kinds of gap, five detectors:</p>
+      <div class="space-y-2.5 text-[13px] text-bw-body">
+        <div class="flex gap-3"><span class="tag bg-bw-amber-tint text-bw-amber flex-shrink-0">1 · Required-but-empty</span><span>The vertical config declares the fields needed to price the job. Any required slot returned <code>null</code> or below a confidence threshold → flagged. The checklist is what makes the gap knowable.</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-amber-tint text-bw-amber flex-shrink-0">2 · Low-confidence / conflicting</span><span>Found but uncertain, <em>or</em> two sources disagree (schedule says 5% openness, spec says 3%). Cross-source check flags the conflict with both citations.</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-amber-tint text-bw-amber flex-shrink-0">3 · Internal inconsistency</span><span>Elevations imply ~40 windows; the schedule lists 32. Quantity reconciliation across drawings vs. schedule flags the mismatch.</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-red-tint text-bw-red flex-shrink-0">4 · Missing document</span><span><strong>The true unknown unknown.</strong> Two mechanisms: an <strong>expected-document-set check</strong> (triage classifies which doc types / CSI sections are present; if the vertical expects a window schedule and none was classified → flag), and <strong>reference-chasing</strong> (a sheet cites "see A-601" or "spec 12 24 00"; if it isn't in the package → flag).</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-surface text-bw-body border border-bw-border flex-shrink-0">5 · No-bid / out-of-scope</span><span>Detect whether it's even biddable (e.g. drive-thru-only projects have no window scope).</span></div>
+      </div>
+      <div class="mt-3 pt-3 border-t border-bw-border text-[13px] text-bw-body space-y-1.5">
+        <p><strong>The model must be allowed to say "not found"</strong> — structured output with explicit nulls + reasons, so it never hallucinates a value to fill the schema. A confident-but-wrong number is more dangerous than a flagged blank.</p>
+        <p><strong>Honest residual limit:</strong> info that's genuinely absent, unreferenced, and off-checklist can't be guaranteed-caught. Mitigations: every assumption is surfaced explicitly in the proposal ("Assumes 5% openness — confirm") never silently; conservative defaults are always flagged; human-in-the-loop review is the backstop; and the learning loop lowers a field's prior confidence when contractors keep correcting it.</p>
+      </div>
+    </div>
+
+    <!-- who sees gaps -->
+    <div class="card p-5 mb-3">
+      <div class="font-semibold mb-1">Who sees which gaps</div>
+      <p class="text-[13px] text-bw-body mb-3">Two audiences, two tiers. Admin owns the integrity of the <strong>request</strong>; the contractor owns the integrity of <strong>their proposal against that request</strong>.</p>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div class="border border-bw-border rounded-xl p-4">
+          <div class="tag bg-bw-blue-tint text-bw-blue mb-2">Admin · at upload</div>
+          <p class="text-[13px] text-bw-body">Adds the <strong>trade</strong> + the documents. Sees <strong>document-level gaps</strong>: references to sheets/specs that weren't uploaded (e.g. "cites A-601 — not in package") and other completeness gaps <em>within the bid request itself</em>. These are the same for everyone the bid dispatches to, so admin resolves/chases them <strong>before dispatch</strong>. <strong>Gating is severity-based:</strong> a <em>critical</em> gap (pricing impossible) blocks dispatch; everything else dispatches with a visible caveat. Which evidence is bid-blocking is declared per trade in the vertical config.</p>
+        </div>
+        <div class="border border-bw-border rounded-xl p-4">
+          <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Contractor · in bid review</div>
+          <p class="text-[13px] text-bw-body">Sees the gap <strong>between the bid request and their own proposal</strong> — the scope/pricing items to confirm to finalize <em>their</em> bid ("We read 32 windows — confirm?", "Assumes 5% openness — change?"), as plain-language flags inside the bid (§6). <strong>Never the raw scan.</strong></p>
+        </div>
+      </div>
+      <p class="text-[12px] text-bw-muted mt-3">Raw extraction output (confidence + citations) is an internal/QA artifact — neither party reads it as raw data.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-3 mb-3">
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Pricing DNA</div>
+        <p class="text-[13px] text-bw-body">The contractor's pricing model — <strong>charged prices only</strong>, learned from their own past bids (onboarding calls it "your pricing DNA"). It's what makes every drafted bid theirs. Stored and trained <strong>per-tenant</strong>; improves with every edit. Never cost or margin (see §10).</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">One engine, config per vertical</div>
+        <p class="text-[13px] text-bw-body">A single config-driven engine — <strong>not</strong> a scanner per trade. Each vertical is one JSON knowledgebase (units, products, attributes, pricing model, scan keywords, CSI map, exclusions, terms, and a <strong><code>requiredEvidence</code> completeness checklist + expected-document set</strong> that the gap-detection step measures against) + an agent prompt. <strong>Adding a trade = adding a config, not writing code.</strong></p>
+      </div>
+    </div>
+    <div class="card p-4 text-[13px] text-bw-body mb-3 border-l-4 border-bw-green">
+      <div class="font-semibold text-bw-text mb-1">Accuracy &amp; the learning loop</div>
+      <p><strong>Nothing auto-sends.</strong> Extraction is <strong>confidence-gated with human-in-the-loop</strong> review. The system then learns from the <strong>gap between the draft and the contractor's edits</strong> — field-level diffs (quantity / price / line-item / wording) feed back into their Pricing DNA. This forces bids to be stored as <strong>structured data, not DOCX blobs</strong>, so every edit is diffable; the PDF/DOCX is an <em>output</em>, not the source of truth.</p>
+    </div>
+    <div class="card p-4 text-[13px] text-bw-body mb-10">
+      <strong class="text-bw-text">Why it's the moat:</strong> accuracy compounds. Each reviewed/edited bid sharpens that contractor's Pricing DNA, and cross-tenant pooling of <em>document-understanding</em> patterns (never pricing) makes extraction smarter for everyone. The engine that reads a 200-page set correctly and prices it in the contractor's own voice is the hard, defensible part.
+    </div>
+
+    <!-- 5 FLOW -->
+    <h2 id="flow" class="text-[1.5rem] font-extrabold tracking-tight mb-3">5 · End-to-end flow</h2>
+    <div class="card p-5 mb-10">
+      <ol class="space-y-3 text-[14px] text-bw-body">
+        <li class="flex gap-3"><span class="step-num">1</span><span>System generates a <strong>base questionnaire per vertical</strong>.</span></li>
+        <li class="flex gap-3"><span class="step-num">2</span><span>Contractor answers it about their pricing → saved as their <strong>Pricing DNA</strong> (charged prices only — see constraints).</span></li>
+        <li class="flex gap-3"><span class="step-num">3</span><span>Admin uploads a bid document (ITB/RFP) with a <strong>geo radius</strong> (e.g. 100&nbsp;mi from 10018). System scores it against <strong>every trade</strong> and suggests bid/no-bid per trade. <span class="text-bw-muted">(Phase 2: contractors upload directly.)</span></span></li>
+        <li class="flex gap-3"><span class="step-num">4</span><span>For each relevant trade, system <strong>dispatches to matching contractors</strong> within the geo radius (trade + radius + active ITB).</span></li>
+        <li class="flex gap-3"><span class="step-num">5</span><span>The <strong>bid engine</strong> (§4) reads the document and <strong>auto-generates a branded proposal</strong> per contractor from their Pricing DNA + the extracted scope.</span></li>
+        <li class="flex gap-3"><span class="step-num">6</span><span>Contractor gets an email: <em>"You have a new bid ready."</em></span></li>
+        <li class="flex gap-3"><span class="step-num">7</span><span>They click through → view the bid → <strong>Approve or Edit</strong>.</span></li>
+        <li class="flex gap-3"><span class="step-num">8</span><span>Pricing is shown <strong>grouped by location</strong> (floor/room/zone) with a "By product" roll-up toggle; each location line has a tap-to-open "what we read" tooltip. Edit mode allows: discount (% or $ + label), add line items, add a "Notes to GC" block. Pricing recomputes live.</span></li>
+        <li class="flex gap-3"><span class="step-num">9</span><span>On <strong>Approve</strong> → a final <strong>PDF preview + editable email</strong> appears (warm intro, no numbers; "send me a copy" on by default).</span></li>
+        <li class="flex gap-3"><span class="step-num">10</span><span>Send → proposal PDF emails to the <strong>bid contact</strong>, <strong>reply-to = the contractor's own inbox</strong>.</span></li>
+        <li class="flex gap-3"><span class="step-num">11</span><span><strong>Network:</strong> everyone found in the project docs is surfaced; the contractor sends "say-hi" intros and those people join their network.</span></li>
+      </ol>
+    </div>
+
+    <!-- 5 SYSTEM -->
+    <h2 id="system" class="text-[1.5rem] font-extrabold tracking-tight mb-3">6 · The system, screen by screen</h2>
+    <p class="text-[14px] text-bw-body mb-4">These reflect decisions made while building the prototype. Each links to its mockup.</p>
+
+    <div class="space-y-3 mb-10">
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-1"><div class="font-semibold">Onboarding &nbsp;<a href="onboarding.html" class="text-[12px] font-medium text-bw-green">open ›</a></div></div>
+        <p class="text-[13px] text-bw-body">Captures company identity (logo, description, address) and the base pricing model. <strong>Read-only on the proposal boilerplate</strong> — a small pointer tells the user they can edit terms/exclusions/disclaimers later in Settings. Upload-first hybrid: prefer extracting charged prices from past bids over asking.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Settings &nbsp;<a href="settings.html" class="text-[12px] font-medium text-bw-green">open ›</a></div>
+        <p class="text-[13px] text-bw-body">The single editable home for <strong>proposal boilerplate</strong>: payment terms, warranty, quote-valid window, an editable exclusions list, and a disclaimer. Logo upload lives here too. No cost/margin fields anywhere.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Dashboard &nbsp;<a href="dashboard.html" class="text-[12px] font-medium text-bw-green">open ›</a></div>
+        <p class="text-[13px] text-bw-body">Linear-style list of bids — New bids / In progress — plus Network and Contacts entry points. The contractor's home base.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Bid (personalization) &nbsp;<a href="bid.html" class="text-[12px] font-medium text-bw-green">open ›</a></div>
+        <p class="text-[13px] text-bw-body">Where the product proves it read the drawings carefully. Pricing is <strong>grouped by location</strong> (floor → room/zone) to match the drawings, with a <strong>"By product" toggle</strong> for a value-engineering roll-up, and a tap-to-open <strong>"what we read" tooltip</strong> per line (source / assumptions / flags) — a contractor-only sanity check that doesn't print to the GC. View mode shows the drafted proposal; <strong>Edit mode</strong> turns room labels, line items, quantities, and unit prices into editable fields with a live-recomputing total, lets the user add line items, add a discount (% or $ toggle + custom label), and add one "Notes to GC" free-text block. The right panel shows a <strong>charged-price breakdown</strong> (subtotal / delivery / discount / total) — never cost or margin. See §4 "Proposal structure".</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Send → preview → PDF</div>
+        <p class="text-[13px] text-bw-body">"Approve &amp; send" opens a modal with a <strong>final PDF preview</strong> of the actual proposal (with logo), a <strong>Download PDF</strong> option (print isolation), and an <strong>editable email composer</strong>. The email is a <strong>warm intro with no numbers</strong> — the PDF holds the detail. "Send me a copy" is checked by default. Reply-to is the contractor's address.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Sent (receipt) &nbsp;<a href="sent.html" class="text-[12px] font-medium text-bw-green">open ›</a></div>
+        <p class="text-[13px] text-bw-body">Delivery receipt confirming who it went to, reply-to, attachment, and time. Reassures the contractor that replies come straight to them and the bid is tracked.</p>
+      </div>
+    </div>
+
+    <!-- 6 NETWORK -->
+    <h2 id="network" class="text-[1.5rem] font-extrabold tracking-tight mb-3">7 · Network &amp; "say-hi" &nbsp;<a href="network.html" class="text-[13px] font-medium text-bw-green">open ›</a></h2>
+    <p class="text-[15px] text-bw-body mb-4">
+      Reframed from a passive "Contacts" address book into an <strong>outbound relationship engine</strong> with a LinkedIn-style feel. The system surfaces <strong>highly relevant people matched to the contractor's area (NYC metro) and vertical</strong>, sourced from the <strong>project PDFs</strong> — not just GCs, but architects, owners, and designers.
+    </p>
+    <div class="card p-4 border-l-4 border-bw-green mb-4">
+      <div class="font-semibold mb-1">Email is the unit — no email, no contact.</div>
+      <p class="text-[13px] text-bw-body">A contact is only actionable if extraction found an <strong>email</strong> — saying hi <em>is</em> an email, so a name with no address is dead weight. The email shows on the row as proof it's reachable. People found without one are <strong>excluded</strong>, surfaced only as an honest footnote ("2 more found, no email — not added").</p>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-3 mb-4">
+      <div class="card p-4"><div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Warm · you bid it</div><p class="text-[13px] text-bw-body">A GC whose project the contractor already bid — lead with that as the match reason.</p></div>
+      <div class="card p-4"><div class="tag bg-bw-amber-tint text-bw-amber mb-2">No-scope · no-bid</div><p class="text-[13px] text-bw-body">The trade scored <strong>no-bid</strong> on this project, but the person is in-area — still a warm reason to say hi. <span class="text-bw-muted">A no-bid is never a dead end.</span></p></div>
+      <div class="card p-4"><div class="tag bg-bw-blue-tint text-bw-blue mb-2">Cold / new</div><p class="text-[13px] text-bw-body">A strong new match on territory + trade + active ITBs.</p></div>
+    </div>
+    <div class="card p-4 text-[14px] text-bw-body mb-3">
+      <strong class="text-bw-text">It's a "say-hi", not a chase.</strong> Each hello sends on a <strong>gentle timer — never a blast</strong> — and the moment it goes out, that person lands in the contractor's network. <strong>No follow-up sequences.</strong> Tone adapts to scope:
+      <ul class="list-disc pl-5 mt-2 space-y-1 text-[13px]">
+        <li><strong>Bid:</strong> "…we recently submitted a bid on [project], and we'd love to be at your service."</li>
+        <li><strong>No-scope:</strong> "I noticed your project at [project] — not sure window treatments are in scope from the documents, but we work right in your area and would love to be on your radar."</li>
+      </ul>
+      Editable before send; replies route to the contractor's inbox.
+    </div>
+    <p class="text-[13px] text-bw-muted mb-10"><strong>Decoupled from the bid:</strong> per-trade scoring is effectively three-way — <strong>BID</strong> (priced proposal + contacts) · <strong>NO-BID but in-area</strong> (no proposal, contacts still flow as say-hi) · truly irrelevant/out-of-range (nothing). UI is a <strong>list</strong>: Contact / Type / Found in / Action, with type filters and segments (All / Suggested / In your network).</p>
+
+    <!-- 7 REPLIES -->
+    <h2 id="replies" class="text-[1.5rem] font-extrabold tracking-tight mb-3">8 · Reply tracking <span class="text-[13px] font-medium text-bw-muted">— WhatsApp-style, kept simple for v1</span></h2>
+    <p class="text-[15px] text-bw-body mb-4">Replies live in the contractor's own inbox (v1 — no in-app threading). The platform shows lightweight status so they know where each outreach stands:</p>
+    <div class="card p-5 mb-3">
+      <div class="flex flex-wrap items-center gap-2 text-[14px] font-medium mono">
+        <span class="tag bg-bw-amber-tint text-bw-amber">Queued</span>
+        <span class="text-bw-muted">→</span>
+        <span class="tag bg-bw-surface text-bw-body border border-bw-border">✓ Delivered</span>
+        <span class="text-bw-muted">→</span>
+        <span class="tag bg-bw-blue-tint text-bw-blue">✓✓ Read</span>
+        <span class="text-bw-muted">→</span>
+        <span class="tag bg-bw-green-tint text-bw-green-deep">Replied</span>
+      </div>
+    </div>
+    <ul class="list-disc pl-5 text-[14px] text-bw-body space-y-1 mb-3">
+      <li><strong>Single ✓ (Delivered)</strong> — from the Mailgun delivery webhook. Reliable.</li>
+      <li><strong>Double ✓✓ (Read)</strong> — open-tracking pixel. Imperfect (some clients block images, so a read may only ever show as Delivered) — acceptable for v1.</li>
+      <li><strong>Replied</strong> — flips when the contractor gets a reply; for v1 the reply itself is read/answered in their normal inbox.</li>
+    </ul>
+    <p class="text-[13px] text-bw-muted mb-10">Future option (not v1): a per-thread reply alias that forwards to the inbox so replies can be auto-detected and a light in-app thread shown. Deferred to keep it simple.</p>
+
+    <!-- 8 STACK -->
+    <h2 id="stack" class="text-[1.5rem] font-extrabold tracking-tight mb-3">9 · Tech stack</h2>
+    <div class="space-y-3 mb-4">
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Supabase — all-in</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><strong>Postgres</strong> as the database.</li>
+          <li><strong>Storage</strong> for uploaded ITB/RFP PDFs, per-tenant logos, and generated bid files.</li>
+          <li><strong>Auth</strong> — to avoid hand-building password reset, email verification, OAuth (Google/Microsoft), sessions. Retires the MVP's NextAuth.</li>
+          <li><strong>Row-Level Security (RLS)</strong> for tenant isolation (workspace-scoped rows).</li>
+        </ul>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Mailgun — email (single ESP, two streams)</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li>Bids + replies on a <strong>bid subdomain</strong>; intro/outreach on a <strong>separate subdomain</strong> (reputation isolation — outreach complaints can never harm bid deliverability).</li>
+          <li>Chosen for mature <strong>inbound parsing</strong> (the reply round-trip) and delivery webhooks (powers the ✓ states). Volume &lt; 200 intro emails/mo.</li>
+          <li><strong>Per-tenant sending identity</strong> via OAuth mailbox-connect ("Connect Google / Microsoft") — a revocable token, <strong>never a stored password</strong>. DNS subdomain delegation (SPF/DKIM) is the send-only, no-OAuth fallback. (Login to the dashboard is separate from connecting a mailbox to send.)</li>
+          <li>Supersedes the earlier Resend plan.</li>
+        </ul>
+        <p class="text-[12px] text-bw-muted mt-2"><strong>Decided:</strong> Mailgun handles both streams (separate subdomains). Revisit a dedicated cold-outreach tool only if outreach volume or deliverability ever demands it.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Document extraction — two-pass vision pipeline</div>
+        <p class="text-[13px] text-bw-body"><strong>Haiku triage → Opus structured extraction</strong>, ~$1.50/project. Replaces the MVP's <code>scanner.py</code>. Reads drawings/specs for window count, room types, scope, motorization, blackout vs. solar, timeline, and contact info. Needs <code>ANTHROPIC_API_KEY</code>.</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Frontend — Next.js 14 + Tailwind</div>
+        <p class="text-[13px] text-bw-body">Kept from the MVP; rebuild the UI under the BidWork brand. Design tokens are the <code>bw-</code> palette used across these mockups (green <code>#14A800</code>, Inter + JetBrains Mono).</p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Hosting — Vercel</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li>The Next.js app deploys to <strong>Vercel</strong> — native Next.js support, preview deploys per PR, edge/serverless functions for the API routes (extraction kickoff, Mailgun webhooks).</li>
+          <li><strong>Routing:</strong> the <strong>root domain</strong> (<code>/</code>) serves the <strong>marketing homepage</strong>; the <strong>product app lives under <code>/app</code></strong> (dashboard, bid review, Network, settings, operator console). One Next.js project, split by route group.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card p-4 border-l-4 border-bw-green mb-10">
+      <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Decided · data layer</div>
+      <p class="text-[13px] text-bw-body"><strong>All-in on Supabase with full Auth.</strong> Supabase Auth owns the whole identity surface — email/password, email verification, password reset, OAuth (Google/Microsoft), and sessions (retires the MVP's NextAuth). <code>supabase-js</code> is the data layer, since it passes the per-request auth context that RLS policies read. <strong>Prisma is dropped</strong> (it can't pass that context natively). RLS enforces tenant isolation on every workspace-scoped row.</p>
+    </div>
+
+    <h3 class="text-[1.05rem] font-bold tracking-tight mb-2">Data model</h3>
+    <p class="text-[13px] text-bw-body mb-3">Not a complicated schema — ~13 tables in five groups. The rule of thumb: <strong>relational columns for anything we query, filter, or learn from</strong> (prices, line items, edits, statuses); <strong>JSONB for shape-varying payloads</strong> (raw extraction, per-vertical config, document metadata). Everything workspace-scoped carries a <code>workspace_id</code> that RLS keys on.</p>
+    <div class="grid md:grid-cols-2 gap-3 mb-4">
+      <div class="card p-4">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Tenancy &amp; identity</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>workspaces</code> — one per contractor tenant (the RLS boundary).</li>
+          <li><code>profiles</code> — users, linked to <code>auth.users</code>; role (admin / contractor), branding (logo, address, description), reply-to email, connected-mailbox token ref.</li>
+        </ul>
+      </div>
+      <div class="card p-4">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Trades &amp; pricing</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>trades</code> — global vertical catalog (window treatments, epoxy, HVAC…); holds the <code>VerticalConfig</code> JSONB (schema, requiredEvidence checklist, no-bid rules).</li>
+          <li><code>workspace_trades</code> — which trades a tenant serves + their geo (center zip, lat/lng, radius_mi).</li>
+          <li><code>pricing_items</code> — the Pricing DNA: <strong>sell price only</strong> per unit / sqft / linear ft / adder. Never cost or margin.</li>
+        </ul>
+      </div>
+      <div class="card p-4">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Requests &amp; extraction</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>bid_requests</code> — an admin upload: geo radius, trade-relevance scores, document-level gaps, dispatch status.</li>
+          <li><code>documents</code> — each uploaded file in Storage + page metadata, classification, page-hash cache key (JSONB).</li>
+          <li><code>extractions</code> — per request × trade: the raw structured extract (JSONB) with per-field confidence + page citations. Internal/QA artifact.</li>
+        </ul>
+      </div>
+      <div class="card p-4">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Bids &amp; learning</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>bids</code> — one per matched contractor; status (draft / approved / sent), <strong>boilerplate snapshot</strong> frozen at send (immutable record).</li>
+          <li><code>bid_line_items</code> — <strong>relational</strong> rows (qty, unit, sell price) so every field is diffable.</li>
+          <li><code>bid_edits</code> — the learning loop: field-level diffs between AI draft and contractor edit, categorized quantity / price / line-item / wording. Feeds that tenant's Pricing DNA only.</li>
+        </ul>
+      </div>
+      <div class="card p-4 md:col-span-2">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Network &amp; email</div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>contacts</code> — GCs / architects per tenant (built from intro outreach).</li>
+          <li><code>emails</code> — every outbound (bid or intro): stream, status timeline (queued → delivered ✓ → read ✓✓ → replied), Mailgun message id. Powers the Network status key.</li>
+        </ul>
+      </div>
+      <div class="card p-4 md:col-span-2">
+        <div class="tag bg-bw-surface text-bw-muted mb-2">Billing &amp; plans <span class="font-normal opacity-70">· schema now, enforce later</span></div>
+        <ul class="list-disc pl-5 text-[13px] text-bw-body space-y-1">
+          <li><code>plans</code> — global catalog: monthly price, <strong>included bids / month</strong>, Stripe price id.</li>
+          <li><code>subscriptions</code> — per workspace: Stripe customer/subscription ids, plan, status (trialing / active / past_due / canceled), <strong>trial_bids_used</strong> (limit 3), current period start/end.</li>
+          <li><code>bid_usage_events</code> — a ledger row per <strong>billable bid</strong> (workspace, bid, period, counted_at) — meters consumption against the monthly cap; one row per bid avoids double counting.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card p-4 border-l-4 border-bw-green mb-10">
+      <p class="text-[13px] text-bw-body">Three correctness ties: <strong>(1) learning loop</strong> works because line items are relational rows + <code>bid_edits</code> captures every diff; <strong>(2) pricing privacy</strong> holds because <code>pricing_items</code> stores sell price only and RLS scopes it to one workspace; <strong>(3) immutable sent bids</strong> — the boilerplate snapshot on <code>bids</code> means a sent proposal never changes even if base settings later do.</p>
+    </div>
+
+    <!-- BILLING -->
+    <h2 id="billing" class="text-[1.5rem] font-extrabold tracking-tight mb-3">10 · Plans &amp; billing <span class="text-[13px] font-medium text-bw-muted">— Stripe · planned, not immediate</span></h2>
+    <p class="text-[15px] text-bw-body mb-4">
+      New contractors onboard and get a <strong>free trial of 3 bids</strong> (count-based, not a clock). After that they subscribe to a <strong>monthly package</strong>, and each package includes a <strong>fixed number of bids per month</strong> — the system <strong>caps bids per month per package</strong>. <strong>Stripe</strong> runs the subscriptions. We are <em>building the data model and scope to support this now</em>; enforcement lands in a later phase.
+    </p>
+    <div class="grid sm:grid-cols-2 gap-3 mb-3">
+      <div class="card p-4">
+        <div class="font-semibold mb-1">What counts as a “bid”</div>
+        <p class="text-[13px] text-bw-body">A <strong>draft-ready, dispatched bid</strong> to a contractor (a <code>bids</code> row that reaches “ready to review”). <strong>No-bid trades, failed extractions, and never-dispatched drafts don’t count.</strong> Each billable bid writes one <code>bid_usage_events</code> row. <span class="text-bw-muted">(Exact trigger — draft-ready vs. sent — is an open decision.)</span></p>
+      </div>
+      <div class="card p-4">
+        <div class="font-semibold mb-1">Where the cap is enforced</div>
+        <p class="text-[13px] text-bw-body">At <strong>admin dispatch</strong> (Phase 1). Each target contractor is checked against their remaining allowance (trial credits, else plan period allowance); over-limit contractors are <strong>skipped with a visible reason</strong> — the same pattern the Review &amp; dispatch screen already uses for “incomplete Pricing DNA”. v1 = hard cap + upgrade prompt; overage billing deferred.</p>
+      </div>
+    </div>
+    <div class="card p-4 text-[13px] text-bw-body mb-10 border-l-4 border-bw-green">
+      <div class="font-semibold text-bw-text mb-1">Stripe integration</div>
+      <p>Checkout to subscribe, Customer Portal for self-serve management, and webhooks (<code>customer.subscription.*</code>, <code>invoice.paid</code> / <code>payment_failed</code>) to sync <code>subscriptions.status</code> + period dates. <code>plans</code> map to Stripe Prices; the monthly allowance resets on period rollover. Schema lands in foundation so there is no painful migration later — see <a href="BUILD-PLAN.md" class="text-bw-green font-medium">BUILD-PLAN.md</a> §5.</p>
+    </div>
+
+    <!-- 9 CONSTRAINTS -->
+    <h2 id="constraints" class="text-[1.5rem] font-extrabold tracking-tight mb-3">11 · Hard constraints <span class="text-[13px] font-medium text-bw-muted">— non-negotiable</span></h2>
+    <div class="space-y-3 mb-10">
+      <div class="card p-4 border-l-4 border-bw-red">
+        <div class="font-semibold mb-1">Never ask for cost, margin, markup, or supplier discounts.</div>
+        <p class="text-[13px] text-bw-body">The base pricing model stores only <strong>what the contractor charges the customer</strong> (sell price per unit / sqft / linear ft / adder). A sendable bid only needs sell prices. Prefer extracting charged prices from past bids over asking.</p>
+      </div>
+      <div class="card p-4 border-l-4 border-bw-green">
+        <div class="font-semibold mb-1">Pricing is private — and the promise holds architecturally.</div>
+        <p class="text-[13px] text-bw-body">Show a visible privacy statement at onboarding ("encrypted, never shared with GCs, never shown to other contractors, never used to build anyone else's bids"). RLS enforces tenant isolation. The pricing <strong>learning loop is per-tenant</strong> — a contractor's prices/edits train only their own model. Cross-tenant pooling is allowed <em>only</em> for document-understanding/extraction patterns, never pricing.</p>
+      </div>
+      <div class="card p-4 border-l-4 border-bw-blue">
+        <div class="font-semibold mb-1">BidWork stays out of the conversation.</div>
+        <p class="text-[13px] text-bw-body">Every outbound (bid or intro) sets <strong>reply-to = the contractor's own email</strong>. Replies go straight to them. The platform tracks status but does not insert itself into the relationship (v1).</p>
+      </div>
+      <div class="card p-4 border-l-4 border-bw-text">
+        <div class="font-semibold mb-1">Never send without review.</div>
+        <p class="text-[13px] text-bw-body">A contractor always sees the total and the final PDF preview before anything goes out. Defaults: 50% deposit / 50% on completion; 2-year labor + manufacturer product warranty; always include an exclusions section.</p>
+      </div>
+    </div>
+
+    <!-- 10 OPEN -->
+    <h2 id="open" class="text-[1.5rem] font-extrabold tracking-tight mb-3">12 · Decisions</h2>
+    <div class="text-[12px] font-semibold text-bw-green-deep uppercase tracking-wide mb-2">Decided</div>
+    <ul class="list-disc pl-5 text-[14px] text-bw-body space-y-1.5 mb-4">
+      <li><strong>Greenfield rebuild.</strong> New project, not an evolution of the MVP. The in-repo <code>UPGRADE-PLAN.md</code> / <code>WEBSITE-PLAN.md</code> predate this and assumed evolving the MVP — treat them as engine reference only.</li>
+      <li><strong>Admin-only sourcing (Phase 1).</strong> The operator uploads and dispatches bid requests; direct contractor upload is deferred to a later phase.</li>
+      <li><strong>Reply tracking = inbox-only + ✓/✓✓ status.</strong> Replies land in the contractor's own inbox; the app shows delivered (✓) / read (✓✓) / replied status. Implemented and documented in the Network screen; the per-thread relay alias stays deferred.</li>
+      <li><strong>Structured bid storage.</strong> Bids are structured data (line items as relational rows + <code>bid_edits</code> diffs); DOCX/PDF is output only. Schema is in §9 Data model.</li>
+      <li><strong>Single-pass multi-trade scan.</strong> One upload is read once and scored against every trade; Opus extraction runs only for bid trades; prompt caching + page-hash cache keep it cheap. Relevance gate is semantic and admin-confirmed (§4).</li>
+      <li><strong>Billing = Stripe, trial + capped monthly packages.</strong> 3-bid free trial, then a monthly package with a fixed bid cap; enforced at dispatch. Schema lands in foundation; enforcement is a later phase (§10).</li>
+      <li><strong>Build approach = walking-skeleton vertical slice.</strong> One thin end-to-end slice across both roles first (window-treatments leads the full pipe; the scan is multi-trade from day one), then widen. See <a href="BUILD-PLAN.md" class="text-bw-green font-medium">BUILD-PLAN.md</a>.</li>
+    </ul>
+    <div class="text-[12px] font-semibold text-bw-muted uppercase tracking-wide mb-2">Still open</div>
+    <ul class="list-disc pl-5 text-[14px] text-bw-body space-y-1.5 mb-10">
+      <li><strong>Phase 2 timing:</strong> when to open direct contractor uploads.</li>
+      <li><strong>First-slice trade scope:</strong> window-treatments leads the full pipe (default) vs. all three trades end-to-end at once.</li>
+      <li><strong>Bid metering trigger:</strong> a billable bid counts at draft-ready (proposed) vs. only on send.</li>
+      <li><strong>Overage policy:</strong> hard cap + upgrade prompt (v1) vs. metered overage billing (later).</li>
+    </ul>
+
+    <!-- 11 PROTOTYPE -->
+    <h2 id="proto" class="text-[1.5rem] font-extrabold tracking-tight mb-3">13 · The prototype</h2>
+    <p class="text-[14px] text-bw-body mb-4">Static HTML mockups in <code>mockups/</code>, styled with Tailwind (CDN) + the <code>bw-</code> tokens. They define the intended UX for the rebuild — treat them as the visual/interaction spec, not production code.</p>
+    <div class="text-[12px] font-semibold text-bw-muted uppercase tracking-wide mb-2">Contractor app</div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <a href="onboarding.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Onboarding</a>
+      <a href="dashboard.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Dashboard</a>
+      <a href="bid.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Bid</a>
+      <a href="network.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Network</a>
+      <a href="sent.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Sent</a>
+      <a href="settings.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Settings</a>
+    </div>
+    <div class="text-[12px] font-semibold text-bw-muted uppercase tracking-wide mb-2">Operator console (admin · Phase 1)</div>
+    <div class="flex flex-wrap gap-2 mb-10">
+      <a href="admin-queue.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Bid requests (queue)</a>
+      <a href="admin-upload.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Upload &amp; area</a>
+      <a href="admin-review.html" class="card px-4 py-2 text-[13px] font-medium hover:bg-bw-green-tint">Review &amp; dispatch</a>
+    </div>
+
+    <div class="border-t border-bw-border pt-5 text-[12px] text-bw-muted">
+      BidWork project brief · v2 · updated 2026-06-01 · The Shade Company is the first tenant. Keep this in sync as decisions land. Build sequencing lives in BUILD-PLAN.md.
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

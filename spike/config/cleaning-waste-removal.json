@@ -1,0 +1,38 @@
+{
+  "tradeId": "cleaning-waste-removal",
+  "label": "Construction Cleaning & Waste Removal",
+  "version": "0.1.0",
+
+  "scopeServices": ["rough-clean-during-build", "debris-and-waste-haul-off", "final-post-construction-clean", "window-cleaning"],
+
+  "groupBy": ["level", "area"],
+
+  "router": {
+    "comment": "Cleaning relevance is BROAD — almost any active building/renovation is a candidate. Route on the presence of a built scope (floor plans, areas), not a dedicated cleaning section (there usually isn't one).",
+    "keywords": ["floor plan", "area", "square feet", "s.f.", "volume", "new work", "renovation", "demolition", "finish", "scope of work", "site work", "debris", "cleaning", "dumpster", "haul"]
+  },
+
+  "noBidSignals": [
+    "no physical construction (study / report only)",
+    "site/civil only with no enclosed building areas",
+    "owner self-performs cleanup per the documents"
+  ],
+
+  "scopeDrivers": [
+    { "key": "cleanable_area", "label": "Cleanable floor area by level (SF)", "pricingUnit": "per-sqft", "blocking": true },
+    { "key": "level_count",    "label": "Number of levels (cellar/floors/attic)", "pricingUnit": "per-level" },
+    { "key": "bathrooms",      "label": "Bathroom + powder count", "pricingUnit": "per-fixture-room" },
+    { "key": "kitchens",       "label": "Kitchen count", "pricingUnit": "per-fixture-room" },
+    { "key": "windows",        "label": "Window count (final-clean glass)", "pricingUnit": "per-window" },
+    { "key": "debris_volume",  "label": "New-construction volume / disturbed area → debris haul", "pricingUnit": "per-dumpster" }
+  ],
+
+  "requiredEvidence": [
+    { "key": "floor_areas",  "label": "Floor areas by level (SF)", "blocking": true },
+    { "key": "floor_plans",  "label": "Floor plans (to confirm rooms/levels)", "blocking": true },
+    { "key": "building_type","label": "Building type & new vs. renovation", "blocking": false },
+    { "key": "window_count", "label": "Window count (elevations/schedule)", "blocking": false }
+  ],
+
+  "expectedDocuments": ["title sheet with area schedule", "architectural floor plans", "elevations"]
+}

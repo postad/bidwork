@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Your bids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7','bw-blue':'#1D4ED8','bw-blue-tint':'#DBEAFE'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.row-hover{transition:background-color .12s ease;}
+.row-hover:hover{background-color:#FAFCFA;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== APP HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="dashboard.html" class="flex items-center gap-2">
+        <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[14px] font-medium">
+        <a href="dashboard.html" class="px-3 py-2 rounded-lg bg-bw-green-tint text-bw-text">Bids</a>
+        <a href="network.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Network</a>
+        <a href="settings.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Settings</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[12px] font-medium text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> Window Treatments
+      </span>
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-bw-green to-bw-green-deep flex items-center justify-center text-white font-bold text-[13px]">TS</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[1200px] mx-auto px-6 py-10">
+
+  <!-- Heading -->
+  <div class="flex items-end justify-between mb-8">
+    <div>
+      <div class="eyebrow mb-2">The Shade Company</div>
+      <h1 class="text-[2rem] font-extrabold tracking-tight">Your bids</h1>
+    </div>
+    <div class="text-[13px] text-bw-body">Updated just now</div>
+  </div>
+
+  <!-- Stat tiles -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Ready to review</div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[28px] font-extrabold text-bw-green">3</span>
+        <span class="text-[12px] text-bw-muted">new bids</span>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Sent this month</div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[28px] font-extrabold">12</span>
+        <span class="text-[12px] text-bw-muted">proposals</span>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Awaiting reply</div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[28px] font-extrabold">7</span>
+        <span class="text-[12px] text-bw-muted">GCs</span>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Bid value sent</div>
+      <div class="flex items-baseline gap-2">
+        <span class="text-[28px] font-extrabold font-mono">$284k</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bids table -->
+  <div class="bg-white rounded-2xl border border-bw-border overflow-hidden">
+    <!-- table head -->
+    <div class="hidden md:grid grid-cols-12 gap-4 px-6 py-3 border-b border-bw-border bg-bw-surface/60 text-[11px] font-semibold text-bw-muted uppercase tracking-wider">
+      <div class="col-span-4">Project</div>
+      <div class="col-span-2">GC / Contact</div>
+      <div class="col-span-2">Due</div>
+      <div class="col-span-2 text-right">Bid value</div>
+      <div class="col-span-2 text-right">Status</div>
+    </div>
+
+    <!-- Row 1: READY — clickable to bid -->
+    <a href="bid.html" class="row-hover grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-4 border-b border-bw-border items-center cursor-pointer group">
+      <div class="md:col-span-4">
+        <div class="font-semibold group-hover:text-bw-green transition">520 Madison Ave — Floors 22–24</div>
+        <div class="text-[12px] text-bw-muted font-mono mt-0.5">ITB · 38 files · 47 windows</div>
+      </div>
+      <div class="md:col-span-2 text-[13px]">
+        <div class="text-bw-text">Turner Constr.</div>
+        <div class="text-[12px] text-bw-muted">Sarah Mills</div>
+      </div>
+      <div class="md:col-span-2 text-[13px] text-bw-text">Jun 3 <span class="text-bw-amber font-medium">· 4 days</span></div>
+      <div class="md:col-span-2 text-right font-mono font-semibold">$48,210</div>
+      <div class="md:col-span-2 flex md:justify-end">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> Ready to review
+        </span>
+      </div>
+    </a>
+
+    <!-- Row 2: READY -->
+    <a href="bid.html" class="row-hover grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-4 border-b border-bw-border items-center cursor-pointer group">
+      <div class="md:col-span-4">
+        <div class="font-semibold group-hover:text-bw-green transition">Hudson Yards Tower C — Lobby + Amenity</div>
+        <div class="text-[12px] text-bw-muted font-mono mt-0.5">ITB · 24 files · 31 windows</div>
+      </div>
+      <div class="md:col-span-2 text-[13px]">
+        <div class="text-bw-text">Tishman</div>
+        <div class="text-[12px] text-bw-muted">Dev Patel</div>
+      </div>
+      <div class="md:col-span-2 text-[13px] text-bw-text">Jun 6 <span class="text-bw-body">· 7 days</span></div>
+      <div class="md:col-span-2 text-right font-mono font-semibold">$31,940</div>
+      <div class="md:col-span-2 flex md:justify-end">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> Ready to review
+        </span>
+      </div>
+    </a>
+
+    <!-- Row 3: READY -->
+    <a href="bid.html" class="row-hover grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-4 border-b border-bw-border items-center cursor-pointer group">
+      <div class="md:col-span-4">
+        <div class="font-semibold group-hover:text-bw-green transition">One SoHo Residences — PH Levels</div>
+        <div class="text-[12px] text-bw-muted font-mono mt-0.5">ITB · 51 files · 88 windows</div>
+      </div>
+      <div class="md:col-span-2 text-[13px]">
+        <div class="text-bw-text">Hunter Roberts</div>
+        <div class="text-[12px] text-bw-muted">Lena Gross</div>
+      </div>
+      <div class="md:col-span-2 text-[13px] text-bw-text">Jun 9 <span class="text-bw-body">· 10 days</span></div>
+      <div class="md:col-span-2 text-right font-mono font-semibold">$92,500</div>
+      <div class="md:col-span-2 flex md:justify-end">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> Ready to review
+        </span>
+      </div>
+    </a>
+
+    <!-- Row 4: SENT -->
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-4 border-b border-bw-border items-center">
+      <div class="md:col-span-4">
+        <div class="font-semibold text-bw-body">WeWork 511 5th Ave — 9FL</div>
+        <div class="text-[12px] text-bw-muted font-mono mt-0.5">Sent May 28 · reply-to you</div>
+      </div>
+      <div class="md:col-span-2 text-[13px]">
+        <div class="text-bw-text">Structure Tone</div>
+        <div class="text-[12px] text-bw-muted">Joe Marra</div>
+      </div>
+      <div class="md:col-span-2 text-[13px] text-bw-muted">Submitted</div>
+      <div class="md:col-span-2 text-right font-mono font-semibold text-bw-body">$11,981</div>
+      <div class="md:col-span-2 flex md:justify-end">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-3 py-1.5">Sent</span>
+      </div>
+    </div>
+
+    <!-- Row 5: REPLIED -->
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-4 items-center">
+      <div class="md:col-span-4">
+        <div class="font-semibold text-bw-body">Brooklyn Point — Amenity Floor</div>
+        <div class="text-[12px] text-bw-muted font-mono mt-0.5">GC replied 2h ago</div>
+      </div>
+      <div class="md:col-span-2 text-[13px]">
+        <div class="text-bw-text">Gilbane</div>
+        <div class="text-[12px] text-bw-muted">Amy Wu</div>
+      </div>
+      <div class="md:col-span-2 text-[13px] text-bw-muted">Submitted</div>
+      <div class="md:col-span-2 text-right font-mono font-semibold text-bw-body">$22,300</div>
+      <div class="md:col-span-2 flex md:justify-end">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Replied
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-[12px] text-bw-muted mt-4 text-center">Click a <span class="font-semibold text-bw-green">Ready to review</span> bid to open it.</p>
+
+</main>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Prototype:</span>
+  <a href="onboarding.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Onboarding</a>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Dashboard</a>
+  <a href="bid.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Bid</a>
+  <a href="network.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Network</a>
+  <a href="sent.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Sent</a>
+  <a href="settings.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Settings</a>
+</div>
+
+</body>
+</html>

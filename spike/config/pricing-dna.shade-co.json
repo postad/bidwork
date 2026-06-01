@@ -1,0 +1,25 @@
+{
+  "tenant": "The Shade Company",
+  "note": "Sell prices only (charged-price model). Reverse-engineered from Estimate #14473 — this is what the contractor's Pricing DNA would hold.",
+  "currency": "USD",
+  "salesTaxRate": 0.08875,
+  "installFee": 1675,
+  "defaultDiscountPct": 0.20,
+  "rates": {
+    "WT": {
+      "pricingUnit": "per-motor-set",
+      "byShadesPerMotor": { "1": 1359, "2": 2143, "3": 2927 }
+    },
+    "MB": {
+      "pricingUnit": "per-blind",
+      "byWidthTier": [
+        { "maxWidthInches": 30, "price": 350 },
+        { "maxWidthInches": 999, "price": 500 }
+      ]
+    },
+    "FPS": {
+      "pricingUnit": "per-shade",
+      "flat": 264
+    }
+  }
+}

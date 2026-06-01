@@ -1,0 +1,88 @@
+{
+  "tradeId": "window-treatments",
+  "label": "Window Treatments",
+  "version": "0.1.0",
+
+  "groupBy": ["floor", "room"],
+
+  "router": {
+    "csiSections": ["12 24 00", "12 21 00", "12 22 00", "12 23 00", "12 20 00", "12 25 00"],
+    "keywords": [
+      "window treatment", "window covering", "roller shade", "solar shade", "blackout shade",
+      "motorized shade", "manual shade", "fixed shade", "fascia", "valance", "pocket",
+      "aluminum blind", "venetian blind", "mini blind", "drapery", "shade schedule",
+      "openness", "somfy", "rollease", "WT-", "WT1", "MB1", "FPS", "shade type"
+    ]
+  },
+
+  "noBidSignals": [
+    "drive-thru only with no interior occupied space",
+    "exterior facade scope only, no interior glazing",
+    "no windows / fully interior shell with no glazing",
+    "demolition only",
+    "site / civil work only"
+  ],
+
+  "productTypes": [
+    {
+      "code": "WT",
+      "name": "Motorized Roller Shade",
+      "unit": "shade",
+      "pricingUnit": "per-motor-set",
+      "attributes": ["motor", "control", "fabric", "openness", "color", "fascia", "shadesPerMotor", "width", "height"]
+    },
+    {
+      "code": "MS",
+      "name": "Manual Roller Shade",
+      "unit": "shade",
+      "pricingUnit": "per-shade",
+      "attributes": ["control", "fabric", "openness", "color", "fascia", "width", "height"]
+    },
+    {
+      "code": "FPS",
+      "name": "Fixed Roller Shade",
+      "unit": "shade",
+      "pricingUnit": "per-shade",
+      "attributes": ["control", "fabric", "openness", "color", "fascia", "width", "height"]
+    },
+    {
+      "code": "MB",
+      "name": "Manual Aluminum / Mini Blind",
+      "unit": "blind",
+      "pricingUnit": "per-blind",
+      "attributes": ["material", "control", "slatSize", "color", "mounting", "width", "height"]
+    },
+    {
+      "code": "DR",
+      "name": "Drapery",
+      "unit": "panel",
+      "pricingUnit": "per-panel",
+      "attributes": ["fabric", "track", "control", "color", "width", "height"]
+    }
+  ],
+
+  "requiredEvidence": [
+    { "key": "shade_schedule",  "label": "Window-treatment / shade schedule (types + counts)", "blocking": true },
+    { "key": "type_definitions","label": "Type definitions for each WT/MB/FPS code",            "blocking": true },
+    { "key": "location_plans",  "label": "Floor plans locating each window/shade",               "blocking": true },
+    { "key": "fabric_spec",     "label": "Fabric / openness specification",                      "blocking": false },
+    { "key": "motorization",    "label": "Motor / control specification",                        "blocking": false },
+    { "key": "mounting_detail", "label": "Mounting detail (fascia, pocket, bracket)",            "blocking": false },
+    { "key": "ganging",         "label": "Shade ganging / shades-per-motor (drives pricing)",    "blocking": false }
+  ],
+
+  "expectedDocuments": [
+    "window-treatment / shade schedule",
+    "Division 12 (Furnishings) specification — section 12 24 00 or 12 21 00",
+    "architectural floor plans",
+    "reflected ceiling plans (for pockets / fascia)",
+    "interior elevations"
+  ],
+
+  "defaults": {
+    "exclusions": ["electrical rough-in", "structural blocking", "permits", "removal of existing treatments"],
+    "paymentTerms": "50% deposit / 50% on completion",
+    "warranty": "2-year labor + manufacturer product warranty",
+    "quoteValidDays": 30
+  }
+}

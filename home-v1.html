@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bidwork — Win the bid before the weekend</title>
+  <meta name="description" content="BidWork brings you bid opportunities in your area, drafts each proposal in your own pricing, and flags anything missing. Review, approve, send — and grow your network." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'bw-bg': '#FFFFFF',
+            'bw-surface': '#F7F7F7',
+            'bw-text': '#001E00',
+            'bw-body': '#5E6D55',
+            'bw-muted': '#8E9C8B',
+            'bw-border': '#E5E7EB',
+            'bw-green': '#14A800',
+            'bw-green-hover': '#108A00',
+            'bw-green-deep': '#0B6B00',
+            'bw-green-tint': '#E8F5E4',
+            'bw-green-tint-2': '#D6EDCC',
+            'bw-dark': '#0F1410',
+            'bw-dark-2': '#171D17',
+            'bw-dark-muted': '#A8B3A5',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          fontSize: {
+            'hero': ['5.5rem', { lineHeight: '0.98', letterSpacing: '-0.04em' }],
+            'hero-sm': ['3.5rem', { lineHeight: '1', letterSpacing: '-0.035em' }],
+            'display': ['3rem', { lineHeight: '1.04', letterSpacing: '-0.03em' }],
+            'h2': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+          },
+          boxShadow: {
+            'card': '0 1px 2px rgba(0, 30, 0, 0.04)',
+            'card-hover': '0 12px 32px -8px rgba(0, 30, 0, 0.12), 0 4px 8px -4px rgba(0, 30, 0, 0.06)',
+            'glow-green': '0 0 80px -20px rgba(20, 168, 0, 0.45)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss03', 'ss01'; }
+    body { font-family: 'Inter', system-ui, sans-serif; color: #001E00; background: #FFFFFF; }
+
+    /* Diagonal hairline pattern for accent backgrounds */
+    .pattern-diagonal {
+      background-image: repeating-linear-gradient(135deg, transparent 0, transparent 22px, rgba(20, 168, 0, 0.04) 22px, rgba(20, 168, 0, 0.04) 23px);
+    }
+    .pattern-grid-dark {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* Subtle green ambient glow */
+    .glow-orb {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 9999px;
+      filter: blur(80px);
+      opacity: 0.65;
+    }
+
+    /* Scan-line animation for the product mockup */
+    @keyframes scan-down {
+      0%   { transform: translateY(-20%); opacity: 0; }
+      20%  { opacity: 1; }
+      80%  { opacity: 1; }
+      100% { transform: translateY(420%); opacity: 0; }
+    }
+    .scan-line {
+      animation: scan-down 4s ease-in-out infinite;
+    }
+
+    /* Stagger fade-in on hero load */
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .rise { animation: rise 0.7s cubic-bezier(.2,.7,.2,1) both; }
+    .rise-delay-1 { animation-delay: 0.08s; }
+    .rise-delay-2 { animation-delay: 0.16s; }
+    .rise-delay-3 { animation-delay: 0.24s; }
+    .rise-delay-4 { animation-delay: 0.40s; }
+
+    /* Card hover */
+    .card-hover { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .card-hover:hover { transform: translateY(-2px); }
+
+    /* Button hover */
+    .btn-fill { transition: background-color .15s ease, transform .15s ease; }
+    .btn-fill:hover { background-color: #108A00; }
+    .btn-fill:active { transform: translateY(1px); }
+    .btn-outline { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+    .btn-outline:hover { background-color: #E8F5E4; }
+
+    /* Eyebrow label */
+    .eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #14A800;
+    }
+
+    /* PDF page paper effect */
+    .paper-edge {
+      box-shadow:
+        0 0 0 1px rgba(0, 30, 0, 0.06),
+        0 8px 24px -12px rgba(0, 30, 0, 0.15);
+    }
+
+    /* Final CTA gradient */
+    .cta-gradient {
+      background:
+        radial-gradient(ellipse at 20% 100%, #1FBF08 0%, transparent 55%),
+        radial-gradient(ellipse at 100% 0%, #0B6B00 0%, transparent 55%),
+        #14A800;
+    }
+  </style>
+</head>
+
+<body class="bg-bw-bg text-bw-text antialiased">
+
+  <!-- ============ HEADER ============ -->
+  <header class="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-bw-border">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2">
+        <span class="text-bw-text font-black text-[22px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-8 text-[14px] font-medium text-bw-text/85">
+        <a href="#" class="hover:text-bw-text transition">Features</a>
+        <a href="#" class="hover:text-bw-text transition">Platform</a>
+        <a href="#" class="hover:text-bw-text transition">Industries</a>
+        <a href="#" class="hover:text-bw-text transition">Pricing</a>
+        <a href="#" class="hover:text-bw-text transition">About</a>
+        <a href="#" class="hover:text-bw-text transition">FAQ</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="#" class="hidden sm:inline-block text-[14px] font-medium text-bw-text/85 hover:text-bw-text transition px-3">Log in</a>
+        <a href="#" class="btn-fill inline-flex items-center gap-1.5 bg-bw-green text-white font-semibold text-[14px] px-5 py-2.5 rounded-full">
+          Sign up
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <section class="relative overflow-hidden bg-bw-dark text-white">
+    <!-- Background atmosphere -->
+    <div class="absolute inset-0 pattern-grid-dark opacity-50"></div>
+    <div class="glow-orb" style="width: 600px; height: 600px; background: #14A800; top: -200px; right: -150px;"></div>
+    <div class="glow-orb" style="width: 400px; height: 400px; background: #0B6B00; bottom: -200px; left: -100px; opacity: 0.5;"></div>
+
+    <div class="relative max-w-[1280px] mx-auto px-6 lg:px-8 pt-20 lg:pt-28 pb-24 lg:pb-32">
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+
+        <!-- Hero copy -->
+        <div class="lg:col-span-7">
+          <div class="rise rise-delay-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[12px] font-medium text-bw-dark-muted mb-7">
+            <span class="w-1.5 h-1.5 rounded-full bg-bw-green animate-pulse"></span>
+            Now serving window treatments, epoxy, cleaning &amp; HVAC
+          </div>
+
+          <h1 class="rise rise-delay-2 text-hero-sm md:text-hero font-extrabold text-white tracking-tight">
+            Win the bid before the&nbsp;<span class="relative inline-block">
+              <span class="relative z-10">weekend.</span>
+              <span class="absolute left-0 right-0 bottom-1 h-3 md:h-4 bg-bw-green/85 -z-0 rounded-sm" style="z-index:-1"></span>
+            </span>
+          </h1>
+
+          <p class="rise rise-delay-3 mt-7 text-[18px] md:text-[19px] leading-relaxed text-bw-dark-muted max-w-[34rem]">
+            BidWork brings you bid opportunities in your area, drafts each proposal
+            in your own pricing, and flags anything unclear. You review, approve,
+            and send — then grow your network.
+          </p>
+
+          <div class="rise rise-delay-4 mt-9 flex flex-col sm:flex-row gap-3">
+            <a href="#" class="btn-fill inline-flex items-center justify-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3.5 rounded-full">
+              Try free
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#" class="btn-outline inline-flex items-center justify-center gap-2 bg-transparent text-white font-semibold text-[15px] px-7 py-3.5 rounded-full border border-white/20 hover:!bg-white/5 hover:!text-white">
+              See how it works
+            </a>
+          </div>
+
+          <!-- Tiny trust line -->
+          <div class="rise rise-delay-4 mt-10 flex items-center gap-4 text-[13px] text-bw-dark-muted">
+            <span class="font-mono text-[12px] tracking-tight">FREE 14-DAY TRIAL</span>
+            <span class="w-1 h-1 rounded-full bg-white/20"></span>
+            <span>No credit card required</span>
+            <span class="w-1 h-1 rounded-full bg-white/20"></span>
+            <span>Cancel anytime</span>
+          </div>
+        </div>
+
+        <!-- Product mockup -->
+        <div class="lg:col-span-5 rise rise-delay-4">
+          <div class="relative">
+            <div class="absolute -inset-6 bg-bw-green/15 blur-3xl rounded-full"></div>
+
+            <!-- App window -->
+            <div class="relative bg-bw-dark-2 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+              <!-- Window chrome -->
+              <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-black/30">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-white/15"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-white/15"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-white/15"></span>
+                </div>
+                <div class="flex-1 text-center">
+                  <span class="font-mono text-[11px] text-bw-dark-muted">bidwork — WeWork 511 5th Ave / 9FL</span>
+                </div>
+                <div class="w-12"></div>
+              </div>
+
+              <!-- App body -->
+              <div class="grid grid-cols-5 min-h-[360px]">
+                <!-- PDF pane -->
+                <div class="col-span-3 bg-[#0A0E0A] p-4 border-r border-white/10 relative overflow-hidden">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="font-mono text-[10px] text-bw-dark-muted">A-409.00 — 9TH FLOOR PLAN</span>
+                    <span class="text-[10px] text-bw-green font-semibold flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-bw-green animate-pulse"></span>
+                      Scanning
+                    </span>
+                  </div>
+
+                  <!-- Fake PDF page -->
+                  <div class="bg-[#F4F1E8] rounded p-3 relative overflow-hidden">
+                    <!-- Scan line -->
+                    <div class="absolute left-0 right-0 h-12 bg-gradient-to-b from-transparent via-bw-green/25 to-transparent scan-line"></div>
+
+                    <!-- Title block -->
+                    <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-bw-text/10">
+                      <span class="font-mono text-[7px] text-bw-text/70">9TH FLOOR — PARTIAL PLAN</span>
+                      <span class="font-mono text-[7px] text-bw-text/70">SCALE 1/8"=1'</span>
+                    </div>
+
+                    <!-- Plan rendering -->
+                    <div class="relative h-[180px]">
+                      <!-- Outer wall -->
+                      <div class="absolute inset-0 border-2 border-bw-text/60"></div>
+
+                      <!-- Interior walls -->
+                      <div class="absolute left-[35%] top-0 bottom-0 w-px bg-bw-text/40"></div>
+                      <div class="absolute left-[35%] right-0 top-[55%] h-px bg-bw-text/40"></div>
+                      <div class="absolute left-[65%] top-[55%] bottom-0 w-px bg-bw-text/40"></div>
+
+                      <!-- Room labels -->
+                      <span class="absolute top-2 left-2 font-mono text-[7px] text-bw-text/60">CONF 901</span>
+                      <span class="absolute top-2 left-[40%] font-mono text-[7px] text-bw-text/60">OFFICE 902</span>
+                      <span class="absolute bottom-2 left-[40%] font-mono text-[7px] text-bw-text/60">RECEPTION</span>
+                      <span class="absolute bottom-2 left-[70%] font-mono text-[7px] text-bw-text/60">PHONE</span>
+
+                      <!-- Windows (highlighted) -->
+                      <div class="absolute -left-1 top-[20%] w-2 h-3 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -left-1 top-[45%] w-2 h-3 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -left-1 top-[70%] w-2 h-3 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -right-1 top-[15%] w-2 h-3 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -right-1 top-[35%] w-2 h-3 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -bottom-1 left-[50%] w-3 h-2 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -bottom-1 left-[75%] w-3 h-2 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                      <div class="absolute -bottom-1 left-[90%] w-3 h-2 bg-bw-green/80 rounded-sm ring-2 ring-bw-green/40"></div>
+                    </div>
+                  </div>
+
+                  <!-- Callout pills -->
+                  <div class="mt-3 space-y-1.5">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-bw-green/15 text-bw-green text-[10px] font-medium">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                      8 windows detected
+                    </div>
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-bw-green/15 text-bw-green text-[10px] font-medium ml-1">
+                      WT-3 Solar Shade 5%
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bid pane -->
+                <div class="col-span-2 p-4 bg-bw-dark-2">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-semibold text-white">Generated Bid</span>
+                    <span class="font-mono text-[9px] text-bw-green border border-bw-green/30 rounded px-1.5 py-0.5">READY</span>
+                  </div>
+
+                  <div class="space-y-2">
+                    <div class="flex items-baseline justify-between text-[10px]">
+                      <span class="text-bw-dark-muted">Conf 901</span>
+                      <span class="font-mono text-white">$2,080</span>
+                    </div>
+                    <div class="flex items-baseline justify-between text-[10px]">
+                      <span class="text-bw-dark-muted">Office 902</span>
+                      <span class="font-mono text-white">$1,560</span>
+                    </div>
+                    <div class="flex items-baseline justify-between text-[10px]">
+                      <span class="text-bw-dark-muted">Reception</span>
+                      <span class="font-mono text-white">$4,680</span>
+                    </div>
+                    <div class="flex items-baseline justify-between text-[10px]">
+                      <span class="text-bw-dark-muted">Phone rm</span>
+                      <span class="font-mono text-white">$1,040</span>
+                    </div>
+
+                    <div class="flex items-baseline justify-between">
+                      <span class="text-[10px] text-bw-dark-muted">Fascia &amp; install</span>
+                      <span class="font-mono text-[10px] text-bw-dark-muted">$2,621</span>
+                    </div>
+                    <div class="border-t border-white/10 pt-2 mt-3 flex items-baseline justify-between">
+                      <span class="text-[11px] text-bw-dark-muted">Subtotal</span>
+                      <span class="font-mono text-[12px] text-white font-semibold">$11,981</span>
+                    </div>
+                    <div class="bg-bw-green/15 rounded-md px-2 py-1.5 mt-2 flex items-baseline justify-between">
+                      <span class="text-[11px] text-bw-green font-semibold">Total bid</span>
+                      <span class="font-mono text-[13px] text-bw-green font-bold">$11,981</span>
+                    </div>
+                    <div class="text-[9px] text-bw-dark-muted text-right mt-1.5 font-mono">priced from your Pricing DNA</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- App status bar -->
+              <div class="flex items-center justify-between px-4 py-2 bg-black/40 border-t border-white/10 text-[10px] font-mono text-bw-dark-muted">
+                <span>3 docs scanned</span>
+                <span>generated 00:00:18</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROBLEM STATEMENT ============ -->
+  <section class="bg-bw-bg py-24 lg:py-32 border-b border-bw-border">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
+
+        <div>
+          <div class="eyebrow mb-5">The bidding problem</div>
+          <h2 class="text-display md:text-[3.25rem] font-extrabold text-bw-text tracking-tight max-w-[20ch]">
+            You shouldn't be writing bids at midnight.
+          </h2>
+
+          <div class="mt-7 space-y-5 text-[17px] leading-relaxed text-bw-body max-w-[36rem]">
+            <p>
+              Every RFP is the same drill. Download a 50-page spec set, scroll for the
+              shade callout buried in section 12&nbsp;24, count windows from elevations,
+              dig up an old proposal, swap the room names, and hope the GC doesn't catch
+              what you missed.
+            </p>
+            <p>
+              The faster sub wins the work. Not the better one. Not the cheaper one.
+              The one who returned the bid first.
+            </p>
+            <p class="text-bw-text font-medium">
+              BidWork closes that gap.
+            </p>
+          </div>
+        </div>
+
+        <!-- Pain checklist -->
+        <div class="relative">
+          <div class="absolute -inset-6 bg-bw-green-tint/40 blur-3xl rounded-full -z-10"></div>
+          <div class="bg-white rounded-3xl border border-bw-border shadow-card p-7 md:p-9">
+            <div class="font-mono text-[11px] text-bw-muted mb-5 tracking-wider">SUNDAY NIGHT, USUALLY</div>
+
+            <ul class="space-y-4">
+              <li class="flex items-start gap-4">
+                <span class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-bw-border flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5E6D55" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </span>
+                <div>
+                  <div class="font-semibold text-bw-text">Hunting through 50+ page spec sets</div>
+                  <div class="text-[14px] text-bw-body mt-0.5">Shade callout in section 12&nbsp;24&nbsp;13. Or 12&nbsp;21. Or both.</div>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-bw-border flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5E6D55" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </span>
+                <div>
+                  <div class="font-semibold text-bw-text">Counting windows from elevations</div>
+                  <div class="text-[14px] text-bw-body mt-0.5">Miss two and you eat the loss. Add four and you lose the bid.</div>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-bw-border flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5E6D55" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </span>
+                <div>
+                  <div class="font-semibold text-bw-text">Copying an old proposal, hoping it fits</div>
+                  <div class="text-[14px] text-bw-body mt-0.5">Different scope, same exclusions. Until one bites you.</div>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-bw-border flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5E6D55" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </span>
+                <div>
+                  <div class="font-semibold text-bw-text">Losing to the sub who replied first</div>
+                  <div class="text-[14px] text-bw-body mt-0.5">Same scope, sent Monday morning. Yours went Tuesday.</div>
+                </div>
+              </li>
+            </ul>
+
+            <div class="mt-7 pt-6 border-t border-bw-border">
+              <div class="flex items-baseline justify-between">
+                <span class="font-mono text-[11px] text-bw-muted tracking-wider">WITH BIDWORK</span>
+                <span class="text-[13px] text-bw-body">Same set → 18 minutes</span>
+              </div>
+              <div class="mt-3 flex items-center gap-3">
+                <div class="flex-1 h-2 rounded-full bg-bw-green-tint overflow-hidden">
+                  <div class="h-full bg-bw-green rounded-full" style="width: 8%"></div>
+                </div>
+                <span class="text-[13px] font-mono text-bw-text font-semibold">~92% faster</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="bg-bw-bg py-24 lg:py-32">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8">
+      <div class="max-w-2xl mb-16 lg:mb-20">
+        <div class="eyebrow mb-5">How it works</div>
+        <h2 class="text-display md:text-[3.25rem] font-extrabold text-bw-text tracking-tight">
+          Three steps. No spreadsheet.
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-10 lg:gap-12">
+
+        <!-- Step 1 -->
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="font-mono text-[12px] text-bw-green font-semibold tracking-wider">01</span>
+            <span class="flex-1 h-px bg-bw-border"></span>
+          </div>
+          <h3 class="text-[24px] font-bold text-bw-text tracking-tight mb-3">Set your pricing once</h3>
+          <p class="text-[15px] text-bw-body leading-relaxed mb-6">
+            Tell BidWork what you charge — per window, per sq ft, per adder. That's
+            your Pricing DNA. We never ask your cost or margin.
+          </p>
+
+          <!-- Mini mock: pricing DNA -->
+          <div class="bg-bw-surface rounded-2xl border border-bw-border p-5 h-[200px] flex flex-col gap-2.5">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[11px] text-bw-body">Pricing DNA</span>
+              <span class="text-[10px] text-bw-green font-semibold">charged prices only</span>
+            </div>
+            <div class="bg-white rounded-lg p-2.5 border border-bw-border flex items-center justify-between">
+              <span class="text-[12px] text-bw-text">Solar shade · per window</span><span class="font-mono text-[12px] text-bw-text">$420</span>
+            </div>
+            <div class="bg-white rounded-lg p-2.5 border border-bw-border flex items-center justify-between">
+              <span class="text-[12px] text-bw-text">Motorized · per window</span><span class="font-mono text-[12px] text-bw-text">$680</span>
+            </div>
+            <div class="bg-white rounded-lg p-2.5 border border-bw-border flex items-center justify-between">
+              <span class="text-[12px] text-bw-text">Fascia · per LF</span><span class="font-mono text-[12px] text-bw-text">$24</span>
+            </div>
+            <div class="text-[11px] text-bw-muted mt-auto">Never your cost or margin — only what you charge.</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="font-mono text-[12px] text-bw-green font-semibold tracking-wider">02</span>
+            <span class="flex-1 h-px bg-bw-border"></span>
+          </div>
+          <h3 class="text-[24px] font-bold text-bw-text tracking-tight mb-3">Matched bids land ready</h3>
+          <p class="text-[15px] text-bw-body leading-relaxed mb-6">
+            We bring you opportunities in your area, read the full set, and draft
+            each proposal in your own pricing — with anything unclear flagged in
+            plain language.
+          </p>
+
+          <!-- Mini mock: bid ready + gap flag -->
+          <div class="bg-bw-surface rounded-2xl border border-bw-border p-5 h-[200px] flex flex-col gap-3">
+            <div class="bg-white rounded-lg p-3 border border-bw-border">
+              <div class="text-[11px] text-bw-green font-semibold mb-1 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> New bid ready</div>
+              <div class="text-[13px] text-bw-text font-medium">520 Madison Ave — 47 windows · <span class="font-mono">$48,210</span></div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-bw-border">
+              <div class="text-[11px] text-bw-muted font-mono mb-1">Confirm before you send</div>
+              <div class="text-[13px] text-bw-text leading-snug">We read 47 windows from the schedule — confirm the count and the 5% openness assumption?</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="font-mono text-[12px] text-bw-green font-semibold tracking-wider">03</span>
+            <span class="flex-1 h-px bg-bw-border"></span>
+          </div>
+          <h3 class="text-[24px] font-bold text-bw-text tracking-tight mb-3">Approve, send &amp; grow</h3>
+          <p class="text-[15px] text-bw-body leading-relaxed mb-6">
+            Send the proposal in one click — replies go straight to your inbox.
+            Then say hi to the project team and grow your bid lists.
+          </p>
+
+          <!-- Mini mock: send + say-hi -->
+          <div class="bg-bw-surface rounded-2xl border border-bw-border p-5 h-[200px] flex flex-col justify-center gap-3">
+            <div class="bg-white rounded-lg p-3 border border-bw-border flex items-center gap-3">
+              <div class="w-9 h-11 bg-bw-green-tint rounded flex items-center justify-center flex-shrink-0">
+                <span class="font-mono text-[9px] font-bold text-bw-green">PDF</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[12px] font-semibold text-bw-text truncate">proposal — 520 Madison</div>
+                <div class="text-[11px] text-bw-muted">reply-to your inbox</div>
+              </div>
+              <span class="text-[11px] font-semibold text-white bg-bw-green rounded-full px-3 py-1.5">Send</span>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-bw-border flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-bw-green-tint text-bw-green-deep flex items-center justify-center font-bold text-[11px] flex-shrink-0">SM</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[12px] font-semibold text-bw-text truncate">Sarah Mills · Turner</div>
+                <div class="text-[11px] text-bw-muted">add to your network</div>
+              </div>
+              <span class="text-[11px] font-semibold text-bw-green border border-bw-green/30 rounded-full px-3 py-1.5">Say hi</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INDUSTRIES ============ -->
+  <section class="bg-bw-surface py-24 lg:py-32 relative overflow-hidden">
+    <div class="absolute inset-0 pattern-diagonal"></div>
+
+    <div class="relative max-w-[1280px] mx-auto px-6 lg:px-8">
+      <div class="grid md:grid-cols-2 gap-10 items-end mb-16">
+        <div>
+          <div class="eyebrow mb-5">Industries</div>
+          <h2 class="text-display md:text-[3.25rem] font-extrabold text-bw-text tracking-tight max-w-[18ch]">
+            Built for your trade. Literally.
+          </h2>
+        </div>
+        <p class="text-[17px] text-bw-body leading-relaxed max-w-[34rem] md:justify-self-end">
+          Every vertical ships with its own scan keywords, products,
+          units, default exclusions, and pricing logic.
+          Yours can ship next.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <!-- Window Treatments -->
+        <a href="#" class="card-hover group bg-white rounded-3xl border border-bw-border p-7 shadow-card hover:shadow-card-hover hover:border-bw-green/30">
+          <div class="flex items-center justify-between mb-7">
+            <div class="w-14 h-14 rounded-2xl bg-bw-green-tint flex items-center justify-center">
+              <!-- Window icon -->
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#14A800" stroke-width="2">
+                <rect x="5" y="4" width="22" height="24" rx="1"/>
+                <line x1="16" y1="4" x2="16" y2="28"/>
+                <line x1="5" y1="16" x2="27" y2="16"/>
+                <line x1="5" y1="6.5" x2="27" y2="6.5" stroke-width="1.2"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[11px] text-bw-muted">CSI&nbsp;12</span>
+          </div>
+
+          <div class="font-mono text-[11px] text-bw-green font-semibold tracking-wider mb-2">WINDOW TREATMENTS</div>
+          <h3 class="text-[21px] font-bold text-bw-text tracking-tight mb-3 leading-tight">Shade &amp; drapery contractors.</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed mb-6">
+            Roller, solar, motorized, drapery, blackout. Per-window pricing
+            with openness, motor system, and fascia handled.
+          </p>
+
+          <div class="flex items-center gap-2 text-bw-green font-semibold text-[14px] group-hover:gap-3 transition-all">
+            See features
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+        </a>
+
+        <!-- Epoxy Flooring -->
+        <a href="#" class="card-hover group bg-white rounded-3xl border border-bw-border p-7 shadow-card hover:shadow-card-hover hover:border-bw-green/30">
+          <div class="flex items-center justify-between mb-7">
+            <div class="w-14 h-14 rounded-2xl bg-bw-green-tint flex items-center justify-center">
+              <!-- Floor icon -->
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#14A800" stroke-width="2">
+                <rect x="4" y="20" width="24" height="8" rx="1"/>
+                <circle cx="10" cy="24" r="0.8" fill="#14A800"/>
+                <circle cx="16" cy="24" r="0.8" fill="#14A800"/>
+                <circle cx="22" cy="24" r="0.8" fill="#14A800"/>
+                <path d="M4 16h24M8 12h16M12 8h8" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[11px] text-bw-muted">CSI&nbsp;09</span>
+          </div>
+
+          <div class="font-mono text-[11px] text-bw-green font-semibold tracking-wider mb-2">EPOXY FLOORING</div>
+          <h3 class="text-[21px] font-bold text-bw-text tracking-tight mb-3 leading-tight">Resinous flooring contractors.</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed mb-6">
+            Metallic, quartz broadcast, polyaspartic, moisture mitigation.
+            Sq-ft pricing with surface prep and thickness handled.
+          </p>
+
+          <div class="flex items-center gap-2 text-bw-green font-semibold text-[14px] group-hover:gap-3 transition-all">
+            See features
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+        </a>
+
+        <!-- Cleaning & Garbage Removal -->
+        <a href="#" class="card-hover group bg-white rounded-3xl border border-bw-border p-7 shadow-card hover:shadow-card-hover hover:border-bw-green/30">
+          <div class="flex items-center justify-between mb-7">
+            <div class="w-14 h-14 rounded-2xl bg-bw-green-tint flex items-center justify-center">
+              <!-- Broom / removal icon -->
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#14A800" stroke-width="2">
+                <path d="M22 4l-9 9" stroke-linecap="round"/>
+                <path d="M11 11l6 6" stroke-linecap="round"/>
+                <path d="M6 26c0-4 2-6 5-7l5 5c-1 3-3 5-7 5H7a1 1 0 0 1-1-1v-2z"/>
+                <path d="M9 22l3 3M12 20l3 3" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[11px] text-bw-muted">CSI&nbsp;01, 02</span>
+          </div>
+
+          <div class="font-mono text-[11px] text-bw-green font-semibold tracking-wider mb-2">CLEANING &amp; REMOVAL</div>
+          <h3 class="text-[21px] font-bold text-bw-text tracking-tight mb-3 leading-tight">Janitorial &amp; debris haul-off.</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed mb-6">
+            Final &amp; rough cleans, recurring janitorial, dumpster pulls, debris
+            removal. Per-sq-ft, per-visit, and per-haul pricing handled.
+          </p>
+
+          <div class="flex items-center gap-2 text-bw-green font-semibold text-[14px] group-hover:gap-3 transition-all">
+            See features
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+        </a>
+
+        <!-- HVAC -->
+        <a href="#" class="card-hover group bg-white rounded-3xl border border-bw-border p-7 shadow-card hover:shadow-card-hover hover:border-bw-green/30">
+          <div class="flex items-center justify-between mb-7">
+            <div class="w-14 h-14 rounded-2xl bg-bw-green-tint flex items-center justify-center">
+              <!-- HVAC icon -->
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#14A800" stroke-width="2">
+                <rect x="4" y="6" width="24" height="14" rx="2"/>
+                <line x1="8" y1="11" x2="24" y2="11" stroke-width="1.2"/>
+                <line x1="8" y1="14" x2="24" y2="14" stroke-width="1.2"/>
+                <line x1="8" y1="17" x2="24" y2="17" stroke-width="1.2"/>
+                <path d="M10 23v3M16 23v3M22 23v3"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[11px] text-bw-muted">CSI&nbsp;23</span>
+          </div>
+
+          <div class="font-mono text-[11px] text-bw-green font-semibold tracking-wider mb-2">HVAC SERVICES</div>
+          <h3 class="text-[21px] font-bold text-bw-text tracking-tight mb-3 leading-tight">Mechanical contractors.</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed mb-6">
+            Split, VRF, RTU, ductwork, controls. Mixed pricing — per-ton,
+            per-unit-installed, hourly — in one document.
+          </p>
+
+          <div class="flex items-center gap-2 text-bw-green font-semibold text-[14px] group-hover:gap-3 transition-all">
+            See features
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- Coming soon row -->
+      <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 justify-center text-[13px] text-bw-muted">
+        <span class="font-mono text-[11px] tracking-wider text-bw-text/60">NEXT VERTICALS</span>
+        <span class="text-bw-body">Roofing</span>
+        <span class="w-1 h-1 rounded-full bg-bw-border"></span>
+        <span class="text-bw-body">Solar</span>
+        <span class="w-1 h-1 rounded-full bg-bw-border"></span>
+        <span class="text-bw-body">Painting</span>
+        <span class="w-1 h-1 rounded-full bg-bw-border"></span>
+        <span class="text-bw-body">Drywall</span>
+        <span class="w-1 h-1 rounded-full bg-bw-border"></span>
+        <a href="#" class="text-bw-green font-semibold">Request your trade →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES GRID ============ -->
+  <section class="bg-bw-bg py-24 lg:py-32">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8">
+
+      <div class="max-w-2xl mb-16">
+        <div class="eyebrow mb-5">Features</div>
+        <h2 class="text-display md:text-[3.25rem] font-extrabold text-bw-text tracking-tight">
+          Everything you needed yesterday.
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-bw-border rounded-3xl overflow-hidden border border-bw-border">
+
+        <!-- Feature 1: Opportunities in your area -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">Opportunities in your area</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            We source the ITBs within range of you and match them to your trade. No more hunting plan rooms.
+          </p>
+        </div>
+
+        <!-- Feature 2: Reads the full set, cites the page -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6" stroke-width="1.5"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">Reads the full set</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            Vision models read every page — counts, schedules, product callouts — and cite the page each number came from.
+          </p>
+        </div>
+
+        <!-- Feature 3: Flags what's unclear -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M10.3 3.3a2 2 0 0 1 3.4 0l8 13.4A2 2 0 0 1 20 20H4a2 2 0 0 1-1.7-3.3z"/><path d="M12 9v4M12 17h.01"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">Flags what's unclear</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            Missing schedules, conflicting counts, low-confidence reads — surfaced in plain language before you send. Nothing auto-sends.
+          </p>
+        </div>
+
+        <!-- Feature 4: Priced in your Pricing DNA -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2.5 0 0 1 9.5 16M12 6v1.5M12 16.5V18"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">Priced in your Pricing DNA</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            Each line drafted at what you charge — per window, sq ft, or adder. We never ask your cost or margin. Your prices stay yours.
+          </p>
+        </div>
+
+        <!-- Feature 5: One-click send, replies to you -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">One-click send</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            Approve and send the proposal on your letterhead. Reply-to is your inbox — the conversation is yours, BidWork stays out of it.
+          </p>
+        </div>
+
+        <!-- Feature 6: Network & say-hi -->
+        <div class="bg-white p-8 hover:bg-bw-surface/50 transition">
+          <div class="w-11 h-11 rounded-xl bg-bw-green-tint flex items-center justify-center mb-5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3 class="text-[18px] font-bold text-bw-text mb-2">Network &amp; say hi</h3>
+          <p class="text-[14px] text-bw-body leading-relaxed">
+            Every project team with a real email becomes a warm intro — even on jobs you pass on. Grow your bid lists, one hello at a time.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SOCIAL PROOF ============ -->
+  <section class="bg-bw-bg pb-24 lg:pb-32">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8">
+
+      <div class="text-center mb-12">
+        <div class="eyebrow mb-3">Built with NYC contractors</div>
+        <p class="text-[15px] text-bw-body">From the people writing the bids — not the people selling software to them.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+
+        <div class="bg-bw-surface rounded-3xl p-8 md:p-10 border border-bw-border">
+          <svg width="32" height="24" viewBox="0 0 32 24" fill="#14A800" class="mb-6 opacity-90">
+            <path d="M0 24V12C0 5.4 4.3.5 11 0v4.8C8 5.4 6 7.4 5.5 10H10v14H0zM18 24V12C18 5.4 22.3.5 29 0v4.8C26 5.4 24 7.4 23.5 10H28v14H18z"/>
+          </svg>
+          <p class="text-[20px] leading-snug text-bw-text font-medium mb-7">
+            I used to lose two Sundays a month to bid prep. Now the matched jobs land
+            already priced — I review the flagged stuff and send. The PM thinks I hired help.
+          </p>
+          <div class="flex items-center gap-4 pt-6 border-t border-bw-border">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-bw-green to-bw-green-deep flex items-center justify-center text-white font-bold">
+              MR
+            </div>
+            <div>
+              <div class="font-semibold text-bw-text text-[15px]">Mike Russo</div>
+              <div class="text-[13px] text-bw-body">Owner · Russo Window Treatments, Queens NY</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-bw-surface rounded-3xl p-8 md:p-10 border border-bw-border">
+          <svg width="32" height="24" viewBox="0 0 32 24" fill="#14A800" class="mb-6 opacity-90">
+            <path d="M0 24V12C0 5.4 4.3.5 11 0v4.8C8 5.4 6 7.4 5.5 10H10v14H0zM18 24V12C18 5.4 22.3.5 29 0v4.8C26 5.4 24 7.4 23.5 10H28v14H18z"/>
+          </svg>
+          <p class="text-[20px] leading-snug text-bw-text font-medium mb-7">
+            The gap flags are the killer feature — it tells me exactly what's unclear before I send.
+            And the say-hi emails got us onto two new bid lists last month.
+          </p>
+          <div class="flex items-center gap-4 pt-6 border-t border-bw-border">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-bw-green-deep to-bw-text flex items-center justify-center text-white font-bold">
+              DC
+            </div>
+            <div>
+              <div class="font-semibold text-bw-text text-[15px]">Dani Chen</div>
+              <div class="text-[13px] text-bw-body">Estimator · Bronx Mechanical Group</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING TEASER ============ -->
+  <section class="bg-bw-surface py-20 border-y border-bw-border">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <div class="eyebrow mb-4">Pricing</div>
+          <h2 class="text-[2.25rem] md:text-h2 font-extrabold text-bw-text tracking-tight max-w-[18ch]">
+            Simple pricing. Scales with your business.
+          </h2>
+        </div>
+        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-end">
+          <div class="text-[15px] text-bw-body max-w-md">
+            Starts at <span class="font-mono text-bw-text font-semibold">$49/mo</span>.
+            Free for the first 14 days. No credit card. No call required.
+          </div>
+          <a href="#" class="btn-fill inline-flex items-center justify-center gap-2 bg-bw-text text-white font-semibold text-[15px] px-6 py-3.5 rounded-full hover:!bg-bw-green flex-shrink-0">
+            See pricing
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA BANNER ============ -->
+  <section class="cta-gradient relative overflow-hidden">
+    <div class="absolute inset-0 pattern-grid-dark opacity-30"></div>
+
+    <div class="relative max-w-[1280px] mx-auto px-6 lg:px-8 py-20 lg:py-28 text-center">
+      <h2 class="text-display md:text-[3.5rem] font-extrabold text-white tracking-tight max-w-[20ch] mx-auto leading-[1.02]">
+        Stop writing bids on Sundays.
+      </h2>
+      <p class="mt-6 text-[18px] text-white/85 max-w-xl mx-auto">
+        Try BidWork free for 14 days. Bring your next ITB and walk through it with us.
+      </p>
+      <div class="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="#" class="inline-flex items-center justify-center gap-2 bg-white text-bw-text font-semibold text-[15px] px-7 py-3.5 rounded-full hover:bg-bw-text hover:text-white transition">
+          Try free for 14 days
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#" class="inline-flex items-center justify-center gap-2 bg-transparent text-white font-semibold text-[15px] px-7 py-3.5 rounded-full border border-white/30 hover:bg-white/10 transition">
+          Talk to founder
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="bg-bw-dark text-bw-dark-muted">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-8 pt-20 pb-12">
+
+      <div class="grid lg:grid-cols-5 gap-12 mb-16">
+
+        <div class="lg:col-span-2">
+          <div class="flex items-center gap-2 mb-5">
+            <span class="text-white font-black text-[24px] tracking-tight leading-none">bidwork</span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+          </div>
+          <p class="text-[14px] leading-relaxed max-w-xs">
+            AI-powered bidding software for trade contractors.
+            Built in NYC. Made for the people writing the bids.
+          </p>
+          <div class="mt-6 flex items-center gap-3">
+            <a href="#" class="w-9 h-9 rounded-full border border-white/15 flex items-center justify-center hover:border-bw-green hover:text-bw-green transition">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zm1.78 13.02H3.56V9h3.56v11.45z"/></svg>
+            </a>
+            <a href="#" class="w-9 h-9 rounded-full border border-white/15 flex items-center justify-center hover:border-bw-green hover:text-bw-green transition">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <div class="font-mono text-[11px] tracking-wider text-white/50 mb-5">PRODUCT</div>
+          <ul class="space-y-3 text-[14px]">
+            <li><a href="#" class="hover:text-white transition">Features</a></li>
+            <li><a href="#" class="hover:text-white transition">Platform</a></li>
+            <li><a href="#" class="hover:text-white transition">Pricing</a></li>
+            <li><a href="#" class="hover:text-white transition">Industries</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="font-mono text-[11px] tracking-wider text-white/50 mb-5">COMPANY</div>
+          <ul class="space-y-3 text-[14px]">
+            <li><a href="#" class="hover:text-white transition">About</a></li>
+            <li><a href="#" class="hover:text-white transition">Contact</a></li>
+            <li><a href="#" class="hover:text-white transition">FAQ</a></li>
+            <li><a href="#" class="hover:text-white transition">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="font-mono text-[11px] tracking-wider text-white/50 mb-5">LEGAL</div>
+          <ul class="space-y-3 text-[14px]">
+            <li><a href="#" class="hover:text-white transition">Privacy</a></li>
+            <li><a href="#" class="hover:text-white transition">Terms</a></li>
+            <li><a href="#" class="hover:text-white transition">Security</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-[13px] text-white/45">
+        <div>© 2026 BidWork. All rights reserved.</div>
+        <div class="font-mono text-[12px] tracking-wide">NYC · BUILT FOR THE TRADES</div>
+      </div>
+
+    </div>
+  </footer>
+
+</body>
+</html>

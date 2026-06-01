@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Bid sent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+@keyframes pop{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+.pop{animation:pop .5s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.rise{animation:rise .6s ease both;}
+.rd1{animation-delay:.15s;}.rd2{animation-delay:.28s;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== HEADER ===== -->
+<header class="bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="dashboard.html" class="flex items-center gap-2">
+      <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+    </a>
+    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-bw-green to-bw-green-deep flex items-center justify-center text-white font-bold text-[13px]">TS</div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[620px] mx-auto px-6 py-16 pb-28 text-center">
+
+  <!-- check -->
+  <div class="pop w-20 h-20 rounded-full bg-bw-green-tint flex items-center justify-center mx-auto mb-6">
+    <div class="w-14 h-14 rounded-full bg-bw-green flex items-center justify-center">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+  </div>
+
+  <h1 class="rise text-[2rem] font-extrabold tracking-tight mb-2">Bid sent to Turner Construction.</h1>
+  <p class="rise rd1 text-[15px] text-bw-body max-w-[44ch] mx-auto mb-10">Your proposal for <span class="font-semibold text-bw-text">520 Madison Ave — Floors 22–24</span> is on its way to Sarah Mills.</p>
+
+  <!-- receipt card -->
+  <div class="rise rd1 bg-white rounded-2xl border border-bw-border p-6 text-left mb-5">
+    <div class="eyebrow mb-4">Delivery receipt</div>
+    <div class="space-y-3 text-[14px]">
+      <div class="flex items-center justify-between"><span class="text-bw-body">Sent to</span><span class="font-medium">Sarah Mills · s.mills@turner.com</span></div>
+      <div class="flex items-center justify-between border-t border-bw-border pt-3"><span class="text-bw-body">Reply-to</span><span class="font-medium text-bw-green">you@shadesco.com</span></div>
+      <div class="flex items-center justify-between border-t border-bw-border pt-3"><span class="text-bw-body">Attachment</span><span class="font-mono text-[13px]">proposal.pdf · 6 pages</span></div>
+      <div class="flex items-center justify-between border-t border-bw-border pt-3"><span class="text-bw-body">Bid value</span><span class="font-mono font-semibold">$48,210</span></div>
+      <div class="flex items-center justify-between border-t border-bw-border pt-3"><span class="text-bw-body">Sent at</span><span class="font-mono text-[13px]">May 30, 2026 · 2:14 PM</span></div>
+    </div>
+  </div>
+
+  <!-- what happens next -->
+  <div class="rise rd2 bg-bw-green-tint/50 border border-bw-green-tint rounded-2xl p-5 text-left mb-8">
+    <div class="flex gap-3">
+      <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+      <div>
+        <div class="font-semibold text-[14px] mb-1">When the GC replies, it comes straight to you.</div>
+        <p class="text-[13px] text-bw-body leading-relaxed">Sarah's reply goes to <span class="font-semibold text-bw-text">you@shadesco.com</span> — BidWork stays out of the conversation. We'll mark this bid <span class="font-semibold text-bw-text">Replied</span> on your dashboard so you never lose track.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- actions -->
+  <div class="rise rd2 flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="dashboard.html" class="btn-fill inline-flex items-center justify-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3 rounded-full">
+      Back to your bids
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <a href="bid.html" class="btn-outline inline-flex items-center justify-center gap-2 bg-white text-bw-text font-semibold text-[15px] px-7 py-3 rounded-full border border-bw-border">View sent proposal</a>
+  </div>
+
+</main>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Prototype:</span>
+  <a href="onboarding.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Onboarding</a>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Dashboard</a>
+  <a href="bid.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Bid</a>
+  <a href="network.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Network</a>
+  <a href="sent.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Sent</a>
+  <a href="settings.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Settings</a>
+</div>
+
+</body>
+</html>

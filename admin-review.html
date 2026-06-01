@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Review &amp; dispatch (admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7','bw-blue':'#1D4ED8','bw-blue-tint':'#DBEAFE','bw-red':'#B91C1C','bw-red-tint':'#FEE2E2','bw-purple':'#6D28D9','bw-purple-tint':'#EDE9FE'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-fill:disabled{background-color:#C9D1C7;cursor:not-allowed;transform:none;}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+.sectn{scroll-margin-top:84px;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== ADMIN HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1080px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="admin-queue.html" class="flex items-center gap-2">
+        <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[14px] font-medium">
+        <a href="admin-queue.html" class="px-3 py-2 rounded-lg bg-bw-green-tint text-bw-text">Bid requests</a>
+        <a href="#" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Contractors</a>
+        <a href="#" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Trades</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-purple bg-bw-purple-tint rounded-full px-3 py-1.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4z"/></svg> Operator console
+      </span>
+      <div class="w-9 h-9 rounded-full bg-bw-dark flex items-center justify-center text-white font-bold text-[13px]">OP</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[1080px] mx-auto px-6 py-10 pb-28">
+
+  <!-- breadcrumb + heading -->
+  <a href="admin-queue.html" class="inline-flex items-center gap-1.5 text-[13px] text-bw-body hover:text-bw-text mb-5">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+    Bid requests
+  </a>
+  <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+    <div>
+      <div class="eyebrow mb-2">Review &amp; dispatch</div>
+      <h1 class="text-[1.9rem] font-extrabold tracking-tight">520 Madison Ave — Floors 22–24</h1>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-bw-body mt-2">
+        <span class="font-mono">ITB · 3 files · 242 pp</span>
+        <span class="inline-flex items-center gap-1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 100 mi from 10018</span>
+        <span class="text-bw-muted">extracted ~$1.48 · just now</span>
+      </div>
+    </div>
+    <span id="hdrStatus" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-red bg-bw-red-tint rounded-full px-3 py-1.5">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      1 critical gap blocks dispatch
+    </span>
+  </div>
+
+  <!-- ============ 1 · TRADE RELEVANCE ============ -->
+  <section class="sectn mb-9">
+    <div class="flex items-baseline gap-2 mb-1"><h2 class="text-[1.2rem] font-extrabold tracking-tight">Trade relevance</h2><span class="text-[13px] text-bw-muted">— scored against all 6 trades</span></div>
+    <p class="text-[13px] text-bw-body mb-4">BidWork reuses the yes-bid / no-bid signal logic per vertical. Confirm the matches; off-scope trades drop out automatically.</p>
+
+    <div class="grid md:grid-cols-2 gap-3">
+      <!-- BID · window treatments -->
+      <div class="bg-white rounded-2xl border-l-4 border-bw-green border border-bw-border p-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="font-semibold">Window treatments</div>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1">BID · 96%</span>
+        </div>
+        <p class="text-[12.5px] text-bw-body">47 windows across the floor plates; solar + blackout called out in Division 12 spec. <span class="text-bw-muted">9 fields extracted.</span></p>
+      </div>
+      <!-- BID · flooring (epoxy) -->
+      <div class="bg-white rounded-2xl border-l-4 border-bw-green border border-bw-border p-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="font-semibold">Epoxy flooring</div>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1">BID · 71%</span>
+        </div>
+        <p class="text-[12.5px] text-bw-body">Resinous flooring scope in back-of-house + pantry (Div 09 67 00). <span class="text-bw-muted">Lower confidence — area not fully dimensioned.</span></p>
+      </div>
+      <!-- NO-BID · HVAC -->
+      <div class="bg-white rounded-2xl border-l-4 border-bw-border border border-bw-border p-4 opacity-80">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="font-semibold text-bw-body">HVAC</div>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-body bg-bw-surface rounded-full px-2.5 py-1">NO-BID</span>
+        </div>
+        <p class="text-[12.5px] text-bw-body">Mechanical is base-building, by others. No equipment schedule for this scope.</p>
+        <div class="text-[11.5px] text-bw-green-deep font-medium mt-1.5 inline-flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4z"/></svg> Still adds 8 contacts to in-area HVAC contractors' Network</div>
+      </div>
+      <!-- NO-BID · cleaning -->
+      <div class="bg-white rounded-2xl border-l-4 border-bw-border border border-bw-border p-4 opacity-80">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="font-semibold text-bw-body">Garbage removal &amp; cleaning</div>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-body bg-bw-surface rounded-full px-2.5 py-1">NO-BID</span>
+        </div>
+        <p class="text-[12.5px] text-bw-body">Construction-phase only; no recurring janitorial scope in the package.</p>
+        <div class="text-[11.5px] text-bw-green-deep font-medium mt-1.5 inline-flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4z"/></svg> Still adds 8 contacts to in-area cleaning contractors' Network</div>
+      </div>
+    </div>
+    <button class="text-[12px] text-bw-body hover:text-bw-text mt-3 inline-flex items-center gap-1">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      Show 2 more no-bid trades (Drywall, Painting)
+    </button>
+  </section>
+
+  <!-- ============ 2 · DOCUMENT GAPS ============ -->
+  <section class="sectn mb-9">
+    <div class="flex items-baseline gap-2 mb-1"><h2 class="text-[1.2rem] font-extrabold tracking-tight">Document gaps</h2><span class="text-[13px] text-bw-muted">— completeness of the bid request itself</span></div>
+    <p class="text-[13px] text-bw-body mb-4">Gaps <em>within the package</em> — references to sheets that aren't here, conflicts, missing expected docs. Resolve before dispatch. <span class="font-medium text-bw-text">Gating is severity-based:</span> a critical gap blocks dispatch; warnings dispatch with a caveat.</p>
+
+    <div class="space-y-3">
+      <!-- CRITICAL -->
+      <div id="gapCritical" class="bg-white rounded-2xl border border-bw-red/40 border-l-4 border-l-bw-red p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex items-start gap-3 min-w-0">
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-red bg-bw-red-tint rounded-full px-2.5 py-1 flex-shrink-0 mt-0.5">CRITICAL</span>
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Window schedule references sheet <span class="font-mono">A-601</span> — not in package</div>
+              <p class="text-[12.5px] text-bw-body mt-0.5">Sheet A-200 cites "see A-601 for window types &amp; sizes." A-601 is missing, so window dimensions can't be confirmed — <span class="font-medium text-bw-text">pricing is impossible for Window treatments until resolved.</span></p>
+              <div class="text-[11px] text-bw-muted font-mono mt-1">Reference-chase · blocks: Window treatments</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="resolveCritical()" class="btn-fill bg-bw-green text-white font-semibold text-[12px] px-3.5 py-2 rounded-full">Upload A-601</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WARNING -->
+      <div class="bg-white rounded-2xl border border-bw-border border-l-4 border-l-bw-amber p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex items-start gap-3 min-w-0">
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-amber bg-bw-amber-tint rounded-full px-2.5 py-1 flex-shrink-0 mt-0.5">WARNING</span>
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Spec <span class="font-mono">12 24 00</span> cites a manufacturer addendum not included</div>
+              <p class="text-[12.5px] text-bw-body mt-0.5">Roller-shade fabric openness defaults to a conservative 5% with an explicit assumption flag on each proposal. Dispatches with a caveat.</p>
+              <div class="text-[11px] text-bw-muted font-mono mt-1">Missing document · caveat only</div>
+            </div>
+          </div>
+          <span class="text-[12px] font-medium text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5 flex-shrink-0">Will caveat</span>
+        </div>
+      </div>
+
+      <!-- WARNING · inconsistency -->
+      <div class="bg-white rounded-2xl border border-bw-border border-l-4 border-l-bw-amber p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex items-start gap-3 min-w-0">
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-amber bg-bw-amber-tint rounded-full px-2.5 py-1 flex-shrink-0 mt-0.5">WARNING</span>
+            <div class="min-w-0">
+              <div class="font-semibold text-[14px]">Window count conflict — elevations imply ~40, schedule lists 47</div>
+              <p class="text-[12.5px] text-bw-body mt-0.5">Cross-source reconciliation flagged a mismatch. Proposal uses the schedule's 47 and asks the contractor to confirm.</p>
+              <div class="text-[11px] text-bw-muted font-mono mt-1">Internal inconsistency · caveat only</div>
+            </div>
+          </div>
+          <span class="text-[12px] font-medium text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5 flex-shrink-0">Will caveat</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 · DISPATCH FAN-OUT ============ -->
+  <section class="sectn mb-9">
+    <div class="flex items-baseline gap-2 mb-1"><h2 class="text-[1.2rem] font-extrabold tracking-tight">Dispatch</h2><span class="text-[13px] text-bw-muted">— one priced proposal per matched contractor in range</span></div>
+    <p class="text-[13px] text-bw-body mb-4">Each contractor gets an individually-priced draft from their own Pricing DNA. Nothing sends until they approve it in their own dashboard.</p>
+
+    <!-- Trade group: Window treatments -->
+    <div class="bg-white rounded-2xl border border-bw-border overflow-hidden mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-bw-border bg-bw-surface/50">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">Window treatments</span>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1">BID</span>
+        </div>
+        <span class="text-[12px] text-bw-muted">5 contractors within 100 mi</span>
+      </div>
+      <div class="divide-y divide-bw-border">
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer">
+          <input type="checkbox" checked class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-green text-white flex items-center justify-center font-bold text-[12px] flex-shrink-0">TS</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">The Shade Company</div><div class="text-[12px] text-bw-muted truncate">Manhattan · 0 mi · 9 fields priced</div></div>
+          <span class="text-[13px] font-mono font-semibold">$48,210</span>
+        </label>
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer">
+          <input type="checkbox" checked class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[12px] flex-shrink-0">MS</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">Metro Shade &amp; Drapery</div><div class="text-[12px] text-bw-muted truncate">Queens · 12 mi · 9 fields priced</div></div>
+          <span class="text-[13px] font-mono font-semibold">$44,980</span>
+        </label>
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer">
+          <input type="checkbox" checked class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-purple-tint text-bw-purple flex items-center justify-center font-bold text-[12px] flex-shrink-0">SW</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">SolarWeave Contract</div><div class="text-[12px] text-bw-muted truncate">Newark, NJ · 14 mi · 9 fields priced</div></div>
+          <span class="text-[13px] font-mono font-semibold">$51,400</span>
+        </label>
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer text-bw-body">
+          <input type="checkbox" class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-surface text-bw-body flex items-center justify-center font-bold text-[12px] flex-shrink-0">HB</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">Hudson Blind Co.</div><div class="text-[12px] text-bw-amber truncate">Yonkers · 18 mi · incomplete Pricing DNA</div></div>
+          <span class="text-[12px] text-bw-muted">skip</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Trade group: Epoxy flooring -->
+    <div class="bg-white rounded-2xl border border-bw-border overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-bw-border bg-bw-surface/50">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">Epoxy flooring</span>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1">BID</span>
+        </div>
+        <span class="text-[12px] text-bw-muted">4 contractors within 100 mi</span>
+      </div>
+      <div class="divide-y divide-bw-border">
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer">
+          <input type="checkbox" checked class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[12px] flex-shrink-0">RF</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">ResinFloor NYC</div><div class="text-[12px] text-bw-muted truncate">Bronx · 9 mi · priced w/ caveat</div></div>
+          <span class="text-[13px] font-mono font-semibold">$28,600</span>
+        </label>
+        <label class="flex items-center gap-3 px-5 py-3 cursor-pointer">
+          <input type="checkbox" checked class="accent-bw-green w-4 h-4">
+          <div class="w-9 h-9 rounded-xl bg-bw-amber-tint text-bw-amber flex items-center justify-center font-bold text-[12px] flex-shrink-0">EP</div>
+          <div class="flex-1 min-w-0"><div class="font-medium text-[14px] truncate">EpoxyPro Coatings</div><div class="text-[12px] text-bw-muted truncate">Jersey City, NJ · 11 mi · priced w/ caveat</div></div>
+          <span class="text-[13px] font-mono font-semibold">$31,250</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4 · CONTACTS FOUND (NETWORK) ============ -->
+  <section class="sectn mb-4">
+    <div class="flex items-baseline gap-2 mb-1"><h2 class="text-[1.2rem] font-extrabold tracking-tight">Contacts found</h2><span class="text-[13px] text-bw-muted">— extracted from this package</span></div>
+    <p class="text-[13px] text-bw-body mb-2">The same read that scored trades pulled out the project team. They flow into each in-area contractor's <span class="font-medium text-bw-text">Network</span> as warm say-hi suggestions — never auto-emailed from here. <span class="font-medium text-bw-text">A contact only counts if it has an email</span> — that's the whole point of saying hi.</p>
+    <div class="flex items-start gap-2 bg-bw-green-tint border border-bw-green-tint-2 rounded-xl px-4 py-2.5 mb-4 text-[12.5px] text-bw-body">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B6B00" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4z"/></svg>
+      <span><span class="font-semibold text-bw-green-deep">A no-bid is never a dead end.</span> These contacts go to in-area contractors even for the trades that scored no-bid — the project is still a warm reason to say hi ("not sure shades are in scope, but we work in your area"). Tone adapts to scope; sending stays a per-contact choice on the gentle timer.</span>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-bw-border overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-bw-border bg-bw-surface/50">
+        <span class="text-[12px] font-semibold text-bw-muted uppercase tracking-wider">8 with email · 4 companies</span>
+        <span class="text-[12px] text-bw-green font-medium">→ added to Network</span>
+      </div>
+      <div class="divide-y divide-bw-border">
+        <div class="flex items-center gap-3 px-5 py-3">
+          <div class="w-9 h-9 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[12px] flex-shrink-0">SM</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-2"><span class="font-medium text-[14px] truncate">Sarah Mills</span><span class="hidden sm:inline text-[12px] text-bw-muted truncate">Project Manager · Turner Construction</span></div>
+            <div class="text-[12px] text-bw-body flex items-center gap-1.5 mt-0.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M4 4h16v16H4z" fill="none"/><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg><span class="truncate">s.mills@turner.com</span></div>
+          </div>
+          <span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1 flex-shrink-0">General contractor</span>
+          <span class="hidden md:block text-[11px] text-bw-muted font-mono w-[110px] text-right">contact sheet</span>
+        </div>
+        <div class="flex items-center gap-3 px-5 py-3">
+          <div class="w-9 h-9 rounded-xl bg-bw-purple-tint text-bw-purple flex items-center justify-center font-bold text-[12px] flex-shrink-0">DC</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-2"><span class="font-medium text-[14px] truncate">David Chen</span><span class="hidden sm:inline text-[12px] text-bw-muted truncate">Associate · Gensler</span></div>
+            <div class="text-[12px] text-bw-body flex items-center gap-1.5 mt-0.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg><span class="truncate">d.chen@gensler.com</span></div>
+          </div>
+          <span class="inline-flex text-[11px] font-semibold text-bw-purple bg-bw-purple-tint rounded-full px-2.5 py-1 flex-shrink-0">Architect</span>
+          <span class="hidden md:block text-[11px] text-bw-muted font-mono w-[110px] text-right">spec 12 22 00</span>
+        </div>
+        <div class="flex items-center gap-3 px-5 py-3">
+          <div class="w-9 h-9 rounded-xl bg-bw-amber-tint text-bw-amber flex items-center justify-center font-bold text-[12px] flex-shrink-0">RH</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-2"><span class="font-medium text-[14px] truncate">Robert Hale</span><span class="hidden sm:inline text-[12px] text-bw-muted truncate">Owner's Rep · Madison Holdings</span></div>
+            <div class="text-[12px] text-bw-body flex items-center gap-1.5 mt-0.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2"><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg><span class="truncate">rhale@madisonholdings.com</span></div>
+          </div>
+          <span class="inline-flex text-[11px] font-semibold text-bw-amber bg-bw-amber-tint rounded-full px-2.5 py-1 flex-shrink-0">Owner</span>
+          <span class="hidden md:block text-[11px] text-bw-muted font-mono w-[110px] text-right">front matter</span>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-t border-bw-border">
+        <span class="text-[12px] text-bw-muted inline-flex items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          2 more people found with no email in the docs — not added.
+        </span>
+        <button class="text-[12px] text-bw-body hover:text-bw-text inline-flex items-center gap-1">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg> Show 5 more
+        </button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== STICKY DISPATCH BAR ===== -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-bw-border">
+  <div class="max-w-[1080px] mx-auto px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div id="dispatchNote" class="text-[13px] text-bw-body flex items-center gap-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.2" class="flex-shrink-0"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <span><span class="font-semibold text-bw-red">Resolve the critical gap</span> to dispatch — 7 contractors selected across 2 trades.</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="btn-outline bg-white text-bw-body font-semibold text-[13px] px-4 py-2.5 rounded-full border border-bw-border">Save for later</button>
+      <button id="dispatchBtn" disabled class="btn-fill inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[14px] px-6 py-2.5 rounded-full">
+        Dispatch 7 proposals
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium" style="bottom:72px;">
+  <span class="text-bw-muted pr-1">Admin:</span>
+  <a href="admin-queue.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Queue</a>
+  <a href="admin-upload.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Upload</a>
+  <a href="admin-review.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Review &amp; dispatch</a>
+  <span class="text-bw-border px-1">|</span>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Contractor app →</a>
+</div>
+
+<script>
+function resolveCritical(){
+  // resolve the blocking gap → unlock dispatch
+  var g=document.getElementById('gapCritical');
+  g.classList.remove('border-bw-red/40','border-l-bw-red');
+  g.classList.add('border-bw-border','border-l-bw-green');
+  g.innerHTML='<div class="flex items-center gap-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-bw-green bg-bw-green-tint rounded-full px-2.5 py-1 flex-shrink-0"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> RESOLVED</span><div class="min-w-0"><div class="font-semibold text-[14px]">Sheet <span class="font-mono">A-601</span> uploaded — window types &amp; sizes re-extracted</div><p class="text-[12.5px] text-bw-body mt-0.5">Window treatments pricing confirmed against the schedule. No remaining blockers.</p></div></div>';
+
+  document.getElementById('hdrStatus').outerHTML='<span id="hdrStatus" class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Ready to dispatch</span>';
+
+  document.getElementById('dispatchNote').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.4" class="flex-shrink-0"><path d="M20 6L9 17l-5-5"/></svg><span>No blockers. <span class="font-semibold text-bw-text">7 contractors</span> selected across 2 trades · 2 warnings will dispatch as caveats.</span>';
+
+  var b=document.getElementById('dispatchBtn');
+  b.disabled=false;
+}
+</script>
+
+</body>
+</html>

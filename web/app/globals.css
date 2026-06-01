@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-bw-surface text-bw-text font-sans;
+  }
+}
+
+@layer components {
+  .bw-eyebrow {
+    @apply text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green;
+  }
+}

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bidwork — Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{'bw-bg':'#FFFFFF','bw-surface':'#F7F7F7','bw-text':'#001E00','bw-body':'#5E6D55','bw-muted':'#8E9C8B','bw-border':'#E5E7EB','bw-green':'#14A800','bw-green-hover':'#108A00','bw-green-deep':'#0B6B00','bw-green-tint':'#E8F5E4','bw-green-tint-2':'#D6EDCC','bw-dark':'#0F1410','bw-dark-2':'#171D17','bw-dark-muted':'#A8B3A5','bw-amber':'#B45309','bw-amber-tint':'#FEF3C7','bw-blue':'#1D4ED8','bw-blue-tint':'#DBEAFE','bw-red':'#B91C1C','bw-red-tint':'#FEE2E2','bw-purple':'#6D28D9','bw-purple-tint':'#EDE9FE'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']}}}};
+</script>
+<style>
+html{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;color:#001E00;background:#F7F7F7;}
+.btn-fill{transition:background-color .15s ease,transform .15s ease;}
+.btn-fill:hover{background-color:#108A00;}
+.btn-fill:active{transform:translateY(1px);}
+.btn-outline{transition:background-color .15s ease;}
+.btn-outline:hover{background-color:#E8F5E4;}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#14A800;}
+.proto-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;}
+.field{transition:border-color .12s ease,box-shadow .12s ease;}
+.field:focus{outline:none;border-color:#14A800;box-shadow:0 0 0 3px rgba(20,168,0,0.15);}
+.row-hover{transition:background-color .12s ease;}
+.row-hover:hover{background-color:#FAFCFA;}
+.seg-tab{cursor:pointer;}
+.seg-tab.active{background:#001E00;color:#fff;}
+.filter-pill{cursor:pointer;transition:all .12s ease;}
+.filter-pill.on{background:#E8F5E4;border-color:#14A800;color:#001E00;}
+</style>
+</head>
+<body class="bg-bw-surface text-bw-text">
+
+<!-- ===== APP HEADER ===== -->
+<header class="sticky top-0 z-50 bg-white border-b border-bw-border">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="dashboard.html" class="flex items-center gap-2">
+        <span class="font-black text-[20px] tracking-tight leading-none">bidwork</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-bw-green"></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[14px] font-medium">
+        <a href="dashboard.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Bids</a>
+        <a href="network.html" class="px-3 py-2 rounded-lg bg-bw-green-tint text-bw-text">Network</a>
+        <a href="settings.html" class="px-3 py-2 rounded-lg text-bw-body hover:text-bw-text hover:bg-bw-surface transition">Settings</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[12px] font-medium text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-bw-green"></span> Window Treatments · NYC metro
+      </span>
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-bw-green to-bw-green-deep flex items-center justify-center text-white font-bold text-[13px]">TS</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main class="max-w-[1200px] mx-auto px-6 py-10 pb-28">
+
+  <!-- Heading -->
+  <div class="flex flex-wrap items-end justify-between gap-3 mb-2">
+    <div>
+      <div class="eyebrow mb-2">The Shade Company</div>
+      <h1 class="text-[2rem] font-extrabold tracking-tight">Your network</h1>
+    </div>
+    <div class="text-[13px] text-bw-body max-w-[44ch] text-right">Everyone we found in your project documents — GCs, architects, owners and more. Say hi once and they join your network.</div>
+  </div>
+
+  <!-- how it works strip -->
+  <div class="flex items-start gap-3 bg-white border border-bw-border rounded-2xl px-5 py-3.5 mt-6 mb-7">
+    <div class="w-8 h-8 rounded-lg bg-bw-green-tint flex items-center justify-center flex-shrink-0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+    </div>
+    <p class="text-[13px] text-bw-body leading-snug">This is a <span class="font-semibold text-bw-text">say-hi</span>, not a chase. Each hello sends on a gentle timer — never a blast — and the moment it goes out, that person lands <span class="font-medium text-bw-text">in your network</span>. No follow-up sequences.</p>
+  </div>
+
+  <!-- Stat tiles -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">People found</div>
+      <div class="flex items-baseline gap-2"><span class="text-[28px] font-extrabold text-bw-green">128</span><span class="text-[12px] text-bw-muted">in your specs</span></div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Said hi</div>
+      <div class="flex items-baseline gap-2"><span class="text-[28px] font-extrabold">9</span><span class="text-[12px] text-bw-muted">this month</span></div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">In your network</div>
+      <div class="flex items-baseline gap-2"><span class="text-[28px] font-extrabold">24</span><span class="text-[12px] text-bw-muted">people</span></div>
+    </div>
+    <div class="bg-white rounded-2xl border border-bw-border p-5">
+      <div class="text-[13px] text-bw-body mb-2">Replies</div>
+      <div class="flex items-baseline gap-2"><span class="text-[28px] font-extrabold">4</span><span class="text-[12px] text-bw-muted">conversations</span></div>
+    </div>
+  </div>
+
+  <!-- Segments + filters -->
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div class="inline-flex items-center gap-1 bg-white border border-bw-border rounded-full p-1 text-[13px] font-medium">
+      <span onclick="setSeg(this,'all')" class="seg-tab active rounded-full px-3.5 py-1.5">All</span>
+      <span onclick="setSeg(this,'suggested')" class="seg-tab rounded-full px-3.5 py-1.5 text-bw-body">Suggested</span>
+      <span onclick="setSeg(this,'network')" class="seg-tab rounded-full px-3.5 py-1.5 text-bw-body">In your network</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 text-[12px]">
+      <span class="text-bw-muted">Type:</span>
+      <span class="filter-pill border border-bw-border rounded-full px-3 py-1.5 text-bw-body">GC</span>
+      <span class="filter-pill border border-bw-border rounded-full px-3 py-1.5 text-bw-body">Architect</span>
+      <span class="filter-pill border border-bw-border rounded-full px-3 py-1.5 text-bw-body">Owner</span>
+      <span class="filter-pill border border-bw-border rounded-full px-3 py-1.5 text-bw-body">Designer</span>
+    </div>
+  </div>
+
+  <!-- status key -->
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-bw-muted mb-2.5 px-1">
+    <span class="font-semibold text-bw-body uppercase tracking-wider">Status</span>
+    <span class="inline-flex items-center gap-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg> Queued</span>
+    <span class="inline-flex items-center gap-1"><svg width="13" height="10" viewBox="0 0 24 18" fill="none" stroke="#8E9C8B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l5 5L21 3"/></svg> Delivered</span>
+    <span class="inline-flex items-center gap-1 text-bw-blue"><svg width="15" height="10" viewBox="0 0 24 18" fill="none" stroke="#1D4ED8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 9l5 5L17 3"/><path d="M10 14L21 3"/></svg> Read</span>
+    <span class="inline-flex items-center gap-1 text-bw-green"><svg width="13" height="11" viewBox="0 0 24 24" fill="none" stroke="#14A800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17l-5-5M20 6L9 17"/></svg> Replied</span>
+  </div>
+
+  <!-- ===== LIST ===== -->
+  <div class="bg-white rounded-2xl border border-bw-border overflow-hidden">
+    <!-- list head -->
+    <div class="hidden md:grid grid-cols-12 gap-4 px-6 py-3 border-b border-bw-border bg-bw-surface/60 text-[11px] font-semibold text-bw-muted uppercase tracking-wider">
+      <div class="col-span-4">Contact</div>
+      <div class="col-span-2">Type</div>
+      <div class="col-span-4">Found in</div>
+      <div class="col-span-2 text-right">Action</div>
+    </div>
+
+    <div id="list">
+
+      <!-- ROW · GC · warm · suggested -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="suggested">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[13px] flex-shrink-0">SM</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Sarah Mills</div>
+            <div class="text-[12px] text-bw-muted truncate">Project Manager · Turner Construction</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1">General contractor</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">520 Madison Ave — Floors 22–24</div>
+          <div class="text-[12px] text-bw-green font-medium truncate">You bid this project · contact sheet</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <button onclick="openHi(this)" data-first="Sarah" data-name="Sarah Mills" data-company="Turner Construction" data-email="s.mills@turner.com" data-role="gc" data-warm="1" data-project="520 Madison Ave — Floors 22–24" data-area="Manhattan" class="btn-fill inline-flex items-center justify-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-4 py-2 rounded-full">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Say hi
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW · Architect · suggested -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="suggested">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-purple-tint text-bw-purple flex items-center justify-center font-bold text-[13px] flex-shrink-0">DC</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">David Chen</div>
+            <div class="text-[12px] text-bw-muted truncate">Associate · Gensler</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-purple bg-bw-purple-tint rounded-full px-2.5 py-1">Architect</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">520 Madison Ave — Floors 22–24</div>
+          <div class="text-[12px] text-bw-muted truncate">Spec author · section 12 22 00</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <button onclick="openHi(this)" data-first="David" data-name="David Chen" data-company="Gensler" data-email="d.chen@gensler.com" data-role="architect" data-warm="0" data-project="520 Madison Ave — Floors 22–24" data-area="Manhattan" class="btn-fill inline-flex items-center justify-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-4 py-2 rounded-full">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Say hi
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW · Owner · suggested -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="suggested">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-amber-tint text-bw-amber flex items-center justify-center font-bold text-[13px] flex-shrink-0">RH</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Robert Hale</div>
+            <div class="text-[12px] text-bw-muted truncate">Owner's Rep · Madison Holdings</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-amber bg-bw-amber-tint rounded-full px-2.5 py-1">Owner</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">520 Madison Ave — Floors 22–24</div>
+          <div class="text-[12px] text-bw-muted truncate">Project directory · front matter</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <button onclick="openHi(this)" data-first="Robert" data-name="Robert Hale" data-company="Madison Holdings" data-email="rhale@madisonholdings.com" data-role="owner" data-warm="0" data-project="520 Madison Ave — Floors 22–24" data-area="Manhattan" class="btn-fill inline-flex items-center justify-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-4 py-2 rounded-full">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Say hi
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW · Designer · suggested -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="suggested">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-green-tint text-bw-green-deep flex items-center justify-center font-bold text-[13px] flex-shrink-0">NK</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Nadia Khan</div>
+            <div class="text-[12px] text-bw-muted truncate">Principal · Khan Interiors</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-green-deep bg-bw-green-tint rounded-full px-2.5 py-1">Designer</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">Hudson Yards Tower C — Amenity</div>
+          <div class="text-[12px] text-bw-muted truncate">Finish schedule · design lead</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <button onclick="openHi(this)" data-first="Nadia" data-name="Nadia Khan" data-company="Khan Interiors" data-email="nadia@khaninteriors.com" data-role="designer" data-warm="0" data-project="Hudson Yards Tower C — Amenity" data-area="Manhattan" class="btn-fill inline-flex items-center justify-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-4 py-2 rounded-full">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Say hi
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW · GC · NO-SCOPE source · suggested -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="suggested">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[13px] flex-shrink-0">MR</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Marco Reyes</div>
+            <div class="text-[12px] text-bw-muted truncate">Estimator · Plaza Construction</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1">General contractor</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">222 Lex — Mechanical Upgrade</div>
+          <div class="text-[12px] text-bw-amber font-medium truncate">No shade scope · in your area — say hi anyway</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <button onclick="openHi(this)" data-first="Marco" data-name="Marco Reyes" data-company="Plaza Construction" data-email="m.reyes@plazaconstruction.com" data-role="gc" data-warm="0" data-scope="noscope" data-project="222 Lex — Mechanical Upgrade" data-area="Manhattan" class="btn-fill inline-flex items-center justify-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-4 py-2 rounded-full">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 9V5a3 3 0 0 0-6 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Say hi
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW · GC · queued on timer -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="network">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-blue-tint text-bw-blue flex items-center justify-center font-bold text-[13px] flex-shrink-0">DP</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Dev Patel</div>
+            <div class="text-[12px] text-bw-muted truncate">Senior PM · Tishman Speyer</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1">General contractor</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">Hudson Yards Tower C — Amenity</div>
+          <div class="text-[12px] text-bw-muted truncate">You bid this project · contact sheet</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-amber bg-bw-amber-tint rounded-full px-3 py-1.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg> Sending in ~14 min
+          </span>
+        </div>
+      </div>
+
+      <!-- ROW · GC · in network -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="network">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-surface text-bw-body flex items-center justify-center font-bold text-[13px] flex-shrink-0">JM</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Joe Marra</div>
+            <div class="text-[12px] text-bw-muted truncate">Senior Estimator · Structure Tone</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1">General contractor</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">WeWork 511 5th Ave — 9FL</div>
+          <div class="text-[12px] text-bw-muted truncate">Said hi · May 29</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5" title="Delivered to their inbox">
+            <svg width="13" height="10" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l5 5L21 3"/></svg> Delivered
+          </span>
+        </div>
+      </div>
+
+      <!-- ROW · Architect · in network · read -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 border-b border-bw-border md:items-center" data-seg="network">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-purple-tint text-bw-purple flex items-center justify-center font-bold text-[13px] flex-shrink-0">LO</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Lena Ortiz</div>
+            <div class="text-[12px] text-bw-muted truncate">Project Architect · SOM</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-purple bg-bw-purple-tint rounded-full px-2.5 py-1">Architect</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">One Wall Street — Lobby & Amenity</div>
+          <div class="text-[12px] text-bw-muted truncate">Said hi · May 28 · opened your email</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-3 py-1.5" title="Read — they opened your email">
+            <svg width="15" height="10" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 9l5 5L17 3"/><path d="M10 14L21 3"/></svg> Read
+          </span>
+        </div>
+      </div>
+
+      <!-- ROW · Owner · in network · replied -->
+      <div class="net-row row-hover grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 md:items-center" data-seg="network">
+        <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-bw-green text-white flex items-center justify-center font-bold text-[13px] flex-shrink-0">AW</div>
+          <div class="min-w-0">
+            <div class="font-semibold leading-tight truncate">Amy Wu</div>
+            <div class="text-[12px] text-bw-muted truncate">Preconstruction · Gilbane</div>
+          </div>
+        </div>
+        <div class="md:col-span-2"><span class="inline-flex text-[11px] font-semibold text-bw-blue bg-bw-blue-tint rounded-full px-2.5 py-1">General contractor</span></div>
+        <div class="md:col-span-4 text-[13px] min-w-0">
+          <div class="text-bw-text truncate">Brooklyn Point — Amenity Floor</div>
+          <div class="text-[12px] text-bw-green font-medium truncate">Reply in your inbox · added you to their bid list</div>
+        </div>
+        <div class="md:col-span-2 md:text-right row-action">
+          <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-green bg-bw-green-tint rounded-full px-3 py-1.5" title="They replied — check your inbox">
+            <svg width="13" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17l-5-5M20 6L9 17"/></svg> Replied
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p id="emptyNote" class="hidden text-[13px] text-bw-muted text-center mt-8">No one in this view yet.</p>
+
+</main>
+
+<!-- ===== SAY-HI COMPOSE MODAL ===== -->
+<div id="hiModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/50 px-4 py-8">
+  <div class="bg-white rounded-2xl border border-bw-border shadow-xl max-w-[640px] w-full max-h-full flex flex-col">
+    <!-- header -->
+    <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-bw-border flex-shrink-0">
+      <div class="min-w-0">
+        <div class="font-semibold text-[15px]" id="hiTitle">Say hi</div>
+        <div class="text-[12px] text-bw-muted">Sends on a gentle timer. Replies come straight to your inbox.</div>
+      </div>
+      <button onclick="closeHi()" class="text-bw-muted hover:text-bw-text flex-shrink-0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <!-- body -->
+    <div class="px-6 py-4 overflow-y-auto space-y-3 text-[13px]">
+      <div class="flex items-center gap-3"><span class="w-16 text-bw-muted flex-shrink-0">To</span><span class="font-medium" id="hiTo">—</span></div>
+      <div class="flex items-center gap-3"><span class="w-16 text-bw-muted flex-shrink-0">Reply-to</span><span class="font-medium text-bw-green">you@shadesco.com</span></div>
+      <div class="flex items-center gap-3"><span class="w-16 text-bw-muted flex-shrink-0">Subject</span><input id="hiSubject" class="field flex-1 border border-bw-border rounded-lg px-3 py-2 text-[14px]"></div>
+      <div>
+        <label class="block text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-2">Message <span class="text-bw-green normal-case tracking-normal font-medium">· editable</span></label>
+        <textarea id="hiBody" rows="10" class="field w-full border border-bw-border rounded-lg px-3 py-3 text-[14px] leading-relaxed resize-y"></textarea>
+      </div>
+      <label class="flex items-center gap-2.5 text-[13px] font-medium"><input id="hiCc" type="checkbox" checked class="accent-bw-green w-4 h-4"> Send me a copy of this email <span class="text-bw-muted font-normal">(you@shadesco.com)</span></label>
+    </div>
+    <!-- footer -->
+    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-bw-border flex-shrink-0">
+      <button onclick="closeHi()" class="btn-outline bg-white text-bw-body font-semibold text-[14px] px-4 py-2 rounded-full border border-bw-border">Cancel</button>
+      <button onclick="sendHi()" class="btn-fill inline-flex items-center gap-1.5 bg-bw-green text-white font-semibold text-[14px] px-5 py-2 rounded-full">
+        Send hi
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROTOTYPE NAV ===== -->
+<div class="proto-bar bg-white border border-bw-border shadow-lg rounded-full px-4 py-2 flex items-center gap-1 text-[12px] font-medium">
+  <span class="text-bw-muted pr-1">Prototype:</span>
+  <a href="onboarding.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Onboarding</a>
+  <a href="dashboard.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Dashboard</a>
+  <a href="bid.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Bid</a>
+  <a href="network.html" class="px-2.5 py-1 rounded-full bg-bw-green-tint text-bw-text">Network</a>
+  <a href="sent.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Sent</a>
+  <a href="settings.html" class="px-2.5 py-1 rounded-full text-bw-body hover:bg-bw-surface">Settings</a>
+</div>
+
+<script>
+var curSeg='all';
+function setSeg(el,seg){
+  curSeg=seg;
+  document.querySelectorAll('.seg-tab').forEach(function(t){t.classList.remove('active');t.classList.add('text-bw-body');});
+  el.classList.add('active');el.classList.remove('text-bw-body');
+  applySeg();
+}
+function applySeg(){
+  var shown=0;
+  document.querySelectorAll('#list > .net-row').forEach(function(r){
+    var match=curSeg==='all'||r.getAttribute('data-seg')===curSeg;
+    r.style.display=match?'':'none';
+    if(match)shown++;
+  });
+  document.getElementById('emptyNote').classList.toggle('hidden',shown>0);
+}
+document.querySelectorAll('.filter-pill').forEach(function(p){
+  p.addEventListener('click',function(){p.classList.toggle('on');});
+});
+
+function hiDraft(first,role,warm,project,area,scope){
+  var open="Hi "+first+",\n\nI'm reaching out from The Shade Company — we're a commercial window-treatment contractor here in the NYC metro (solar and roller shades, motorization, and drapery).\n\n";
+  // No-scope warm intro: their project scored no-bid for us, but it's still a reason to say hi in-area.
+  if(scope==='noscope'){
+    var midN="I noticed your team on "+project+". From the documents I'm not sure window treatments are in scope on this one — but we work right in your area and wanted to be on your radar. If shades ever come up here or on a future project, we'd love to help.\n\n";
+    var closeN="No need to reply — just saying hi. Happy to share budget numbers or lead times whenever it's useful.\n\nBest,\nThe Shade Company";
+    return open+midN+closeN;
+  }
+  var mid;
+  if(role==='gc'){
+    mid = warm
+      ? "We recently put a bid in on "+project+", and I wanted to say hi and introduce ourselves directly. We'd love to be a go-to resource whenever window treatments are in scope.\n\n"
+      : "I saw your team on the "+project+" documents and wanted to say hi. We'd love to be a go-to resource whenever window treatments are in scope.\n\n";
+  } else if(role==='architect'){
+    mid = "We came across your window-treatment specs on "+project+" and wanted to say hi. We're always glad to be a resource for product cut sheets, lead times, or quick budget numbers — on this or future projects.\n\n";
+  } else if(role==='owner'){
+    mid = "We noticed your team on "+project+" and wanted to introduce ourselves directly. We'd love to be at your service for window treatments whenever a project calls for them.\n\n";
+  } else if(role==='designer'){
+    mid = "We saw your work referenced on "+project+" and wanted to say hi. We'd love to support your specs with fabric options, samples, and realistic budget numbers whenever it helps.\n\n";
+  } else {
+    mid = "We noticed your involvement on "+project+" and wanted to say hi.\n\n";
+  }
+  var close="No need to reply — just wanted to be on your radar. If window treatments ever come up, we'd love to help.\n\nBest,\nThe Shade Company";
+  return open+mid+close;
+}
+
+var hiRow=null;
+function openHi(btn){
+  hiRow=btn.closest('.net-row');
+  var first=btn.getAttribute('data-first');
+  var name=btn.getAttribute('data-name');
+  var email=btn.getAttribute('data-email');
+  var role=btn.getAttribute('data-role');
+  var warm=btn.getAttribute('data-warm')==='1';
+  var project=btn.getAttribute('data-project')||'your project';
+  var area=btn.getAttribute('data-area')||'your area';
+  var scope=btn.getAttribute('data-scope')||'bid';
+  document.getElementById('hiTitle').textContent='Say hi to '+name;
+  document.getElementById('hiTo').textContent=name+' · '+email;
+  document.getElementById('hiSubject').value='Saying hi — The Shade Company (window treatments, NYC)';
+  document.getElementById('hiBody').value=hiDraft(first,role,warm,project,area,scope);
+  document.getElementById('hiCc').checked=true;
+  var m=document.getElementById('hiModal');m.classList.remove('hidden');m.classList.add('flex');
+  document.body.style.overflow='hidden';
+}
+function closeHi(){var m=document.getElementById('hiModal');m.classList.add('hidden');m.classList.remove('flex');document.body.style.overflow='';}
+function sendHi(){
+  if(hiRow){
+    hiRow.setAttribute('data-seg','network');
+    var action=hiRow.querySelector('.row-action');
+    if(action){action.innerHTML='<span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-bw-amber bg-bw-amber-tint rounded-full px-3 py-1.5"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg> Sending shortly</span>';}
+  }
+  closeHi();
+  applySeg();
+}
+</script>
+
+</body>
+</html>
