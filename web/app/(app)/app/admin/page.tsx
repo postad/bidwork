@@ -60,7 +60,11 @@ export default async function AdminQueuePage() {
                 const bids = scores.filter((s) => s.relevance === "bid").length;
                 return (
                   <tr key={r.id} className="border-t border-bw-border hover:bg-bw-surface">
-                    <td className="px-4 py-3 font-medium">{r.title}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/app/admin/requests/${r.id}`} className="hover:text-bw-green hover:underline">
+                        {r.title}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-bw-body">
                       {r.radius_mi} mi · {r.center_zip ?? "—"}
                     </td>
