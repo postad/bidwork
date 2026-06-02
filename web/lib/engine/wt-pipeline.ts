@@ -21,9 +21,9 @@ export interface WtPipelineResult {
   usage: Usage;
 }
 
-const PLAN_KIND = /plan|schedule|rcp|legend/i;
+const PLAN_KIND = /plan|schedule|rcp|legend|elevation|treatment|shade|window|detail|finish/i;
 const TYPE_CODES = ["WT1", "MB1", "FPS1"];
-const MAX_PLAN_PAGES = 4; // cap the (expensive) tiled count to the densest plan pages
+const MAX_PLAN_PAGES = 6; // cap the (expensive) tiled count to the densest plan pages
 
 const merge = (a: Usage, b: Usage): Usage => ({
   input: a.input + b.input,
@@ -45,17 +45,28 @@ export async function runWtPipeline(docs: PipelineDoc[], cfg: WtVerticalConfig):
   const primary = [...docs].sort((a, b) => b.relevantPages.length - a.relevantPages.length)[0];
   if (!primary) throw new Error("no documents to extract from");
   const { doc } = await loadDoc(primary.bytes);
+  const totalPages = doc.getPageCount();
 
-  // Pass A — structured extraction over the relevant pages (scan gave 1-based pages).
-  const relIdx = [...new Set(primary.relevantPages.map((p) => p.page - 1).filter((i) => i >= 0))].sort((a, b) => a - b);
+  // The scan gave 1-based relevant pages + a freeform `kind` per page.
+  const relIdx = [...new Set(primary.relevantPages.map((p) => p.page - 1).filter((i) => i >= 0 && i < totalPages))].sort((a, b) => a - b);
+  // Plan-bearing pages (where the tags live). If the scan's kinds don't match,
+  // fall back to ALL relevant pages — never to "first N", which misses later plans.
+  const planMatched = [...new Set(primary.relevantPages.filter((p) => PLAN_KIND.test(p.kind)).map((p) => p.page - 1).filter((i) => i >= 0 && i < totalPages))].sort((a, b) => a - b);
+  const planPages = (planMatched.length ? planMatched : relIdx).slice(0, MAX_PLAN_PAGES);
+
+  console.log("wt-pipeline page selection", {
+    totalPages,
+    relevant: primary.relevantPages.map((p) => `${p.page}:${p.kind}`),
+    relIdx,
+    planMatched,
+    planPages,
+  });
+
+  // Pass A — structured extraction over the relevant pages.
   const ex = await extract(doc, relIdx, cfg);
   usage = merge(usage, ex.usage);
 
   // Pass B — tiled tag count on the plan pages.
-  const planPages = [...new Set(primary.relevantPages.filter((p) => PLAN_KIND.test(p.kind)).map((p) => p.page - 1).filter((i) => i >= 0))]
-    .sort((a, b) => a - b)
-    .slice(0, MAX_PLAN_PAGES);
-
   const counts = { WT: 0, MB: 0, FPS: 0 };
   for (const pi of planPages) {
     const { page, usage: u } = await countPage(primary.bytes, pi, TYPE_CODES);
@@ -64,12 +75,13 @@ export async function runWtPipeline(docs: PipelineDoc[], cfg: WtVerticalConfig):
     counts.MB += page.byType.MB1 ?? 0;
     counts.FPS += page.byType.FPS1 ?? 0;
   }
+  console.log("wt-pipeline counts", counts);
 
-  // Assemble priceable scope from the plan pages (fall back to relevant pages).
-  const asmPages = planPages.length ? planPages : relIdx.slice(0, MAX_PLAN_PAGES);
-  const planB64 = await subsetBase64(doc, asmPages);
+  // Assemble priceable scope from the plan pages.
+  const planB64 = await subsetBase64(doc, planPages.length ? planPages : relIdx.slice(0, MAX_PLAN_PAGES));
   const asm = await assemble(planB64, counts);
   usage = merge(usage, asm.usage);
+  console.log("wt-pipeline scope", { motorizedSets: asm.scope.motorizedSets.length, blinds: asm.scope.blinds.length, fixed: asm.scope.fixedPanels });
 
   const gaps = detectGaps(ex.result, cfg);
 
