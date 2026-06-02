@@ -74,5 +74,33 @@ export async function structuredCall<T>(opts: {
   });
   const block = message.content.find((b) => b.type === "tool_use");
   if (!block || block.type !== "tool_use") throw new Error("Model did not return a tool_use block");
-  return { data: opts.schema.parse(block.input), message };
+  return { data: opts.schema.parse(reviveJsonStrings(block.input)), message };
+}
+
+/**
+ * Claude occasionally returns a nested object/array field of a tool input as a
+ * JSON-encoded STRING instead of a real value (more common on deep schemas). Walk
+ * the value and parse any string that is itself a JSON object/array, so zod sees
+ * the intended shape. Plain string fields (reasons, names, citations) never start
+ * with `{`/`[`, so this is safe.
+ */
+function reviveJsonStrings(value: unknown): unknown {
+  if (typeof value === "string") {
+    const t = value.trim();
+    if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+      try {
+        return reviveJsonStrings(JSON.parse(t));
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(reviveJsonStrings);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = reviveJsonStrings(v);
+    return out;
+  }
+  return value;
 }
