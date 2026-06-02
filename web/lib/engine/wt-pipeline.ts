@@ -49,10 +49,12 @@ export async function runWtPipeline(docs: PipelineDoc[], cfg: WtVerticalConfig):
 
   // The scan gave 1-based relevant pages + a freeform `kind` per page.
   const relIdx = [...new Set(primary.relevantPages.map((p) => p.page - 1).filter((i) => i >= 0 && i < totalPages))].sort((a, b) => a - b);
-  // Plan-bearing pages (where the tags live). If the scan's kinds don't match,
-  // fall back to ALL relevant pages — never to "first N", which misses later plans.
-  const planMatched = [...new Set(primary.relevantPages.filter((p) => PLAN_KIND.test(p.kind)).map((p) => p.page - 1).filter((i) => i >= 0 && i < totalPages))].sort((a, b) => a - b);
-  const planPages = (planMatched.length ? planMatched : relIdx).slice(0, MAX_PLAN_PAGES);
+  // The scan's `kind` labels are NOT reliable for locating the tag-bearing plan
+  // (it mislabeled the A-402 window-treatment plan as "spec"), so count EVERY
+  // relevant page — the WT1/MB1/FPS1 callouts live on whichever one is the real
+  // plan. Plan-kind matches just get counted first within the cap.
+  const planMatched = primary.relevantPages.filter((p) => PLAN_KIND.test(p.kind)).map((p) => p.page - 1).filter((i) => i >= 0 && i < totalPages);
+  const planPages = [...new Set([...planMatched, ...relIdx])].slice(0, MAX_PLAN_PAGES);
 
   console.log("wt-pipeline page selection", {
     totalPages,
