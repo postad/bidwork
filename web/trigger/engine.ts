@@ -5,6 +5,8 @@ import { runMultiTradeScan, type ScanDoc, type TradeInput } from "../lib/engine/
 import { runWtPipeline, type PipelineDoc } from "../lib/engine/wt-pipeline";
 import { loadWtPricingDNA } from "../lib/engine/pricing";
 import { priceScope } from "../lib/engine/price";
+import { mergeToBase64 } from "../lib/engine/pdf";
+import { extractPricingDna } from "../lib/engine/extract-pricing";
 import type { WtVerticalConfig } from "../lib/engine/extract";
 
 /**
@@ -258,5 +260,56 @@ export const extractBid = schemaTask({
 
     metadata.set("status", "priced");
     return { trade: tradeSlug, counts, bidsCreated, gaps: gaps.length };
+  },
+});
+
+/**
+ * engine.extract-pricing — onboarding. Read a contractor's own past proposals and
+ * recover their charged-price rate card + boilerplate, staged into
+ * workspaces.settings.pendingDna for the contractor to confirm (then written to
+ * pricing_items). Never touches another tenant's data — pricing is private.
+ */
+export const extractPricing = schemaTask({
+  id: "engine.extract-pricing",
+  machine: { preset: "medium-1x" },
+  maxDuration: 900,
+  retry: { maxAttempts: 1 },
+  schema: z.object({ workspaceId: z.string().uuid(), storagePaths: z.array(z.string()).min(1) }),
+  run: async ({ workspaceId, storagePaths }) => {
+    const db = engineDb();
+
+    const setStatus = async (patch: Record<string, unknown>) => {
+      const { data: ws } = await db.from("workspaces").select("settings").eq("id", workspaceId).single();
+      const settings = (ws?.settings ?? {}) as Record<string, unknown>;
+      const pendingDna = { ...((settings.pendingDna as Record<string, unknown>) ?? {}), ...patch };
+      await db.from("workspaces").update({ settings: { ...settings, pendingDna } }).eq("id", workspaceId);
+    };
+
+    try {
+      await setStatus({ status: "extracting", error: null });
+      const bytes: Uint8Array[] = [];
+      for (const path of storagePaths) {
+        const { data: blob, error } = await db.storage.from("bid-docs").download(path);
+        if (error || !blob) throw new Error(`download ${path}: ${error?.message}`);
+        bytes.push(new Uint8Array(await blob.arrayBuffer()));
+      }
+
+      logger.info("Reading past proposals for pricing DNA", { files: bytes.length });
+      const merged = await mergeToBase64(bytes);
+      const { dna, usage } = await extractPricingDna(merged);
+      logger.info("Pricing DNA extracted", {
+        motorized: dna.motorizedByGanging.length,
+        blinds: dna.blindsByWidth.length,
+        fps: dna.fixedPanelPrice,
+        install: dna.installFee,
+        tokens: usage,
+      });
+
+      await setStatus({ status: "ready", error: null, ...dna });
+      return { ok: true, motorized: dna.motorizedByGanging.length, blinds: dna.blindsByWidth.length };
+    } catch (e) {
+      await setStatus({ status: "error", error: (e as Error).message });
+      throw e;
+    }
   },
 });

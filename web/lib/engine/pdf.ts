@@ -54,3 +54,18 @@ export async function subsetBase64(src: PDFDocument, indices: number[]): Promise
   const bytes = await buildSubset(src, indices);
   return Buffer.from(bytes).toString("base64");
 }
+
+/** Merge several PDFs (raw bytes) into one base64 PDF, capped at `maxPages`. Used
+ *  to read a contractor's set of past proposals as a single document. */
+export async function mergeToBase64(docs: Uint8Array[], maxPages = 30): Promise<string> {
+  const out = await PDFDocument.create();
+  for (const bytes of docs) {
+    if (out.getPageCount() >= maxPages) break;
+    const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const room = maxPages - out.getPageCount();
+    const indices = src.getPageIndices().slice(0, room);
+    const pages = await out.copyPages(src, indices);
+    pages.forEach((p) => out.addPage(p));
+  }
+  return Buffer.from(await out.save()).toString("base64");
+}
