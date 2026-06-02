@@ -162,8 +162,8 @@ export const extractBid = schemaTask({
       {
         bid_request_id: bidRequestId,
         trade_id: trade.id,
-        relevance: extraction.tradeRelevance.bid ? "bid" : "no_bid",
-        confidence: extraction.tradeRelevance.confidence,
+        relevance: extraction.bid ? "bid" : "no_bid",
+        confidence: extraction.bidConfidence,
         result: extraction as unknown as Record<string, unknown>,
       },
       { onConflict: "bid_request_id,trade_id" },
@@ -185,7 +185,7 @@ export const extractBid = schemaTask({
     if (cErr) throw new Error(`load coverage: ${cErr.message}`);
 
     const gc = extraction.contacts.find((c) => c.role === "GC" && c.email) ?? extraction.contacts.find((c) => c.email);
-    const projectName = extraction.project?.name?.value ?? null;
+    const projectName = extraction.projectName ?? null;
     let bidsCreated = 0;
 
     for (const cov of coverage ?? []) {

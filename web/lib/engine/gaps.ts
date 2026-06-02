@@ -21,8 +21,8 @@ export function detectGaps(result: ExtractionResult, cfg: VerticalConfig): Gap[]
   const gaps: Gap[] = [];
 
   // 5 · No-bid gate
-  if (!result.tradeRelevance.bid) {
-    gaps.push({ kind: "no-bid", severity: "warning", message: `Scored no-bid: ${result.tradeRelevance.reasoning}` });
+  if (!result.bid) {
+    gaps.push({ kind: "no-bid", severity: "warning", message: `Scored no-bid: ${result.bidReasoning}` });
   }
 
   // 1 · Required-but-empty (measured against the requiredEvidence checklist)
