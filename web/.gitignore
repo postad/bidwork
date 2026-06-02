@@ -2,6 +2,7 @@
 /.next
 /out
 /build
+/.trigger
 .env
 .env*.local
 *.tsbuildinfo

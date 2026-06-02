@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
@@ -30,7 +31,9 @@ export default async function AdminQueuePage() {
             Upload a package once — the system scores every trade and dispatches to matching contractors.
           </p>
         </div>
-        <Button>New bid request</Button>
+        <Link href="/app/admin/upload">
+          <Button>New bid request</Button>
+        </Link>
       </div>
 
       <Card className="overflow-hidden">
