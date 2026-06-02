@@ -15,6 +15,25 @@ async function requireAdmin() {
 }
 
 /**
+ * Acknowledge the request's critical gaps so dispatch can proceed. The full
+ * resolution loop (upload the missing doc → re-score) is Stage 3; here the
+ * operator explicitly takes responsibility for the gap (e.g. "no shade schedule —
+ * priced off the plan tags, contractor confirms"). Marks every critical gap
+ * acknowledged; warnings still dispatch as caveats.
+ */
+export async function acknowledgeGaps(bidRequestId: string) {
+  const supabase = await requireAdmin();
+  const { data: req, error } = await supabase.from("bid_requests").select("doc_gaps").eq("id", bidRequestId).single();
+  if (error || !req) throw new Error(error?.message ?? "Bid request not found");
+  const gaps = (Array.isArray(req.doc_gaps) ? req.doc_gaps : []) as Record<string, unknown>[];
+  const next = gaps.map((g) => (g.severity === "critical" ? { ...g, acknowledged: true } : g));
+  const { error: uErr } = await supabase.from("bid_requests").update({ doc_gaps: next }).eq("id", bidRequestId);
+  if (uErr) throw new Error(`acknowledge gaps: ${uErr.message}`);
+  revalidatePath(`/app/admin/requests/${bidRequestId}`);
+  return { acknowledged: next.filter((g) => g.severity === "critical").length };
+}
+
+/**
  * Dispatch selected priced drafts to their contractors. Each becomes `ready` —
  * visible in that contractor's dashboard for review (nothing auto-sends). Writes
  * one bid_usage_event per dispatched bid (metering ledger; enforcement is Stage 5).
@@ -32,9 +51,9 @@ export async function dispatchBids(bidRequestId: string, bidIds: string[]) {
     .eq("id", bidRequestId)
     .single();
   if (rErr || !req) throw new Error(rErr?.message ?? "Bid request not found");
-  const gaps = Array.isArray(req.doc_gaps) ? (req.doc_gaps as { severity?: string }[]) : [];
-  if (gaps.some((g) => g.severity === "critical")) {
-    throw new Error("A critical gap blocks dispatch. Resolve it first.");
+  const gaps = Array.isArray(req.doc_gaps) ? (req.doc_gaps as { severity?: string; acknowledged?: boolean }[]) : [];
+  if (gaps.some((g) => g.severity === "critical" && !g.acknowledged)) {
+    throw new Error("A critical gap blocks dispatch. Acknowledge it first.");
   }
 
   // Only dispatch draft bids that actually belong to this request (defends against stale ids).

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/tag";
 import { DispatchPanel, type TradeGroup, type ContractorRow } from "./DispatchPanel";
+import { acknowledgeGaps } from "./actions";
 
 type TradeScore = {
   slug: string;
@@ -12,7 +13,7 @@ type TradeScore = {
   reasoning?: string;
 };
 
-type Gap = { kind?: string; severity: "critical" | "warning"; message: string };
+type Gap = { kind?: string; severity: "critical" | "warning"; message: string; acknowledged?: boolean };
 
 const pct = (c: number) => `${Math.round((c ?? 0) * 100)}%`;
 const initials = (name: string) =>
@@ -54,6 +55,7 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
   const noBidScores = scores.filter((s) => s.relevance !== "bid");
   const criticalGaps = gaps.filter((g) => g.severity === "critical");
   const warningGaps = gaps.filter((g) => g.severity === "warning");
+  const blockingGaps = criticalGaps.filter((g) => !g.acknowledged);
 
   // Resolve bid trade slugs → ids/labels, then their in-coverage contractors + any priced bids.
   const bidSlugs = bidScores.map((s) => s.slug);
@@ -134,8 +136,8 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
             <span>{req.radius_mi} mi from {req.center_zip ?? "—"}</span>
           </div>
         </div>
-        {criticalGaps.length > 0 ? (
-          <Tag tone="red">{criticalGaps.length} critical gap{criticalGaps.length === 1 ? "" : "s"} block dispatch</Tag>
+        {blockingGaps.length > 0 ? (
+          <Tag tone="red">{blockingGaps.length} critical gap{blockingGaps.length === 1 ? "" : "s"} block dispatch</Tag>
         ) : (
           <Tag tone={statusTone}>{req.status}</Tag>
         )}
@@ -197,14 +199,16 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
           <div className="space-y-3">
             {[...criticalGaps, ...warningGaps].map((g, i) => {
               const critical = g.severity === "critical";
+              const acknowledged = critical && g.acknowledged;
+              const tone = acknowledged ? "green" : critical ? "red" : "amber";
               return (
                 <div
                   key={i}
-                  className={`bg-white rounded-2xl border p-4 ${critical ? "border-bw-red/40 border-l-4 border-l-bw-red" : "border-bw-border border-l-4 border-l-bw-amber"}`}
+                  className={`bg-white rounded-2xl border p-4 border-l-4 ${acknowledged ? "border-bw-border border-l-bw-green" : critical ? "border-bw-red/40 border-l-bw-red" : "border-bw-border border-l-bw-amber"}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      <Tag tone={critical ? "red" : "amber"}>{critical ? "CRITICAL" : "WARNING"}</Tag>
+                      <Tag tone={tone}>{acknowledged ? "ACKNOWLEDGED" : critical ? "CRITICAL" : "WARNING"}</Tag>
                       <div className="min-w-0">
                         <div className="font-semibold text-[14px]">{g.message}</div>
                         {g.kind && <div className="text-[11px] text-bw-muted font-mono mt-1">{g.kind}</div>}
@@ -219,6 +223,16 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
                 </div>
               );
             })}
+            {blockingGaps.length > 0 && (
+              <form action={async () => { "use server"; await acknowledgeGaps(req.id); }} className="flex items-center justify-between gap-3 bg-bw-red-tint/40 border border-bw-red/30 rounded-2xl px-4 py-3">
+                <p className="text-[12.5px] text-bw-body">
+                  The resolution loop (upload the missing doc → re-score) lands in Stage 3. To dispatch now, acknowledge that you&apos;re pricing off the available evidence — the contractor confirms at review.
+                </p>
+                <button className="flex-shrink-0 inline-flex items-center gap-2 bg-bw-text text-white font-semibold text-[13px] px-4 py-2 rounded-full transition hover:bg-bw-green">
+                  Acknowledge &amp; enable dispatch
+                </button>
+              </form>
+            )}
           </div>
         )}
       </section>
@@ -235,7 +249,7 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
         <DispatchPanel
           bidRequestId={req.id}
           groups={groups}
-          hasCriticalGap={criticalGaps.length > 0}
+          hasCriticalGap={blockingGaps.length > 0}
           warningCount={warningGaps.length}
         />
       </section>

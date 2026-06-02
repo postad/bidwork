@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
@@ -75,7 +76,11 @@ export default async function DashboardPage() {
             <tbody>
               {list.map((b) => (
                 <tr key={b.id} className="border-t border-bw-border hover:bg-bw-surface">
-                  <td className="px-4 py-3 font-medium">{b.project_name ?? "—"}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/app/bids/${b.id}`} className="hover:text-bw-green hover:underline">
+                      {b.project_name ?? "—"}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-bw-body">{b.gc_contact_name ?? "—"}</td>
                   <td className="px-4 py-3 text-bw-body">{b.bid_due_date ?? "—"}</td>
                   <td className="px-4 py-3 text-right font-mono">
