@@ -98,6 +98,8 @@ export const extractBid = schemaTask({
   id: "engine.extract-bid",
   machine: { preset: "medium-1x" }, // tiled rendering (mupdf + sharp) is memory-hungry
   maxDuration: 1800,
+  retry: { maxAttempts: 1 }, // expensive (Opus + tiled vision) — don't multiply spend on a bad run
+
   schema: z.object({ bidRequestId: z.string().uuid(), tradeSlug: z.string() }),
   run: async ({ bidRequestId, tradeSlug }) => {
     const db = engineDb();
