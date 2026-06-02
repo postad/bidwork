@@ -50,6 +50,7 @@ export function BidReview({ data }: { data: BidData }) {
   const sent = data.status === "sent";
 
   const [lines, setLines] = useState<BidLine[]>(data.lines);
+  const [discountPct, setDiscountPct] = useState(data.discountPct);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function BidReview({ data }: { data: BidData }) {
   );
   const [ccMe, setCcMe] = useState(true);
 
-  const t = useMemo(() => computeTotals(lines, data.discountPct, data.deliveryInstall, data.taxRate), [lines, data.discountPct, data.deliveryInstall, data.taxRate]);
+  const t = useMemo(() => computeTotals(lines, discountPct, data.deliveryInstall, data.taxRate), [lines, discountPct, data.deliveryInstall, data.taxRate]);
 
   const grouped = useMemo(() => {
     const groups: { location: string; items: BidLine[] }[] = [];
@@ -85,7 +86,7 @@ export function BidReview({ data }: { data: BidData }) {
     setError(null);
     try {
       const payload: LineInput[] = lines.map((l) => ({ id: l.id, location: l.location, description: l.description, qty: l.qty, unitPrice: l.unitPrice }));
-      await saveBidEdits(data.id, payload);
+      await saveBidEdits(data.id, payload, discountPct);
       setEditing(false);
       router.refresh();
     } catch (e) {
@@ -151,7 +152,7 @@ export function BidReview({ data }: { data: BidData }) {
         <div className="flex items-center gap-2">
           {editing ? (
             <>
-              <button onClick={() => { setLines(data.lines); setEditing(false); }} disabled={busy} className="bg-white text-bw-body font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-surface">Cancel</button>
+              <button onClick={() => { setLines(data.lines); setDiscountPct(data.discountPct); setEditing(false); }} disabled={busy} className="bg-white text-bw-body font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-surface">Cancel</button>
               <button onClick={onSave} disabled={busy} className="bg-bw-text text-white font-semibold text-[13px] px-5 py-2 rounded-full hover:bg-bw-green disabled:opacity-50">{busy ? "Saving…" : "Save changes"}</button>
             </>
           ) : (
@@ -220,7 +221,25 @@ export function BidReview({ data }: { data: BidData }) {
                 </tbody>
                 <tfoot>
                   <FootRow label="Subtotal" value={usd(t.products)} border />
-                  {t.discount !== 0 && <FootRow label={`Discount${data.discountLabel ? ` (${data.discountLabel})` : ""}`} value={`−${usd(Math.abs(t.discount))}`} green />}
+                  {editing ? (
+                    <tr>
+                      <td colSpan={3} className="py-1.5 text-right text-bw-body">
+                        <span className="inline-flex items-center gap-1.5 justify-end">
+                          Discount
+                          <input
+                            type="number"
+                            value={Math.round(discountPct * 1000) / 10}
+                            onChange={(e) => setDiscountPct((Number(e.target.value) || 0) / 100)}
+                            className="w-16 font-mono text-right border border-bw-green/40 rounded px-1 py-0.5 outline-none focus:border-bw-green"
+                          />
+                          %
+                        </span>
+                      </td>
+                      <td className="text-right font-mono text-bw-green">−{usd(Math.abs(t.discount))}</td>
+                    </tr>
+                  ) : (
+                    t.discount !== 0 && <FootRow label={`Discount (${Math.round(discountPct * 100)}%)`} value={`−${usd(Math.abs(t.discount))}`} green />
+                  )}
                   <FootRow label="Delivery & install" value={usd(data.deliveryInstall)} />
                   <FootRow label={`Tax (${(data.taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)`} value={usd(t.tax)} />
                   <tr className="border-t border-bw-border">

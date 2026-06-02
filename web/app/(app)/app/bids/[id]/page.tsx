@@ -28,7 +28,8 @@ export default async function BidPage({ params }: { params: { id: string } }) {
     .eq("bid_id", bid.id)
     .order("sort_order", { ascending: true });
 
-  const discountPct = parseFloat(String(bid.discount_label ?? "").replace(/[^0-9.]/g, "")) || 0;
+  // discount_label is a percent string like "20%" → store as a fraction (0.20).
+  const discountPct = (parseFloat(String(bid.discount_label ?? "").replace(/[^0-9.]/g, "")) || 0) / 100;
 
   const data: BidData = {
     id: bid.id,
