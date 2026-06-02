@@ -74,25 +74,35 @@ export async function structuredCall<T>(opts: {
   });
   const block = message.content.find((b) => b.type === "tool_use");
   if (!block || block.type !== "tool_use") throw new Error("Model did not return a tool_use block");
-  return { data: opts.schema.parse(reviveJsonStrings(block.input)), message };
+
+  const revived = reviveJsonStrings(block.input);
+  const result = opts.schema.safeParse(revived);
+  if (!result.success) {
+    // One paid run should reveal the exact shape Claude returned — log it, don't guess.
+    console.error(`structuredCall[${opts.toolName}] schema mismatch`, {
+      rawSample: JSON.stringify(block.input).slice(0, 2000),
+      revivedSample: JSON.stringify(revived).slice(0, 2000),
+      issues: result.error.issues.slice(0, 8),
+    });
+    throw result.error;
+  }
+  return { data: result.data, message };
 }
 
 /**
  * Claude occasionally returns a nested object/array field of a tool input as a
- * JSON-encoded STRING instead of a real value (more common on deep schemas). Walk
- * the value and parse any string that is itself a JSON object/array, so zod sees
- * the intended shape. Plain string fields (reasons, names, citations) never start
- * with `{`/`[`, so this is safe.
+ * (sometimes near-JSON) STRING instead of a real value — more common on deep
+ * schemas. Walk the value and parse any string that is itself an object/array so
+ * zod sees the intended shape. Plain string fields (reasons, names, citations)
+ * never start with `{`/`[`, so this is safe.
  */
 function reviveJsonStrings(value: unknown): unknown {
   if (typeof value === "string") {
     const t = value.trim();
     if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
-      try {
-        return reviveJsonStrings(JSON.parse(t));
-      } catch {
-        return value;
-      }
+      const parsed = looseJsonParse(t);
+      if (parsed !== undefined) return reviveJsonStrings(parsed);
+      return value;
     }
     return value;
   }
@@ -103,4 +113,24 @@ function reviveJsonStrings(value: unknown): unknown {
     return out;
   }
   return value;
+}
+
+/** JSON.parse, then a light repair pass for Claude's near-JSON (Python literals,
+ *  trailing commas). Returns undefined if it still can't parse. */
+function looseJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    /* fall through to repair */
+  }
+  try {
+    const repaired = text
+      .replace(/\bTrue\b/g, "true")
+      .replace(/\bFalse\b/g, "false")
+      .replace(/\bNone\b/g, "null")
+      .replace(/,\s*([}\]])/g, "$1"); // trailing commas
+    return JSON.parse(repaired);
+  } catch {
+    return undefined;
+  }
 }
