@@ -50,9 +50,15 @@ export function DispatchPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Contractors whose bid has already been dispatched (ready/approved/sent).
+  const dispatchedCount = useMemo(
+    () => groups.flatMap((g) => g.contractors).filter((c) => c.bidId && c.status && c.status !== "draft").length,
+    [groups],
+  );
+
   const selectedRows = draftRows.filter((c) => selected.has(c.bidId!));
   const selectedTotal = selectedRows.reduce((a, c) => a + (c.total ?? 0), 0);
-  const nothingToPrice = draftRows.length === 0;
+  const nothingToDispatch = draftRows.length === 0;
   const canDispatch = !hasCriticalGap && selectedRows.length > 0 && !busy;
 
   function toggle(bidId: string) {
@@ -72,6 +78,7 @@ export function DispatchPanel({
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
       setBusy(false);
     }
   }
@@ -148,8 +155,15 @@ export function DispatchPanel({
               <span>
                 <span className="font-semibold text-bw-red">Resolve the critical gap</span> to dispatch.
               </span>
-            ) : nothingToPrice ? (
-              <span className="text-bw-muted">Priced drafts appear here once extraction finishes — then select contractors to dispatch.</span>
+            ) : nothingToDispatch ? (
+              dispatchedCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 text-bw-green-deep font-medium">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>
+                  {dispatchedCount} proposal{dispatchedCount === 1 ? "" : "s"} dispatched — now in the contractor&apos;s dashboard to review &amp; send.
+                </span>
+              ) : (
+                <span className="text-bw-muted">Priced drafts appear here once extraction finishes — then select contractors to dispatch.</span>
+              )
             ) : (
               <span>
                 <span className="font-semibold text-bw-text">{selectedRows.length}</span> selected
@@ -158,14 +172,16 @@ export function DispatchPanel({
               </span>
             )}
           </div>
-          <button
-            onClick={onDispatch}
-            disabled={!canDispatch}
-            className="inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[14px] px-6 py-2.5 rounded-full transition hover:bg-bw-green-hover disabled:bg-[#C9D1C7] disabled:cursor-not-allowed"
-          >
-            {busy ? "Dispatching…" : `Dispatch ${selectedRows.length || ""} proposal${selectedRows.length === 1 ? "" : "s"}`.trim()}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </button>
+          {!nothingToDispatch && (
+            <button
+              onClick={onDispatch}
+              disabled={!canDispatch}
+              className="inline-flex items-center gap-2 bg-bw-green text-white font-semibold text-[14px] px-6 py-2.5 rounded-full transition hover:bg-bw-green-hover disabled:bg-[#C9D1C7] disabled:cursor-not-allowed"
+            >
+              {busy ? "Dispatching…" : `Dispatch ${selectedRows.length || ""} proposal${selectedRows.length === 1 ? "" : "s"}`.trim()}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          )}
         </div>
       </div>
     </>
