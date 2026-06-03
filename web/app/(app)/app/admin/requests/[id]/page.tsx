@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/tag";
 import { DispatchPanel, type TradeGroup, type ContractorRow } from "./DispatchPanel";
 import { DocsPanel } from "./DocsPanel";
+import { TradeOverrideButton } from "./TradeOverrideButton";
 import { acknowledgeGaps } from "./actions";
 
 type TradeScore = {
@@ -12,6 +13,7 @@ type TradeScore = {
   relevance: "bid" | "no_bid";
   confidence: number;
   reasoning?: string;
+  confirmed?: boolean;
 };
 
 type Gap = { kind?: string; severity: "critical" | "warning"; message: string; acknowledged?: boolean };
@@ -168,6 +170,10 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
                   <Tag tone="green">BID · {pct(s.confidence)}</Tag>
                 </div>
                 {s.reasoning && <p className="text-[12.5px] text-bw-body">{s.reasoning}</p>}
+                <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-bw-border">
+                  <span className="text-[11px] text-bw-muted">{s.confirmed ? "✓ Operator-confirmed" : "Engine suggestion"}</span>
+                  <TradeOverrideButton bidRequestId={req.id} tradeSlug={s.slug} current="bid" />
+                </div>
               </div>
             ))}
             {noBidScores.map((s) => (
@@ -177,6 +183,10 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
                   <Tag tone="neutral">NO-BID</Tag>
                 </div>
                 {s.reasoning && <p className="text-[12.5px] text-bw-body">{s.reasoning}</p>}
+                <div className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-bw-border">
+                  <span className="text-[11px] text-bw-muted">{s.confirmed ? "✓ Operator-confirmed" : "Engine suggestion"}</span>
+                  <TradeOverrideButton bidRequestId={req.id} tradeSlug={s.slug} current="no_bid" />
+                </div>
               </div>
             ))}
           </div>

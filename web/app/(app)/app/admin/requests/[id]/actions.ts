@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { engineDb } from "@/lib/engine/supabase";
 import { tasks } from "@trigger.dev/sdk";
-import type { scanRequest } from "@/trigger/engine";
+import type { scanRequest, extractBid } from "@/trigger/engine";
 
 async function requireAdmin() {
   const supabase = createClient();
@@ -15,6 +15,43 @@ async function requireAdmin() {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") throw new Error("Forbidden — operators only");
   return supabase;
+}
+
+/**
+ * Operator override of a trade's relevance — the gate SUGGESTS, the human DECIDES
+ * (the spike found the no-bid gate is non-deterministic on borderline sets). Flips
+ * bid↔no_bid on the request's trade_scores and marks it operator-confirmed.
+ * Flipping to bid kicks off extraction for that trade; flipping to no_bid removes
+ * its draft bids + gaps.
+ */
+export async function setTradeRelevance(bidRequestId: string, tradeSlug: string, relevance: "bid" | "no_bid") {
+  const supabase = await requireAdmin();
+
+  const { data: req, error } = await supabase.from("bid_requests").select("trade_scores, doc_gaps").eq("id", bidRequestId).single();
+  if (error || !req) throw new Error(error?.message ?? "Bid request not found");
+
+  const scores = (Array.isArray(req.trade_scores) ? req.trade_scores : []) as { slug: string; relevance: string }[];
+  if (!scores.some((s) => s.slug === tradeSlug)) throw new Error("Trade not in this request's scores.");
+  const nextScores = scores.map((s) => (s.slug === tradeSlug ? { ...s, relevance, confirmed: true } : s));
+  const { error: sErr } = await supabase.from("bid_requests").update({ trade_scores: nextScores }).eq("id", bidRequestId);
+  if (sErr) throw new Error(`update relevance: ${sErr.message}`);
+
+  const { data: trade } = await supabase.from("trades").select("id").eq("slug", tradeSlug).single();
+
+  if (relevance === "no_bid") {
+    // Drop this trade's draft bids + its gaps from the request.
+    if (trade) {
+      await supabase.from("bids").delete().eq("bid_request_id", bidRequestId).eq("trade_id", trade.id).eq("status", "draft");
+    }
+    const gaps = (Array.isArray(req.doc_gaps) ? req.doc_gaps : []) as { trade?: string }[];
+    await supabase.from("bid_requests").update({ doc_gaps: gaps.filter((g) => g.trade !== tradeSlug) }).eq("id", bidRequestId);
+  } else {
+    // Operator says bid → extract + price it now.
+    await tasks.trigger<typeof extractBid>("engine.extract-bid", { bidRequestId, tradeSlug });
+  }
+
+  revalidatePath(`/app/admin/requests/${bidRequestId}`);
+  return { ok: true };
 }
 
 /**
