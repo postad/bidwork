@@ -30,7 +30,7 @@ export async function sayHi(contactId: string, email: { subject: string; body: s
   if (!contact.email) throw new Error("This contact has no email — nothing to say hi to.");
   if (contact.in_network) throw new Error("You've already said hi to this contact.");
 
-  const delivered = await sendViaMailgun({ to: contact.email, replyTo, subject: email.subject, body: email.body, cc: email.ccMe ? replyTo : null });
+  const { delivered, messageId } = await sendViaMailgun({ to: contact.email, replyTo, subject: email.subject, body: email.body, cc: email.ccMe ? replyTo : null });
 
   const { error: eErr } = await supabase.from("emails").insert({
     workspace_id: profile.workspace_id,
@@ -40,6 +40,7 @@ export async function sayHi(contactId: string, email: { subject: string; body: s
     reply_to: replyTo,
     subject: email.subject,
     status: delivered ? "delivered" : "queued",
+    mailgun_message_id: messageId,
   });
   if (eErr) throw new Error(`record outreach: ${eErr.message}`);
 

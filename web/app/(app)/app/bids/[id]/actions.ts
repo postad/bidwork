@@ -113,7 +113,7 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
     frozenAt: now,
   };
 
-  const delivered = await sendViaMailgun({
+  const { delivered, messageId } = await sendViaMailgun({
     to: bid.gc_contact_email,
     replyTo,
     subject: email.subject,
@@ -129,6 +129,7 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
     reply_to: replyTo,
     subject: email.subject,
     status: delivered ? "delivered" : "queued",
+    mailgun_message_id: messageId,
   });
   if (eErr) throw new Error(`record email: ${eErr.message}`);
 
