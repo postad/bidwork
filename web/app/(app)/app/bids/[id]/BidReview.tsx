@@ -30,8 +30,15 @@ export type BidData = {
   notesToGc: string | null;
   sentAt: string | null;
   company: { name: string; replyTo: string | null; website: string | null; address: string | null };
+  boilerplate: { paymentTerms: string | null; warranty: string | null; validityDays: number | null; exclusions: string[]; disclaimer: string | null };
   lines: BidLine[];
 };
+
+const DEFAULT_EXCLUSIONS = [
+  "Electrical rough-in / line voltage for motorized units (by others)",
+  "Structural blocking and backing",
+  "Permits, filing, and controlled inspections",
+];
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
@@ -253,22 +260,29 @@ export function BidReview({ data }: { data: BidData }) {
             <div>
               <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">Exclusions</div>
               <ul className="text-[13px] text-bw-body space-y-1 list-disc pl-5">
-                <li>Electrical rough-in / line voltage for motorized units (by others)</li>
-                <li>Structural blocking and backing</li>
-                <li>Permits, filing, and controlled inspections</li>
+                {(data.boilerplate.exclusions.length ? data.boilerplate.exclusions : DEFAULT_EXCLUSIONS).map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
               </ul>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4 text-[13px] pt-2 border-t border-bw-border">
               <div>
                 <div className="text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-1">Terms</div>
-                <div className="text-bw-body">50% deposit, 50% on completion. Valid 30 days.</div>
+                <div className="text-bw-body">
+                  {data.boilerplate.paymentTerms ?? "50% deposit, 50% on completion."}
+                  {data.boilerplate.validityDays ? ` Valid ${data.boilerplate.validityDays} days.` : ""}
+                </div>
               </div>
               <div>
                 <div className="text-[11px] font-semibold text-bw-muted uppercase tracking-wider mb-1">Warranty</div>
-                <div className="text-bw-body">2 years labor · manufacturer warranty on product</div>
+                <div className="text-bw-body">{data.boilerplate.warranty ?? "2 years labor · manufacturer warranty on product"}</div>
               </div>
             </div>
+
+            {data.boilerplate.disclaimer && (
+              <p className="text-[11px] text-bw-muted leading-relaxed pt-2 border-t border-bw-border">{data.boilerplate.disclaimer}</p>
+            )}
           </div>
         </div>
 

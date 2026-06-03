@@ -17,10 +17,13 @@ export default async function BidPage({ params }: { params: { id: string } }) {
 
   const { data: bid } = await supabase
     .from("bids")
-    .select("id, status, project_name, gc_contact_name, gc_contact_email, bid_due_date, subtotal, discount_label, discount_amount, delivery_install, tax_rate, tax_amount, total, notes_to_gc, sent_at")
+    .select("id, workspace_id, status, project_name, gc_contact_name, gc_contact_email, bid_due_date, subtotal, discount_label, discount_amount, delivery_install, tax_rate, tax_amount, total, notes_to_gc, sent_at")
     .eq("id", params.id)
     .single();
   if (!bid) notFound();
+
+  const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", bid.workspace_id).single();
+  const bp = ((ws?.settings as Record<string, unknown>)?.boilerplate ?? {}) as Record<string, unknown>;
 
   const { data: lines } = await supabase
     .from("bid_line_items")
@@ -49,6 +52,13 @@ export default async function BidPage({ params }: { params: { id: string } }) {
       replyTo: profile?.reply_to_email ?? profile?.email ?? null,
       website: profile?.website ?? null,
       address: profile?.address ?? null,
+    },
+    boilerplate: {
+      paymentTerms: (bp.paymentTerms as string) ?? null,
+      warranty: (bp.warranty as string) ?? null,
+      validityDays: (bp.validityDays as number) ?? null,
+      exclusions: (bp.exclusions as string[]) ?? [],
+      disclaimer: (bp.disclaimer as string) ?? null,
     },
     lines: (lines ?? []).map((l) => ({
       id: l.id,
