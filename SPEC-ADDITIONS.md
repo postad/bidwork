@@ -9,7 +9,19 @@ Status legend: 🟡 proposed · 🔵 accepted (build pending) · ✅ done
 
 ---
 
-## 1 · "Request a site visit" proposal for unquantifiable scope  🔵
+## 1 · "Request a site visit" proposal for unquantifiable scope  ✅ done (2026-06-03)
+
+**Built as:** `bids.kind` ('priced' | 'site_visit', migration 0006). When the WT
+scope has 0 quantifiable units, `engine.extract-bid` creates a no-price
+`site_visit` bid (scope summary in `notes_to_gc`, no Pricing DNA required). Admin
+fan-out shows "Site visit · quote on measure"; the contractor bid page renders a
+visit-request variant (what-we-read + measure ask, no line items) and Approve &
+send emails the GC a field-measure request (reply-to = contractor). Chosen the
+"send as a no-price bid" path (not network/say-hi) so the GC sees the contractor
+read the project. Original note below.
+
+---
+
 
 **Discovered:** Stage 2 testing, ABH (16 Chapin Rd) package — 2026-06-03.
 

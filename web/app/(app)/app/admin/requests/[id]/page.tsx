@@ -64,7 +64,7 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
     bidSlugs.length
       ? supabase.from("trades").select("id, slug, label").in("slug", bidSlugs)
       : Promise.resolve({ data: [] as { id: string; slug: string; label: string }[] }),
-    supabase.from("bids").select("id, trade_id, workspace_id, total, status").eq("bid_request_id", req.id),
+    supabase.from("bids").select("id, trade_id, workspace_id, total, status, kind").eq("bid_request_id", req.id),
     supabase
       .from("contacts")
       .select("name, role, company, email, found_in")
@@ -104,6 +104,7 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
           bidId: bid?.id ?? null,
           total: bid?.total != null ? Number(bid.total) : null,
           status: bid?.status ?? null,
+          kind: bid?.kind ?? null,
         };
       })
       .filter((x): x is ContractorRow => x !== null);

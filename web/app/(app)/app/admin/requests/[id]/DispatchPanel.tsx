@@ -13,6 +13,7 @@ export type ContractorRow = {
   bidId: string | null;
   total: number | null;
   status: string | null;
+  kind?: string | null;
   note?: string;
 };
 
@@ -106,6 +107,7 @@ export function DispatchPanel({
                 <div className="px-5 py-4 text-[13px] text-bw-muted">No contractors cover this trade in range.</div>
               ) : (
                 g.contractors.map((c, i) => {
+                  const siteVisit = c.kind === "site_visit";
                   const priced = c.total != null;
                   const isDraft = c.bidId != null && c.status === "draft";
                   const checked = c.bidId != null && selected.has(c.bidId);
@@ -131,7 +133,9 @@ export function DispatchPanel({
                           {c.note ? ` · ${c.note}` : c.status === "ready" || c.status === "sent" ? ` · ${c.status}` : ""}
                         </div>
                       </div>
-                      {priced ? (
+                      {siteVisit ? (
+                        <span className="text-[12px] font-semibold text-bw-amber">Site visit · quote on measure</span>
+                      ) : priced ? (
                         <span className="text-[13px] font-mono font-semibold">{usd(c.total!)}</span>
                       ) : (
                         <span className="text-[12px] text-bw-muted">pending pricing</span>

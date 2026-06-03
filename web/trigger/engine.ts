@@ -188,58 +188,81 @@ export const extractBid = schemaTask({
 
     const gc = extraction.contacts.find((c) => c.role === "GC" && c.email) ?? extraction.contacts.find((c) => c.email);
     const projectName = extraction.projectName ?? null;
+    // Scope present but not quantifiable (named in keynotes, but no schedule/plan/
+    // tags to count) → a no-price site-visit request instead of an install-only
+    // floor. Shows we read the project and asks to field-measure. (SPEC-ADDITIONS #1)
+    const quantifiable = scope.motorizedSets.length > 0 || scope.blinds.length > 0 || scope.fixedPanels > 0;
+    const scopeSummary = extraction.bidReasoning;
     let bidsCreated = 0;
 
     for (const cov of coverage ?? []) {
-      const dna = await loadWtPricingDNA(db, cov.workspace_id, trade.id);
-      if (!dna) {
-        logger.warn("Skipping contractor — incomplete Pricing DNA", { workspaceId: cov.workspace_id });
-        continue;
-      }
-      const priced = priceScope(scope, dna);
-
       // Replace any prior draft for this (request, trade, contractor) so replays don't duplicate.
       await db.from("bids").delete().eq("bid_request_id", bidRequestId).eq("trade_id", trade.id).eq("workspace_id", cov.workspace_id).eq("status", "draft");
 
-      const { data: bid, error: bErr } = await db
-        .from("bids")
-        .insert({
+      if (!quantifiable) {
+        // No Pricing DNA needed — there's no number to compute, just a visit ask.
+        const { error: svErr } = await db.from("bids").insert({
           workspace_id: cov.workspace_id,
           bid_request_id: bidRequestId,
           trade_id: trade.id,
           status: "draft",
+          kind: "site_visit",
           project_name: projectName,
           gc_contact_name: gc?.name ?? null,
           gc_contact_email: gc?.email ?? null,
-          subtotal: priced.subtotal,
-          discount_label: `${Math.round(priced.discountPct * 100)}%`,
-          discount_amount: priced.discount,
-          delivery_install: priced.installFee,
-          tax_rate: dna.salesTaxRate,
-          tax_amount: priced.tax,
-          total: priced.total,
-        })
-        .select("id")
-        .single();
-      if (bErr || !bid) throw new Error(`create bid: ${bErr?.message}`);
+          notes_to_gc: scopeSummary,
+        });
+        if (svErr) throw new Error(`create site-visit bid: ${svErr.message}`);
+        bidsCreated++;
+      } else {
+        const dna = await loadWtPricingDNA(db, cov.workspace_id, trade.id);
+        if (!dna) {
+          logger.warn("Skipping contractor — incomplete Pricing DNA", { workspaceId: cov.workspace_id });
+          continue;
+        }
+        const priced = priceScope(scope, dna);
 
-      const lineRows = priced.lines.map((l, i) => ({
-        bid_id: bid.id,
-        sort_order: i,
-        location: (l.attrs?.location as string) ?? null,
-        type_code: l.code,
-        description: l.label,
-        qty: l.qty,
-        unit: l.code === "FPS" ? "shade" : l.code === "MB" ? "blind" : "motor-set",
-        unit_price: l.unitRate,
-        amount: l.amount,
-        attrs: l.attrs ?? {},
-      }));
-      if (lineRows.length) {
-        const { error: liErr } = await db.from("bid_line_items").insert(lineRows);
-        if (liErr) throw new Error(`create line items: ${liErr.message}`);
+        const { data: bid, error: bErr } = await db
+          .from("bids")
+          .insert({
+            workspace_id: cov.workspace_id,
+            bid_request_id: bidRequestId,
+            trade_id: trade.id,
+            status: "draft",
+            kind: "priced",
+            project_name: projectName,
+            gc_contact_name: gc?.name ?? null,
+            gc_contact_email: gc?.email ?? null,
+            subtotal: priced.subtotal,
+            discount_label: `${Math.round(priced.discountPct * 100)}%`,
+            discount_amount: priced.discount,
+            delivery_install: priced.installFee,
+            tax_rate: dna.salesTaxRate,
+            tax_amount: priced.tax,
+            total: priced.total,
+          })
+          .select("id")
+          .single();
+        if (bErr || !bid) throw new Error(`create bid: ${bErr?.message}`);
+
+        const lineRows = priced.lines.map((l, i) => ({
+          bid_id: bid.id,
+          sort_order: i,
+          location: (l.attrs?.location as string) ?? null,
+          type_code: l.code,
+          description: l.label,
+          qty: l.qty,
+          unit: l.code === "FPS" ? "shade" : l.code === "MB" ? "blind" : "motor-set",
+          unit_price: l.unitRate,
+          amount: l.amount,
+          attrs: l.attrs ?? {},
+        }));
+        if (lineRows.length) {
+          const { error: liErr } = await db.from("bid_line_items").insert(lineRows);
+          if (liErr) throw new Error(`create line items: ${liErr.message}`);
+        }
+        bidsCreated++;
       }
-      bidsCreated++;
 
       // 4 · Contacts (with email) → this contractor's Network. email is the unit.
       const contactRows = extraction.contacts

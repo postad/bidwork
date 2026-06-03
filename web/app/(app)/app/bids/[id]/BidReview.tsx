@@ -18,6 +18,7 @@ export type BidLine = {
 
 export type BidData = {
   id: string;
+  kind: string; // 'priced' | 'site_visit'
   status: string;
   projectName: string | null;
   gcName: string | null;
@@ -55,6 +56,7 @@ function computeTotals(lines: BidLine[], discountPct: number, install: number, t
 export function BidReview({ data }: { data: BidData }) {
   const router = useRouter();
   const sent = data.status === "sent";
+  const sv = data.kind === "site_visit";
 
   const [lines, setLines] = useState<BidLine[]>(data.lines);
   const [discountPct, setDiscountPct] = useState(data.discountPct);
@@ -62,9 +64,13 @@ export function BidReview({ data }: { data: BidData }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [subject, setSubject] = useState(`Proposal — ${data.projectName ?? "your project"} · ${data.company.name}`);
+  const [subject, setSubject] = useState(
+    sv ? `${data.projectName ?? "Your project"} — window treatments · ${data.company.name}` : `Proposal — ${data.projectName ?? "your project"} · ${data.company.name}`,
+  );
   const [body, setBody] = useState(
-    `Hi ${data.gcName ?? "there"},\n\nThank you for the opportunity to bid ${data.projectName ?? "this project"}. Our proposal for the window-treatment scope is attached.\n\nHappy to walk through anything or adjust scope — just reply to this email and it comes straight to me.\n\nBest,\n${data.company.name}`,
+    sv
+      ? `Hi ${data.gcName ?? "there"},\n\nWe reviewed the documents for ${data.projectName ?? "this project"} and saw the window-treatment scope. The set calls it out but doesn't include a shade schedule or dimensioned plan, so rather than guess a number we'd like to do a quick field measure and send you an accurate, itemized quote.\n\nWe work right in your area and can turn this around fast — just reply to set up a visit.\n\nBest,\n${data.company.name}`
+      : `Hi ${data.gcName ?? "there"},\n\nThank you for the opportunity to bid ${data.projectName ?? "this project"}. Our proposal for the window-treatment scope is attached.\n\nHappy to walk through anything or adjust scope — just reply to this email and it comes straight to me.\n\nBest,\n${data.company.name}`,
   );
   const [ccMe, setCcMe] = useState(true);
 
@@ -123,14 +129,14 @@ export function BidReview({ data }: { data: BidData }) {
         <div className="w-16 h-16 rounded-full bg-bw-green-tint flex items-center justify-center mx-auto mb-5">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#14A800" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
-        <h1 className="text-[1.7rem] font-extrabold tracking-tight mb-2">Bid sent{data.gcName ? ` to ${data.gcName}` : ""}.</h1>
-        <p className="text-[14px] text-bw-body mb-8">Your proposal for <span className="font-semibold text-bw-text">{data.projectName}</span> is on its way.</p>
+        <h1 className="text-[1.7rem] font-extrabold tracking-tight mb-2">{sv ? "Visit request sent" : "Bid sent"}{data.gcName ? ` to ${data.gcName}` : ""}.</h1>
+        <p className="text-[14px] text-bw-body mb-8">Your {sv ? "site-visit request" : "proposal"} for <span className="font-semibold text-bw-text">{data.projectName}</span> is on its way.</p>
         <div className="bg-white rounded-2xl border border-bw-border p-6 text-left mb-6">
           <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-4">Delivery receipt</div>
           <div className="space-y-3 text-[14px]">
             <Row label="Sent to" value={`${data.gcName ?? ""} · ${data.gcEmail ?? ""}`} />
             <Row label="Reply-to" value={data.company.replyTo ?? "—"} valueClass="text-bw-green" />
-            <Row label="Bid value" value={usd(t.total)} mono />
+            {sv ? <Row label="Request" value="Site visit · quote on measure" /> : <Row label="Bid value" value={usd(t.total)} mono />}
           </div>
         </div>
         <Link href="/app" className="inline-flex items-center justify-center gap-2 bg-bw-green text-white font-semibold text-[15px] px-7 py-3 rounded-full hover:bg-bw-green-hover">
@@ -164,12 +170,14 @@ export function BidReview({ data }: { data: BidData }) {
             </>
           ) : (
             <>
-              <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 bg-white text-bw-text font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-green-tint">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
-                Edit
-              </button>
+              {!sv && (
+                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 bg-white text-bw-text font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-green-tint">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
+                  Edit
+                </button>
+              )}
               <button onClick={() => setModalOpen(true)} className="inline-flex items-center gap-1.5 bg-bw-green text-white font-semibold text-[13px] px-5 py-2 rounded-full hover:bg-bw-green-hover">
-                Approve &amp; send
+                {sv ? "Approve & send request" : "Approve & send"}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </button>
             </>
@@ -209,7 +217,19 @@ export function BidReview({ data }: { data: BidData }) {
               </div>
             </div>
 
+            {/* site-visit: what we read + visit request, no pricing table */}
+            {sv && (
+              <div>
+                <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">What we read</div>
+                {data.notesToGc && <p className="text-[14px] text-bw-body leading-relaxed mb-4">{data.notesToGc}</p>}
+                <div className="rounded-xl bg-bw-green-tint/50 border border-bw-green-tint-2 px-4 py-3 text-[13px] text-bw-body">
+                  <span className="font-semibold text-bw-green-deep">Site visit requested.</span> The set names the window-treatment scope but has no shade schedule or dimensioned plan, so we&apos;ll field-measure and send an accurate, itemized quote — rather than guess a number.
+                </div>
+              </div>
+            )}
+
             {/* line items */}
+            {!sv && (
             <div>
               <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-3">Pricing</div>
               <table className="w-full text-[13px]">
@@ -256,6 +276,7 @@ export function BidReview({ data }: { data: BidData }) {
                 </tfoot>
               </table>
             </div>
+            )}
 
             <div>
               <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">Exclusions</div>
@@ -298,22 +319,29 @@ export function BidReview({ data }: { data: BidData }) {
               When the GC replies, it lands in <span className="font-semibold text-bw-text">your inbox</span> — not ours.
             </div>
             <button onClick={() => setModalOpen(true)} className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-bw-green text-white font-semibold text-[14px] px-5 py-3 rounded-full hover:bg-bw-green-hover">
-              Approve &amp; send bid
+              {sv ? "Approve & send request" : "Approve & send bid"}
             </button>
-            <button onClick={() => setEditing(true)} className="mt-2 w-full text-[13px] font-semibold text-bw-body hover:text-bw-text py-2">Edit bid first</button>
+            {!sv && <button onClick={() => setEditing(true)} className="mt-2 w-full text-[13px] font-semibold text-bw-body hover:text-bw-text py-2">Edit bid first</button>}
           </div>
 
-          <div className="bg-white rounded-2xl border border-bw-border p-6">
-            <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-4">Bid total</div>
-            <div className="space-y-2.5 text-[13px]">
-              <div className="flex justify-between"><span className="text-bw-body">Products</span><span className="font-mono">{usd(t.products)}</span></div>
-              {t.discount !== 0 && <div className="flex justify-between"><span className="text-bw-body">Discount</span><span className="font-mono text-bw-green">−{usd(Math.abs(t.discount))}</span></div>}
-              <div className="flex justify-between"><span className="text-bw-body">Delivery & install</span><span className="font-mono">{usd(data.deliveryInstall)}</span></div>
-              <div className="flex justify-between"><span className="text-bw-body">Tax</span><span className="font-mono">{usd(t.tax)}</span></div>
-              <div className="flex justify-between border-t border-bw-border pt-2.5"><span className="font-semibold">Total bid</span><span className="font-mono font-bold text-bw-green">{usd(t.total)}</span></div>
+          {sv ? (
+            <div className="bg-white rounded-2xl border border-bw-border p-6">
+              <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">No price yet</div>
+              <p className="text-[13px] text-bw-body leading-snug">This is a <span className="font-semibold text-bw-text">site-visit request</span>, not a priced bid. We field-measure first, then send an accurate itemized quote — no guessed numbers.</p>
             </div>
-            {editing && <p className="text-[11px] text-bw-muted mt-3">Confirm ganging tiers &amp; blind widths above — the total updates live.</p>}
-          </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-bw-border p-6">
+              <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-4">Bid total</div>
+              <div className="space-y-2.5 text-[13px]">
+                <div className="flex justify-between"><span className="text-bw-body">Products</span><span className="font-mono">{usd(t.products)}</span></div>
+                {t.discount !== 0 && <div className="flex justify-between"><span className="text-bw-body">Discount</span><span className="font-mono text-bw-green">−{usd(Math.abs(t.discount))}</span></div>}
+                <div className="flex justify-between"><span className="text-bw-body">Delivery & install</span><span className="font-mono">{usd(data.deliveryInstall)}</span></div>
+                <div className="flex justify-between"><span className="text-bw-body">Tax</span><span className="font-mono">{usd(t.tax)}</span></div>
+                <div className="flex justify-between border-t border-bw-border pt-2.5"><span className="font-semibold">Total bid</span><span className="font-mono font-bold text-bw-green">{usd(t.total)}</span></div>
+              </div>
+              {editing && <p className="text-[11px] text-bw-muted mt-3">Confirm ganging tiers &amp; blind widths above — the total updates live.</p>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,8 +368,8 @@ export function BidReview({ data }: { data: BidData }) {
               <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full border border-bw-border rounded-lg px-3 py-3 text-[14px] leading-relaxed resize-y outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint" />
               <label className="flex items-center gap-2.5 text-[13px] font-medium"><input type="checkbox" checked={ccMe} onChange={(e) => setCcMe(e.target.checked)} className="accent-bw-green w-4 h-4" /> Send me a copy</label>
               <div className="flex items-center justify-between rounded-xl bg-bw-surface border border-bw-border px-4 py-3">
-                <span className="text-bw-body">Total bid</span>
-                <span className="font-mono font-bold text-bw-green">{usd(t.total)}</span>
+                <span className="text-bw-body">{sv ? "Request" : "Total bid"}</span>
+                <span className={`font-bold text-bw-green ${sv ? "" : "font-mono"}`}>{sv ? "Site visit · quote on measure" : usd(t.total)}</span>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-bw-border flex items-center justify-end gap-2">

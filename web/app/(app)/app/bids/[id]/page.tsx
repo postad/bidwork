@@ -17,7 +17,7 @@ export default async function BidPage({ params }: { params: { id: string } }) {
 
   const { data: bid } = await supabase
     .from("bids")
-    .select("id, workspace_id, status, project_name, gc_contact_name, gc_contact_email, bid_due_date, subtotal, discount_label, discount_amount, delivery_install, tax_rate, tax_amount, total, notes_to_gc, sent_at")
+    .select("id, workspace_id, kind, status, project_name, gc_contact_name, gc_contact_email, bid_due_date, subtotal, discount_label, discount_amount, delivery_install, tax_rate, tax_amount, total, notes_to_gc, sent_at")
     .eq("id", params.id)
     .single();
   if (!bid) notFound();
@@ -36,6 +36,7 @@ export default async function BidPage({ params }: { params: { id: string } }) {
 
   const data: BidData = {
     id: bid.id,
+    kind: bid.kind ?? "priced",
     status: bid.status,
     projectName: bid.project_name,
     gcName: bid.gc_contact_name,
