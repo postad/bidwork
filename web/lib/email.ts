@@ -20,14 +20,19 @@ export async function sendViaMailgun(msg: {
   subject: string;
   body: string;
   cc?: string | null;
+  fromName?: string | null; // contractor's company → the From display name (Model A)
 }): Promise<MailgunResult> {
   const key = process.env.MAILGUN_API_KEY;
   const domain = process.env.MAILGUN_DOMAIN;
-  const from = process.env.MAILGUN_FROM ?? (domain ? `BidWork <bids@${domain}>` : null);
-  if (!key || !domain || !from) {
+  // The address is on the platform domain; the display name is the contractor's
+  // company so the GC sees "The Shade Company <bids@send.getbidwork.com>".
+  const fromEmail = process.env.MAILGUN_FROM_EMAIL ?? (domain ? `bids@${domain}` : null);
+  if (!key || !domain || !fromEmail) {
     console.warn("Mailgun not configured — recorded without external delivery.");
     return { delivered: false, messageId: null };
   }
+  const displayName = (msg.fromName ?? "BidWork").replace(/["\\<>\r\n]/g, "").trim() || "BidWork";
+  const from = `${displayName} <${fromEmail}>`;
   const form = new URLSearchParams();
   form.set("from", from);
   form.set("to", msg.to);

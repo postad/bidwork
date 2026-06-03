@@ -1,18 +1,24 @@
-# Mailgun setup
+# Mailgun setup — Model A (shared sending domain)
 
-Email sending (bids + say-hi) and delivery/open tracking. The app code is done; this
-is the account + env wiring. Replies are NOT tracked here by design — reply-to is the
-contractor's own address, so replies go to their inbox, not through Mailgun. (True
-"replied" status needs mailbox-connect, a later item.)
+Email sending (bids + say-hi) and delivery/open tracking. **Model A:** all mail sends
+from **one BidWork-controlled domain** (`getbidwork.com`), with the **From display
+name = the contractor's company** and **Reply-To = the contractor's email**. So:
 
-## 1 · Mailgun account + sending domain
+- The GC sees e.g. **`The Shade Company <bids@send.getbidwork.com>`** and replies go
+  straight to the contractor (BidWork never sees the reply).
+- **Contractors do ZERO DNS** — only you verify `getbidwork.com` once.
+- Tradeoff: the address is on `getbidwork.com`, not the contractor's domain. The
+  fully-native "from your own email" upgrade is connected-mailbox (Model C), later.
+
+## 1 · Mailgun account + sending domain (getbidwork.com)
 1. Create a Mailgun account.
-2. Add a **sending domain** — a subdomain you control, e.g. `bid.shadesco.com`
-   (Sending → Domains → Add New Domain).
-3. Add the DNS records Mailgun shows to that domain's DNS and **verify**:
+2. Add the sending domain — recommend a subdomain, **`send.getbidwork.com`**
+   (Sending → Domains → Add New Domain). Using a subdomain keeps your root domain's
+   email reputation separate.
+3. Add the DNS records Mailgun shows for `send.getbidwork.com` and **verify**:
    - **TXT (SPF)** and **TXT (DKIM)** — required for sending/deliverability.
    - **CNAME (tracking)** — required for open tracking (the ✓✓ read signal).
-   - (MX records are only for *receiving*; not needed here.)
+   - (MX records are only for *receiving*; not needed for Model A.)
 
 ## 2 · Keys
 - **Sending API key:** Mailgun → Send → API keys (or Settings → API keys). Format `key-…`.
@@ -22,8 +28,8 @@ contractor's own address, so replies go to their inbox, not through Mailgun. (Tr
 | Var | Value |
 |---|---|
 | `MAILGUN_API_KEY` | the sending API key |
-| `MAILGUN_DOMAIN` | the verified domain, e.g. `bid.shadesco.com` |
-| `MAILGUN_FROM` | e.g. `The Shade Company <bids@bid.shadesco.com>` |
+| `MAILGUN_DOMAIN` | the verified domain, e.g. `send.getbidwork.com` |
+| `MAILGUN_FROM_EMAIL` | the From **address** only, e.g. `bids@send.getbidwork.com` (the display name is set per-send to the contractor's company; defaults to `bids@<MAILGUN_DOMAIN>` if unset) |
 | `MAILGUN_WEBHOOK_SIGNING_KEY` | the webhook signing key |
 
 **Redeploy** the Vercel app after adding env vars (they're read at runtime per deploy).

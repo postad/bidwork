@@ -18,7 +18,7 @@ export async function sayHi(contactId: string, email: { subject: string; body: s
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("workspace_id, reply_to_email, email")
+    .select("workspace_id, reply_to_email, email, company_name")
     .eq("id", user.id)
     .single();
   if (!profile?.workspace_id) throw new Error("No workspace on this account.");
@@ -30,7 +30,7 @@ export async function sayHi(contactId: string, email: { subject: string; body: s
   if (!contact.email) throw new Error("This contact has no email — nothing to say hi to.");
   if (contact.in_network) throw new Error("You've already said hi to this contact.");
 
-  const { delivered, messageId } = await sendViaMailgun({ to: contact.email, replyTo, subject: email.subject, body: email.body, cc: email.ccMe ? replyTo : null });
+  const { delivered, messageId } = await sendViaMailgun({ to: contact.email, replyTo, subject: email.subject, body: email.body, cc: email.ccMe ? replyTo : null, fromName: profile.company_name ?? null });
 
   const { error: eErr } = await supabase.from("emails").insert({
     workspace_id: profile.workspace_id,

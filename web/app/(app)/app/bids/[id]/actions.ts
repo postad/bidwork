@@ -119,6 +119,7 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
     subject: email.subject,
     body: email.body,
     cc: email.ccMe ? replyTo : null,
+    fromName: profile?.company_name ?? null,
   });
 
   const { error: eErr } = await supabase.from("emails").insert({
