@@ -1,0 +1,31 @@
+name: Deploy Trigger.dev
+
+# Deploys the engine tasks from Linux CI — avoids the local Windows Smart App
+# Control block on depot.exe, and keeps the worker in sync on every push.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/trigger/**"
+      - "web/lib/engine/**"
+      - "web/trigger.config.ts"
+      - "web/package.json"
+      - "web/package-lock.json"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+      - name: Deploy Trigger.dev
+        working-directory: web
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
+        run: npx trigger.dev@latest deploy
