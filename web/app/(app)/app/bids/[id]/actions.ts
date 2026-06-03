@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendViaMailgun } from "@/lib/email";
 
 export type LineInput = {
   id: string;
@@ -140,30 +141,4 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
   revalidatePath(`/app/bids/${bidId}`);
   revalidatePath("/app");
   return { sent: true, delivered };
-}
-
-/** Best-effort Mailgun send. Returns true if actually delivered, false if Mailgun
- *  isn't configured (the bid is still recorded as sent for the walking skeleton). */
-async function sendViaMailgun(msg: { to: string; replyTo: string | null; subject: string; body: string; cc: string | null }): Promise<boolean> {
-  const key = process.env.MAILGUN_API_KEY;
-  const domain = process.env.MAILGUN_DOMAIN;
-  const from = process.env.MAILGUN_FROM ?? (domain ? `BidWork <bids@${domain}>` : null);
-  if (!key || !domain || !from) {
-    console.warn("Mailgun not configured — bid recorded as sent without external delivery.");
-    return false;
-  }
-  const form = new URLSearchParams();
-  form.set("from", from);
-  form.set("to", msg.to);
-  if (msg.replyTo) form.set("h:Reply-To", msg.replyTo);
-  if (msg.cc) form.set("cc", msg.cc);
-  form.set("subject", msg.subject);
-  form.set("text", msg.body);
-  const res = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Basic ${Buffer.from(`api:${key}`).toString("base64")}` },
-    body: form,
-  });
-  if (!res.ok) throw new Error(`Mailgun ${res.status}: ${await res.text()}`);
-  return true;
 }
