@@ -16,6 +16,10 @@ alter table public.workspaces add column if not exists settings jsonb not null d
 
 -- One rate-card row per (workspace, trade, code) so onboarding can upsert the
 -- confirmed Pricing DNA cleanly. Seed data already satisfies this.
+-- (Guard on pg_constraint — re-adding a unique constraint also collides on its
+--  backing index, which raises 42P07/duplicate_table, not just duplicate_object.)
 do $$ begin
-  alter table public.pricing_items add constraint pricing_items_ws_trade_code_uniq unique (workspace_id, trade_id, code);
-exception when duplicate_object then null; end $$;
+  if not exists (select 1 from pg_constraint where conname = 'pricing_items_ws_trade_code_uniq') then
+    alter table public.pricing_items add constraint pricing_items_ws_trade_code_uniq unique (workspace_id, trade_id, code);
+  end if;
+end $$;
