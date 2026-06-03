@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/tag";
 import { DispatchPanel, type TradeGroup, type ContractorRow } from "./DispatchPanel";
+import { DocsPanel } from "./DocsPanel";
 import { acknowledgeGaps } from "./actions";
 
 type TradeScore = {
@@ -180,6 +181,13 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
           </div>
         )}
       </section>
+
+      {/* Documents + re-score loop */}
+      <DocsPanel
+        bidRequestId={req.id}
+        docs={(docs ?? []).map((d) => ({ filename: d.filename, bytes: d.bytes, pageCount: d.page_count }))}
+        processing={req.status === "processing"}
+      />
 
       {/* 2 · Document gaps */}
       <section className="mb-9">

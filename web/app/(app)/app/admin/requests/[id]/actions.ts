@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { engineDb } from "@/lib/engine/supabase";
+import { tasks } from "@trigger.dev/sdk";
+import type { scanRequest } from "@/trigger/engine";
 
 async function requireAdmin() {
   const supabase = createClient();
@@ -12,6 +15,50 @@ async function requireAdmin() {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") throw new Error("Forbidden — operators only");
   return supabase;
+}
+
+/**
+ * Mint signed upload URLs to add document(s) to an existing request — the
+ * missing-doc resolution loop (e.g. upload the architectural set ABH flagged).
+ */
+export async function createRequestUploads(bidRequestId: string, files: { name: string }[]) {
+  await requireAdmin();
+  const db = engineDb();
+  const uploads: { name: string; path: string; token: string }[] = [];
+  for (const f of files) {
+    const safe = f.name.replace(/[^\w.\-]+/g, "_");
+    const path = `${bidRequestId}/${Date.now()}_${safe}`;
+    const { data, error } = await db.storage.from("bid-docs").createSignedUploadUrl(path);
+    if (error || !data) throw new Error(error?.message ?? "Could not create upload URL");
+    uploads.push({ name: f.name, path, token: data.token });
+  }
+  return { uploads };
+}
+
+/**
+ * Record newly-added documents and re-run the engine over the WHOLE (now larger)
+ * package: re-scan re-scores every trade and re-triggers extraction. This is the
+ * re-score loop — a flagged-missing doc can flip a NO-BID to BID and clear gaps.
+ */
+export async function rescoreRequest(bidRequestId: string, files: { name: string; path: string; size: number }[]) {
+  await requireAdmin();
+  const db = engineDb();
+
+  if (files.length) {
+    const { error } = await db
+      .from("documents")
+      .insert(files.map((f) => ({ bid_request_id: bidRequestId, filename: f.name, storage_path: f.path, bytes: f.size })));
+    if (error) throw new Error(`record documents: ${error.message}`);
+  }
+
+  // Clear stale gaps + flip to processing, then re-scan the full package.
+  const { error: uErr } = await db.from("bid_requests").update({ status: "processing", doc_gaps: [] }).eq("id", bidRequestId);
+  if (uErr) throw new Error(`reset request: ${uErr.message}`);
+
+  await tasks.trigger<typeof scanRequest>("engine.scan-request", { bidRequestId });
+  revalidatePath(`/app/admin/requests/${bidRequestId}`);
+  revalidatePath("/app/admin");
+  return { ok: true };
 }
 
 /**

@@ -1,5 +1,3 @@
-import type { PDFDocument } from "pdf-lib";
-import { subsetBase64 } from "./pdf";
 import { MODELS, addUsage, emptyUsage, pdfBlock, structuredCall, type Usage } from "./anthropic";
 import { ExtractionResult } from "./schemas/extract";
 
@@ -27,21 +25,17 @@ const SYSTEM = (cfg: WtVerticalConfig) =>
 export interface ExtractOutput {
   result: ExtractionResult;
   usage: Usage;
-  pagesSent: number;
 }
 
-/** Pass A — structured spec/type/contact extraction from native PDF of the relevant pages. */
-export async function extract(src: PDFDocument, relevantPages: number[], cfg: WtVerticalConfig): Promise<ExtractOutput> {
-  // Fall back to the whole doc (capped) if triage found nothing — better to try than to fail blind.
-  const pages = relevantPages.length ? relevantPages : Array.from({ length: Math.min(src.getPageCount(), 90) }, (_, i) => i);
-  const base64 = await subsetBase64(src, pages.slice(0, 90));
-
+/** Pass A — structured spec/type/contact extraction over the relevant pages of the
+ *  WHOLE package (pre-merged across docs into one base64 PDF by the caller). */
+export async function extract(pagesB64: string, cfg: WtVerticalConfig, pageCount: number): Promise<ExtractOutput> {
   const { data, message } = await structuredCall({
     model: MODELS.extract,
     system: SYSTEM(cfg),
     content: [
-      pdfBlock(base64),
-      { type: "text", text: `These are the ${pages.length} pages triage flagged as relevant. Extract the full window-treatment scope now.` },
+      pdfBlock(pagesB64),
+      { type: "text", text: `These are the ${pageCount} pages flagged as relevant across the package. Extract the full window-treatment scope now.` },
     ],
     toolName: "report_scope",
     toolDescription: "Report the extracted window-treatment scope, pricing-relevant attributes, contacts, and evidence found.",
@@ -49,5 +43,5 @@ export async function extract(src: PDFDocument, relevantPages: number[], cfg: Wt
     maxTokens: 16000,
   });
 
-  return { result: data, usage: addUsage(emptyUsage(), message), pagesSent: pages.length };
+  return { result: data, usage: addUsage(emptyUsage(), message) };
 }

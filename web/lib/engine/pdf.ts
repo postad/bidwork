@@ -69,3 +69,22 @@ export async function mergeToBase64(docs: Uint8Array[], maxPages = 30): Promise<
   }
   return Buffer.from(await out.save()).toString("base64");
 }
+
+/** Merge SELECTED pages from several PDFs into one base64 PDF (capped at
+ *  `maxPages`). The engine's multi-doc read: pull each doc's relevant pages — a
+ *  schedule in one file, the plan in another — into a single document to extract. */
+export async function mergePagesToBase64(items: { bytes: Uint8Array; indices: number[] }[], maxPages = 90): Promise<string> {
+  const out = await PDFDocument.create();
+  for (const it of items) {
+    if (out.getPageCount() >= maxPages) break;
+    if (!it.indices.length) continue;
+    const src = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
+    const total = src.getPageCount();
+    const room = maxPages - out.getPageCount();
+    const idx = [...new Set(it.indices)].filter((i) => i >= 0 && i < total).sort((a, b) => a - b).slice(0, room);
+    if (!idx.length) continue;
+    const pages = await out.copyPages(src, idx);
+    pages.forEach((p) => out.addPage(p));
+  }
+  return Buffer.from(await out.save()).toString("base64");
+}
