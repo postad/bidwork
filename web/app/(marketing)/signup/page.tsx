@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { provisionWorkspace } from "./actions";
+import { signUpContractor } from "./actions";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,29 +16,18 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setNotice(null);
-
-    const { data, error: signErr } = await supabase.auth.signUp({ email, password });
-    if (signErr) {
-      setError(signErr.message);
-      setLoading(false);
-      return;
-    }
-    // Email-confirmation ON → no session yet. Tell them to confirm, then sign in.
-    if (!data.session) {
-      setNotice("Account created. Check your email to confirm, then sign in.");
-      setLoading(false);
-      return;
-    }
     try {
-      await provisionWorkspace(company);
+      // 1. Server creates the (pre-confirmed) user + workspace + profile atomically.
+      await signUpContractor(email, password, company);
+      // 2. Browser signs in to establish its session, then on to the picker.
+      const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signErr) throw signErr;
       router.push("/app/onboarding/trades");
       router.refresh();
     } catch (e) {
@@ -71,7 +60,6 @@ export default function SignupPage() {
             <input className={field} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
           </div>
           {error ? <p className="text-[13px] text-bw-red">{error}</p> : null}
-          {notice ? <p className="text-[13px] text-bw-green">{notice}</p> : null}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Creating…" : "Create account"}
           </Button>

@@ -22,12 +22,18 @@ Paste each file's contents into **SQL Editor → New query → Run**, in order 0
 
 > **Categories vs. pricing.** 0008–0010 seed only the trade *catalog* + scanner keywords — never prices. Every contractor's rate card is trained from their own proposals at onboarding (`pricing_items`), never seeded.
 
-## 1b · Self-serve signup (turn email-confirmation OFF for testing)
+## 1b · Self-serve signup
 
-Contractors can now create their own accounts at **`/signup`** (workspace + profile + trialing subscription are provisioned automatically), then pick category + sub-trades at `/app/onboarding/trades` and train pricing at `/app/onboarding`.
+Contractors create their own accounts at **`/signup`** → pick category + sub-trades at
+`/app/onboarding/trades` → train pricing at `/app/onboarding`.
 
-For this to complete in one step, the signup must return a session immediately:
-**Authentication → Providers → Email → turn OFF "Confirm email"** (test/dev). With it ON, signUp returns no session and the UI tells the user to confirm then sign in (provisioning then runs on first authenticated load is NOT automatic — keep it off while testing).
+Signup runs entirely server-side via the service-role admin API
+([signup/actions.ts](../web/app/(marketing)/signup/actions.ts) `signUpContractor`): it
+creates the auth user **pre-confirmed**, then the workspace + profile + trialing
+subscription atomically (rolling back the auth user if any step fails). The browser
+then signs in with the same credentials. **No dependency on the "Confirm email"
+toggle** — it works whether confirmation is on or off. Requires `SUPABASE_SERVICE_ROLE_KEY`
+in the web app's env (already needed by the engine).
 
 ## 2 · Create the operator (admin) user
 
