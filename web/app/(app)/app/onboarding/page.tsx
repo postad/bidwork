@@ -257,13 +257,16 @@ export default function OnboardingPage() {
           <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">What we learned from your own bids. Confirm what&apos;s right, fix what&apos;s not. Every number is a <span className="font-medium text-bw-text">charged price</span> — we never ask cost or margin.</p>
 
           {dnaStatus !== "ready" || (isFlooring ? !floorDna : !dna) ? (
-            <Card className="p-8 text-center">
-              <div className="inline-flex items-center gap-3 text-[14px] font-semibold">
-                <span className="w-2 h-2 rounded-full bg-bw-green animate-pulse" />
-                {dnaStatus === "error" ? "Extraction failed — go back and try again." : "Reading your proposals…"}
-              </div>
-              {dnaStatus !== "error" && <p className="text-[13px] text-bw-muted mt-2">This takes a minute. The page updates automatically.</p>}
-            </Card>
+            dnaStatus === "error" ? (
+              <Card className="p-8 text-center">
+                <div className="inline-flex items-center gap-3 text-[14px] font-semibold text-bw-red">
+                  <span className="w-2 h-2 rounded-full bg-bw-red" />
+                  Extraction failed — go back and try again.
+                </div>
+              </Card>
+            ) : (
+              <ReadingProposals flooring={isFlooring} />
+            )
           ) : isFlooring && floorDna ? (
             <div className="space-y-4">
               <Card className="p-6">
@@ -411,6 +414,48 @@ export default function OnboardingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Active "reading" state shown while the pricing-DNA extraction runs (~a minute on
+ *  Opus). A document mock with a sweeping scan line + shimmer text + rotating step
+ *  captions, so the wait reads as work-in-progress rather than a frozen screen. */
+function ReadingProposals({ flooring }: { flooring: boolean }) {
+  const steps = flooring
+    ? ["Opening your proposals…", "Finding your floor systems…", "Reading your per-SF rates…", "Spotting prep, base & trim…", "Recovering terms & exclusions…"]
+    : ["Opening your proposals…", "Finding your products…", "Reading motor & ganging rates…", "Spotting blind width tiers…", "Recovering terms & exclusions…"];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setI((p) => (p + 1) % steps.length), 2200);
+    return () => clearInterval(iv);
+  }, [steps.length]);
+
+  return (
+    <Card className="p-8">
+      <div className="flex flex-col items-center">
+        <div className="relative w-[180px] h-[120px] rounded-lg border border-bw-border bg-white overflow-hidden shadow-sm">
+          <div className="absolute inset-0 p-3.5 space-y-2.5">
+            {[90, 70, 82, 58, 76, 48].map((w, k) => (
+              <div key={k} className="h-2 rounded bg-bw-border bw-line" style={{ width: `${w}%`, animationDelay: `${k * 0.15}s` }} />
+            ))}
+          </div>
+          <div className="bw-scanbar absolute left-0 right-0 h-10" />
+        </div>
+        <div className="mt-5 inline-flex items-center gap-2.5 text-[14px] font-semibold">
+          <span className="w-2 h-2 rounded-full bg-bw-green animate-pulse" />
+          <span key={i} className="bw-fade inline-block">{steps[i]}</span>
+        </div>
+        <p className="text-[13px] text-bw-muted mt-2">This takes a minute. The page updates automatically.</p>
+      </div>
+      <style>{`
+        @keyframes bwScan { 0% { transform: translateY(-40px); } 100% { transform: translateY(120px); } }
+        @keyframes bwShimmer { 0%, 100% { opacity: .45; } 50% { opacity: .95; } }
+        @keyframes bwFade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+        .bw-scanbar { top: 0; background: linear-gradient(180deg, transparent, rgba(20,168,0,0.16), rgba(20,168,0,0.30), transparent); animation: bwScan 1.9s ease-in-out infinite; }
+        .bw-line { animation: bwShimmer 1.6s ease-in-out infinite; }
+        .bw-fade { animation: bwFade .4s ease; }
+      `}</style>
+    </Card>
   );
 }
 
