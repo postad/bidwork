@@ -141,7 +141,7 @@ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;backgro
         <li class="flex gap-3"><span class="step-num">3</span><span><strong>Score trades (no-bid gate)</strong> — evaluate the package against <strong>every vertical's signals</strong> and emit a <strong>bid / no-bid relevance score per trade</strong>. One document can be relevant to several trades; trades with no scope score no-bid and drop out. Admin sees these suggestions on upload. Reuses the MVP's yes-bid / no-bid signal logic (e.g. the 7&nbsp;Brew drive-thru → no window scope pattern).</span></li>
         <li class="flex gap-3"><span class="step-num">4</span><span><strong>Extract (Opus)</strong> — for <em>each relevant trade</em>, structured extraction into that vertical's schema: units, room types, area, attributes (motorization, blackout vs. solar…), timeline, contacts. Every field carries a <strong>confidence score + page citation</strong>, and the result is <strong>schema-validated</strong>. ~$1.50/project. Replaces the MVP's regex <code>scanner.py</code>.</span></li>
         <li class="flex gap-3"><span class="step-num">5</span><span><strong>Flag gaps</strong> — measure the extracted scope against the vertical's <strong>required-evidence checklist</strong> + the document <strong>reference graph</strong>, and flag anything required-but-empty, low-confidence, conflicting, or pointing to a sheet that wasn't uploaded. <em>Absence is only detectable against an expectation</em> — see the card below.</span></li>
-        <li class="flex gap-3"><span class="step-num">6</span><span><strong>Price from Pricing DNA</strong> — apply the contractor's charged prices (per-unit / per-sqft / per-ton / hourly / mixed) to the extracted scope. <strong>Per-tenant</strong> — never another contractor's numbers.</span></li>
+        <li class="flex gap-3"><span class="step-num">6</span><span><strong>Match &amp; price</strong> — an <strong>AI step semantically matches each scope item to the contractor's rate card</strong> ("shades"↔"blinds", "grind &amp; seal"↔"grind &amp; polish") and sets the quantity; then a <strong>deterministic script does the arithmetic</strong>. The model decides <em>which rate applies</em> — it never computes the total and never invents a price (see "Pricing intelligence" below). <strong>Per-tenant</strong> — never another contractor's numbers.</span></li>
         <li class="flex gap-3"><span class="step-num">7</span><span><strong>Draft the proposal</strong> — assemble a branded, client-ready document per contractor (one per relevant trade × matched contractor): scope, line-item pricing, exclusions, terms, timeline — using their logo + boilerplate. Pricing is grouped <strong>by location to match the drawings</strong> (see Proposal structure below).</span></li>
       </ol>
       <div class="card p-4 border-l-4 border-bw-green mt-4">
@@ -208,7 +208,19 @@ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;backgro
       <div class="card p-4">
         <div class="font-semibold mb-1">One engine, config per vertical</div>
         <p class="text-[13px] text-bw-body">A single config-driven engine — <strong>not</strong> a scanner per trade. Each vertical is one JSON knowledgebase (units, products, attributes, pricing model, scan keywords, CSI map, exclusions, terms, and a <strong><code>requiredEvidence</code> completeness checklist + expected-document set</strong> that the gap-detection step measures against) + an agent prompt. <strong>Adding a trade = adding a config, not writing code.</strong></p>
+        <p class="text-[13px] text-bw-body mt-2">Trades are organized <strong>category → sub-trade</strong>, seeded from <strong>PlanHub's taxonomy</strong> (e.g. Flooring → carpet, epoxy/resinous, polished &amp; sealed concrete, vinyl/VCT, wood…). Sub-trades in a category <strong>share one pipeline</strong> (the engine dispatches by category) and a contractor switches on the ones they bid. <strong>Window Treatments &amp; Flooring are live; Cleaning &amp; HVAC are next</strong> — each is config + a rate-card shape, not new code.</p>
       </div>
+    </div>
+    <div class="card p-5 mb-3 border-l-4 border-bw-green">
+      <div class="tag bg-bw-green-tint text-bw-green-deep mb-2">Decided · pricing intelligence</div>
+      <p class="text-[13px] text-bw-body mb-2"><strong>The AI decides the rates and quantities; a script does the math.</strong> Matching a project's scope to the contractor's rate card is <strong>semantic judgment</strong> — it should be AI ("shades"↔"blinds", "grind &amp; seal"↔"grind &amp; polish"), not string-compare. But the actual <code>qty × rate + tax</code> stays <strong>deterministic</strong>: penny-accurate, auditable, never hallucinated. (Validated live — on a real polished-concrete job the trained rate matched to the cent; every error we've hit was scope judgment, never arithmetic.)</p>
+      <p class="text-[13px] text-bw-body mb-2"><strong>The model never invents a price.</strong> For anything <em>outside</em> the rate card (an oversized 20&nbsp;ft blind, a system the card doesn't list), it flags rather than fabricates. Three line-states:</p>
+      <div class="space-y-2 text-[13px] text-bw-body mb-2">
+        <div class="flex gap-3"><span class="tag bg-bw-surface text-bw-body border border-bw-border flex-shrink-0">standard</span><span>Matches a rate-card line → priced from the rate card. No highlight.</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-blue-tint text-bw-blue flex-shrink-0">known edge</span><span>Out-of-envelope but seen before → priced <strong>from the company's DNA memory</strong> (the contractor's past correction), <strong>highlighted</strong> for a sanity check.</span></div>
+        <div class="flex gap-3"><span class="tag bg-bw-amber-tint text-bw-amber flex-shrink-0">unknown edge</span><span>Out-of-envelope and not in memory → <strong>no price, highlighted, with a "Price this" edit link.</strong> Treated as a <strong>per-line gap that gates dispatch</strong> (reuses the severity gate) — never goes out at $0 or a guess.</span></div>
+      </div>
+      <p class="text-[13px] text-bw-body"><strong>The contractor's edit is the moment of truth.</strong> When they price an out-of-envelope line, that correction writes to the workspace's <strong>DNA memory</strong> with its <em>scope context</em> (not just a number) and — asked once — whether it's a one-off example or a reusable rule. The match step consults that memory next time, so edge cases become known. A new item that only <em>loosely</em> matches memory is <strong>flagged again, not extrapolated</strong>. Each company's engine compounds — base rate card + accumulated corrections — and it's per-tenant, never shared.</p>
     </div>
     <div class="card p-4 text-[13px] text-bw-body mb-3 border-l-4 border-bw-green">
       <div class="font-semibold text-bw-text mb-1">Accuracy &amp; the learning loop</div>
@@ -387,6 +399,7 @@ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;backgro
           <li><code>bids</code> — one per matched contractor; status (draft / approved / sent), <strong>boilerplate snapshot</strong> frozen at send (immutable record).</li>
           <li><code>bid_line_items</code> — <strong>relational</strong> rows (qty, unit, sell price) so every field is diffable.</li>
           <li><code>bid_edits</code> — the learning loop: field-level diffs between AI draft and contractor edit, categorized quantity / price / line-item / wording. Feeds that tenant's Pricing DNA only.</li>
+          <li><code>pricing_memory</code> — per-workspace learned corrections for <strong>out-of-envelope</strong> items: scope context + price + <em>one-off example</em> vs. <em>reusable rule</em>. The AI match step consults it so edge cases price themselves next time. <span class="opacity-70">(planned)</span></li>
         </ul>
       </div>
       <div class="card p-4 md:col-span-2">
@@ -461,6 +474,11 @@ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;backgro
       <li><strong>Single-pass multi-trade scan.</strong> One upload is read once and scored against every trade; Opus extraction runs only for bid trades; prompt caching + page-hash cache keep it cheap. Relevance gate is semantic and admin-confirmed (§4).</li>
       <li><strong>Billing = Stripe, trial + capped monthly packages.</strong> 3-bid free trial, then a monthly package with a fixed bid cap; enforced at dispatch. Schema lands in foundation; enforcement is a later phase (§10).</li>
       <li><strong>Build approach = walking-skeleton vertical slice.</strong> One thin end-to-end slice across both roles first (window-treatments leads the full pipe; the scan is multi-trade from day one), then widen. See <a href="BUILD-PLAN.md" class="text-bw-green font-medium">BUILD-PLAN.md</a>.</li>
+      <li><strong>Category → sub-trade taxonomy (PlanHub).</strong> Trades group as category → sub-trade, seeded from PlanHub's breakdown; sub-trades share one pipeline (engine dispatches by category). Window Treatments &amp; Flooring live; Cleaning &amp; HVAC are config + a rate-card shape, not new code (§4).</li>
+      <li><strong>Self-serve signup + contractor-managed services.</strong> A contractor signs up (<code>/signup</code>, atomic server-side provisioning), picks their category &amp; sub-trades, and sets/edits each price in Settings — with a per-service Open-for-bid toggle, a single $/SF rate, and tooltips. (Admin still uploads bid requests — Phase&nbsp;1 sourcing unchanged.)</li>
+      <li><strong>AI pricing-match + deterministic math.</strong> An AI step semantically matches scope → rate card and sets quantities; a script does the arithmetic. The model decides the rate, <strong>never computes the total and never invents a price</strong> (§4 Pricing intelligence).</li>
+      <li><strong>Out-of-envelope memory + per-line gate.</strong> Standard → rate card · known edge → DNA memory (highlighted) · unknown edge → <strong>unpriced, flagged, "Price this" link, gates dispatch.</strong> The contractor's correction writes back to the company's DNA memory (one-off example vs. reusable rule) so edge cases become known.</li>
+      <li><strong>ZIP ingest + triage.</strong> Admin drops a PlanHub project zip; it's unzipped server-side and Haiku-triaged per file (bonds/insurance/standalone takeoffs dropped) before the expensive scan reads only scope content.</li>
     </ul>
     <div class="text-[12px] font-semibold text-bw-muted uppercase tracking-wide mb-2">Still open</div>
     <ul class="list-disc pl-5 text-[14px] text-bw-body space-y-1.5 mb-10">
@@ -490,7 +508,7 @@ code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.85em;backgro
     </div>
 
     <div class="border-t border-bw-border pt-5 text-[12px] text-bw-muted">
-      BidWork project brief · v2 · updated 2026-06-01 · The Shade Company is the first tenant. Keep this in sync as decisions land. Build sequencing lives in BUILD-PLAN.md.
+      BidWork project brief · v3 · updated 2026-06-04 · The Shade Company (window treatments) &amp; PEC Floors (flooring) are the first tenants. Keep this in sync as decisions land. Build sequencing lives in BUILD-PLAN.md.
     </div>
 
   </main>
