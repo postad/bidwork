@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createBidRequest, finalizeBidRequest } from "./actions";
+import { createZipUpload, finalizeZipUpload } from "./actions";
 
 export default function UploadPage() {
   const router = useRouter();
   const supabase = createClient();
   const [files, setFiles] = useState<File[]>([]);
-  const [title, setTitle] = useState("");
   const [zip, setZip] = useState("10018");
   const [radius, setRadius] = useState(100);
   const [busy, setBusy] = useState(false);
@@ -21,9 +20,7 @@ export default function UploadPage() {
   const field = "w-full rounded-lg border border-bw-border px-3 py-2 text-[14px] outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint";
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []);
-    setFiles(picked);
-    if (!title && picked[0]) setTitle(picked[0].name.replace(/\.pdf$/i, ""));
+    setFiles(Array.from(e.target.files ?? []));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -32,18 +29,19 @@ export default function UploadPage() {
     setBusy(true);
     setError(null);
     try {
-      setStatus("Preparing upload…");
-      const { bidRequestId, uploads } = await createBidRequest({ title, zip, radius, files: files.map((f) => ({ name: f.name })) });
-
+      // One zip = one project. Upload each sequentially (parallel just saturates
+      // upstream) and fire its ingest the moment its bytes land — so the batch isn't
+      // gated by the slowest zip; project #1 scans while #4 is still uploading.
       for (let i = 0; i < files.length; i++) {
-        setStatus(`Uploading ${i + 1}/${files.length}: ${files[i].name}`);
-        const u = uploads[i];
-        const { error } = await supabase.storage.from("bid-docs").uploadToSignedUrl(u.path, u.token, files[i]);
-        if (error) throw error;
+        const file = files[i];
+        const title = file.name.replace(/\.zip$/i, "");
+        setStatus(`Uploading ${i + 1}/${files.length}: ${file.name}`);
+        const { bidRequestId, path, token } = await createZipUpload({ title, zip, radius, fileName: file.name });
+        const { error: upErr } = await supabase.storage.from("bid-docs").uploadToSignedUrl(path, token, file);
+        if (upErr) throw upErr;
+        await finalizeZipUpload(bidRequestId, path);
       }
-
-      setStatus("Starting trade scan…");
-      await finalizeBidRequest(bidRequestId, files.map((f, i) => ({ name: f.name, path: uploads[i].path, size: f.size })));
+      setStatus("Queued — processing in the background.");
       router.push("/app/admin");
       router.refresh();
     } catch (err) {
@@ -53,17 +51,19 @@ export default function UploadPage() {
     }
   }
 
+  const totalMb = files.reduce((s, f) => s + f.size, 0) / 1048576;
+
   return (
     <div className="max-w-[640px]">
       <h1 className="text-[1.6rem] font-extrabold tracking-tight mb-1">New bid request</h1>
       <p className="text-[14px] text-bw-body mb-6">
-        Upload the package once. The system reads it and scores every trade, then dispatches to matching contractors.
+        Drop one PlanHub project zip per project — or several at once. The system unzips, drops the junk files, reads the package, scores every trade, and queues priced drafts for review.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Card className="p-5">
-          <div className="font-semibold mb-2">1 · The documents</div>
-          <input type="file" accept="application/pdf" multiple onChange={onPick} className="block w-full text-[13px]" />
+          <div className="font-semibold mb-2">1 · The project zips</div>
+          <input type="file" accept=".zip,application/zip,application/x-zip-compressed" multiple onChange={onPick} className="block w-full text-[13px]" />
           {files.length > 0 && (
             <ul className="mt-3 space-y-1 text-[13px] text-bw-body">
               {files.map((f) => (
@@ -74,14 +74,14 @@ export default function UploadPage() {
               ))}
             </ul>
           )}
+          {files.length > 0 && (
+            <p className="mt-2 text-[12px] text-bw-muted">{files.length} project{files.length > 1 ? "s" : ""} · {totalMb.toFixed(0)} MB total — keep this tab open until uploads finish.</p>
+          )}
         </Card>
 
         <Card className="p-5 space-y-4">
           <div className="font-semibold">2 · The area</div>
-          <div>
-            <label className="text-[12px] font-semibold text-bw-body">Request title</label>
-            <input className={field} value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
+          <p className="text-[12px] text-bw-muted">Default for the batch — the system overrides each project with the ZIP read off its spec cover when it can.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[12px] font-semibold text-bw-body">Center ZIP</label>
@@ -92,13 +92,13 @@ export default function UploadPage() {
               <input type="range" min={10} max={250} step={5} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="w-full mt-2 accent-bw-green" />
             </div>
           </div>
-          <p className="text-[12px] text-bw-muted">~$1.50 / package · scans all trades in one read, extracts only the bid trades.</p>
+          <p className="text-[12px] text-bw-muted">Triage drops takeoffs/bonds/admin files, then scans all trades in one read and extracts only the bid trades.</p>
         </Card>
 
         {error && <p className="text-[13px] text-bw-red">{error}</p>}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={busy || !files.length}>
-            {busy ? "Working…" : "Upload & analyze"}
+            {busy ? "Working…" : `Upload & analyze${files.length > 1 ? ` (${files.length})` : ""}`}
           </Button>
           {status && <span className="text-[13px] text-bw-body">{status}</span>}
         </div>

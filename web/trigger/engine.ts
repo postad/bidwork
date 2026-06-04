@@ -1,10 +1,12 @@
 import { schemaTask, logger, metadata } from "@trigger.dev/sdk";
 import { z } from "zod";
+import { unzipSync } from "fflate";
 import { engineDb } from "../lib/engine/supabase";
 import { runMultiTradeScan, type ScanDoc, type TradeInput } from "../lib/engine/scan";
 import { type PipelineDoc } from "../lib/engine/wt-pipeline";
 import { VERTICALS } from "../lib/engine/verticals";
 import { mergeToBase64 } from "../lib/engine/pdf";
+import { triageDocuments } from "../lib/engine/triage";
 import { extractPricingDna } from "../lib/engine/extract-pricing";
 import { extractFlooringPricingDna } from "../lib/engine/extract-flooring-pricing";
 
@@ -38,11 +40,13 @@ export const scanRequest = schemaTask({
       };
     });
 
-    // Documents for this request → download from Storage.
+    // Documents for this request → download from Storage. Skip files triage dropped
+    // (standalone takeoffs, bonds, insurance certs) so the scan reads only scope content.
     const { data: docs, error: dErr } = await db
       .from("documents")
       .select("id, filename, storage_path")
-      .eq("bid_request_id", bidRequestId);
+      .eq("bid_request_id", bidRequestId)
+      .eq("skipped", false);
     if (dErr) throw new Error(`load documents: ${dErr.message}`);
     if (!docs?.length) throw new Error("no documents for this bid request");
 
@@ -85,6 +89,83 @@ export const scanRequest = schemaTask({
       tradeScores: result.trades.map((t) => ({ slug: t.slug, relevance: t.relevance, confidence: t.confidence })),
       contacts: result.contacts,
     };
+  },
+});
+
+/**
+ * engine.ingest — the entry point for a PlanHub project zip. The browser uploads ONE
+ * zip (one project) to Storage; this unzips it server-side, triages each PDF (cheap
+ * Haiku read of page 1 → keep/drop), registers the PDFs as documents (dropped ones
+ * flagged skipped), enriches the request with the project name/ZIP read off the spec
+ * cover, deletes the transient zip, and kicks off the scan over the kept files.
+ */
+export const ingestZip = schemaTask({
+  id: "engine.ingest",
+  machine: { preset: "medium-1x" }, // unzip + pdf-lib hold the package in memory
+  maxDuration: 1800,
+  retry: { maxAttempts: 1 },
+  schema: z.object({ bidRequestId: z.string().uuid(), zipPath: z.string() }),
+  run: async ({ bidRequestId, zipPath }) => {
+    const db = engineDb();
+    metadata.set("status", "unzipping");
+
+    const { data: blob, error } = await db.storage.from("bid-docs").download(zipPath);
+    if (error || !blob) throw new Error(`download zip: ${error?.message}`);
+
+    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()), {
+      filter: (f) => /\.pdf$/i.test(f.name) && !f.name.startsWith("__MACOSX"),
+    });
+    const docs = Object.entries(entries).map(([name, bytes]) => ({ name: name.split("/").pop() ?? name, bytes }));
+    if (!docs.length) throw new Error("zip contained no PDF files");
+    logger.info("Unzipped package", { pdfs: docs.length });
+
+    metadata.set("status", "triaging");
+    const { results: verdicts, usage } = await triageDocuments(docs);
+    const kept = verdicts.filter((v) => v.keep);
+    logger.info("Triage complete", {
+      kept: kept.map((v) => `${v.name} (${v.kind})`),
+      dropped: verdicts.filter((v) => !v.keep).map((v) => `${v.name} (${v.kind}, ${Math.round(v.confidence * 100)}%)`),
+      tokens: usage,
+    });
+
+    // Upload every PDF (kept and dropped) and register it; dropped → skipped=true so
+    // it's visible in review but never scanned. email/title/zip enriched from triage.
+    let projectName: string | null = null;
+    let projectZip: string | null = null;
+    for (let i = 0; i < docs.length; i++) {
+      const d = docs[i];
+      const v = verdicts[i];
+      const safe = d.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${bidRequestId}/${safe}`;
+      const { error: upErr } = await db.storage.from("bid-docs").upload(path, d.bytes, { contentType: "application/pdf", upsert: true });
+      if (upErr) throw new Error(`upload ${d.name}: ${upErr.message}`);
+      const { error: insErr } = await db.from("documents").insert({
+        bid_request_id: bidRequestId,
+        filename: d.name,
+        storage_path: path,
+        bytes: d.bytes.byteLength,
+        skipped: !v.keep,
+        triage: { kind: v.kind, keep: v.keep, confidence: v.confidence, reason: v.reason },
+      });
+      if (insErr) throw new Error(`register ${d.name}: ${insErr.message}`);
+      if (!projectName && v.projectName) projectName = v.projectName;
+      if (!projectZip && v.projectZip) projectZip = v.projectZip;
+    }
+
+    // Enrich the request with what triage read off the cover (don't clobber with nulls).
+    const patch: Record<string, unknown> = {};
+    if (projectName) patch.title = projectName;
+    if (projectZip) patch.center_zip = projectZip;
+    if (Object.keys(patch).length) await db.from("bid_requests").update(patch).eq("id", bidRequestId);
+
+    // Drop the transient zip now that the PDFs are extracted.
+    await db.storage.from("bid-docs").remove([zipPath]);
+
+    if (!kept.length) throw new Error("triage dropped every file — nothing to scan");
+    metadata.set("status", "scanning");
+    await scanRequest.trigger({ bidRequestId });
+
+    return { pdfs: docs.length, kept: kept.length, dropped: docs.length - kept.length };
   },
 });
 
@@ -137,11 +218,13 @@ export const extractBid = schemaTask({
     const thisScore = scores.find((s) => s.slug === tradeSlug);
     const relevant = thisScore?.relevantPages ?? [];
 
-    // Download docs and attach their relevant pages.
+    // Download docs and attach their relevant pages (skip triage-dropped files —
+    // they were never scanned, so they carry no relevant pages anyway).
     const { data: docs, error: dErr } = await db
       .from("documents")
       .select("id, filename, storage_path")
-      .eq("bid_request_id", bidRequestId);
+      .eq("bid_request_id", bidRequestId)
+      .eq("skipped", false);
     if (dErr) throw new Error(`load documents: ${dErr.message}`);
     if (!docs?.length) throw new Error("no documents for this bid request");
 

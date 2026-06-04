@@ -198,6 +198,12 @@ export async function confirmFlooringPricingDna(dna: ConfirmFlooringDna) {
   if (!flooringTrades.length) throw new Error("No flooring sub-trades selected for this workspace.");
 
   const systems = dna.systems.filter((s) => s.name && s.perSqft != null);
+  // Guard: a confirm writes SYS to EVERY covered flooring trade, so an empty
+  // extraction would wipe rate cards you already trained. If nothing was found,
+  // refuse and point to the editor — never silently overwrite good cards.
+  if (!systems.length) {
+    throw new Error("No floor systems were found in those proposals — nothing to save here. Add or edit your systems in Settings → Edit full pricing model.");
+  }
   type Row = { workspace_id: string; trade_id: string; code: string; label: string; unit: string; sell_price: number | null; pricing: Record<string, unknown> };
   const rows: Row[] = [];
   for (const t of flooringTrades) {

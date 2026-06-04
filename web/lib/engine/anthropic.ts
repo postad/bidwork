@@ -15,6 +15,8 @@ export const MODELS = {
   scan: process.env.MODEL_SCAN ?? "claude-sonnet-4-6",
   extract: process.env.MODEL_EXTRACT ?? "claude-opus-4-8",
   count: process.env.MODEL_COUNT ?? "claude-sonnet-4-6",
+  // File triage is coarse "what is this document" classification from page 1 — Haiku.
+  triage: process.env.MODEL_TRIAGE ?? "claude-haiku-4-5-20251001",
 };
 
 export type Usage = { input: number; output: number; cacheRead: number; cacheWrite: number };
