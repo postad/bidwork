@@ -16,7 +16,7 @@ export interface FlooringVerticalConfig {
 }
 
 const SYSTEM = (cfg: FlooringVerticalConfig) =>
-  `You are the extraction step for a ${cfg.label.toUpperCase()} subcontractor. You are given ONLY the pages a triage step judged relevant from a bid set.\n\n` +
+  `You are the extraction step for a ${(cfg.label ?? "flooring").toUpperCase()} subcontractor. You are given ONLY the pages a triage step judged relevant from a bid set.\n\n` +
   `Read the floor-finish schedule, the relevant Division 09 specification, and the plans, and extract a complete, priceable flooring scope FOR THIS TRADE ONLY.\n\n` +
   `RULES:\n` +
   `- This trade is priced by these drivers: ${cfg.scopeDrivers.map((d) => `${d.label} (${d.pricingUnit})`).join("; ")}.\n` +
@@ -44,7 +44,7 @@ export async function extractFlooring(pagesB64: string, cfg: FlooringVerticalCon
     system: SYSTEM(cfg),
     content: [
       pdfBlock(pagesB64),
-      { type: "text", text: `These are the ${pageCount} pages flagged as relevant across the package. Extract the full ${cfg.label} scope now.` },
+      { type: "text", text: `These are the ${pageCount} pages flagged as relevant across the package. Extract the full ${cfg.label ?? "flooring"} scope now.` },
     ],
     toolName: "report_flooring_scope",
     toolDescription: "Report the extracted flooring scope (systems, room areas in SF, base/trim, prep), contacts, and evidence found.",

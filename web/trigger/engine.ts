@@ -119,7 +119,9 @@ export const extractBid = schemaTask({
       return { skipped: true, reason: `no vertical pipeline for category '${trade.category}'` };
     }
 
-    const cfg = trade.vertical_config ?? {};
+    // Inject the trade's label (it lives on the column, not in vertical_config) so
+    // verticals can name the trade in prompts.
+    const cfg = { ...((trade.vertical_config ?? {}) as Record<string, unknown>), label: trade.label };
 
     // Pull the scan's per-trade relevant pages (grouped by document).
     const { data: req, error: rErr } = await db
