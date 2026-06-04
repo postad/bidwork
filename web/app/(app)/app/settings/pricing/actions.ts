@@ -55,7 +55,7 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
   const systems = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perSqft: number }[] })?.bySystem ?? []).map((s) => ({ name: s.name, perSqft: Number(s.perSqft) }));
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
   const card: FlooringCard = { systems, prepPerSqft: num("PREP"), baseTrimPerLf: num("BASE"), mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
-  return { card, complete: systems.length > 0 && card.mobilizationFee != null };
+  return { card, complete: systems.length > 0 };
 }
 
 function buildWt(items: Item[]): { card: WtCard; complete: boolean } {

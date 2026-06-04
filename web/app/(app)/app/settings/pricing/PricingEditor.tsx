@@ -10,7 +10,7 @@ const field = "w-full rounded-lg border border-bw-border px-3 py-2 text-[14px] o
 const numCls = "w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px] outline-none focus:border-bw-green";
 
 function flooringComplete(c: FlooringCard) {
-  return c.systems.filter((s) => s.name && s.perSqft != null).length > 0 && c.mobilizationFee != null;
+  return c.systems.filter((s) => s.name && s.perSqft != null).length > 0;
 }
 function wtComplete(c: WtCard) {
   return c.motorized.length > 0 && c.blinds.length > 0 && c.fixedPanelPrice != null && c.installFee != null;
@@ -144,7 +144,7 @@ function FlooringForm({ card, onChange }: { card: FlooringCard; onChange: (c: Fl
         <Num label="Default discount" suffix="%" value={card.discountPct} onChange={(v) => onChange({ ...card, discountPct: v })} />
         <Num label="Sales tax" suffix="%" value={card.taxPct} onChange={(v) => onChange({ ...card, taxPct: v })} />
       </div>
-      {card.mobilizationFee == null && <p className="text-[12px] text-bw-amber">A mobilization fee is required for this trade to price bids (enter 0 if you don&apos;t charge one).</p>}
+      <p className="text-[12px] text-bw-muted">At least one floor system is required to price bids. Prep, base/trim, and mobilization are optional add-ons.</p>
     </div>
   );
 }

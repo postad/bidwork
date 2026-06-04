@@ -34,12 +34,13 @@ export async function loadFlooringPricingDNA(
   const discount = byCode.get("DISCOUNT")?.sell_price;
 
   const systems = (sys?.bySystem ?? []).filter((s) => s && s.name && s.perSqft != null);
-  // A complete flooring rate card needs ≥1 priceable system and a mobilization fee.
-  if (!systems.length || mob == null) return null;
+  // A flooring rate card just needs ≥1 priceable system. Mobilization is OPTIONAL
+  // (most contractors don't charge it separately) — treat missing as $0, don't skip.
+  if (!systems.length) return null;
 
   return {
     salesTaxRate: tax != null ? Number(tax) / 100 : 0,
-    mobilizationFee: Number(mob),
+    mobilizationFee: mob != null ? Number(mob) : 0,
     defaultDiscountPct: discount != null ? Number(discount) / 100 : 0,
     rates: {
       systems: systems.map((s) => ({ name: s.name, perSqft: Number(s.perSqft) })),
