@@ -1,9 +1,11 @@
+import type { AreaMatch } from "./price-match";
+
 /**
  * Deterministic flooring pricing — material-agnostic. The engine never lets the
  * model do arithmetic: given a structured FlooringScope + the tenant's trained
- * FlooringPricingDNA, compute line items and totals exactly. Order mirrors a
- * proposal: products → discount (% of products) → + mobilization → subtotal →
- * tax → total — the same shape as the validated WT pricing (see price.ts).
+ * FlooringPricingDNA + the AI's system matches, compute line items and totals
+ * exactly. Order mirrors a proposal: products → discount (% of products) →
+ * + mobilization → subtotal → tax → total — same shape as WT pricing (see price.ts).
  */
 
 export interface FlooringPricingDNA {
@@ -33,38 +35,40 @@ export interface PricedLine {
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-/** Match an extracted system name to a rate-card system. Exact-ish (normalized
- *  substring either direction); falls back to the first rate with assumedSystem=true
- *  rather than dropping the line — surfaced in attrs for the contractor to confirm. */
-function matchSystem(name: string, systems: FlooringPricingDNA["rates"]["systems"]) {
-  const n = norm(name);
-  const hit = systems.find((s) => {
-    const sn = norm(s.name);
-    return sn === n || sn.includes(n) || n.includes(sn);
-  });
-  if (hit) return { rate: hit.perSqft, matchedName: hit.name, assumed: false };
-  if (systems.length) return { rate: systems[0].perSqft, matchedName: systems[0].name, assumed: true };
-  return null;
-}
-
-export function priceFlooringScope(scope: FlooringScope, dna: FlooringPricingDNA, discountPct = dna.defaultDiscountPct) {
+/**
+ * Deterministic compute over an ALREADY-MATCHED scope. `matches[i]` is the AI match
+ * for `scope.areas[i]` (see price-match.ts): a real rate from the contractor's list,
+ * or null = out-of-envelope → an unpriced, flagged line (amount 0, excluded from the
+ * total, surfaced for the contractor to price). The model picked the system; this
+ * function only multiplies — no fabricated prices, no fuzzy fallback.
+ */
+export function priceFlooringScope(scope: FlooringScope, dna: FlooringPricingDNA, matches: AreaMatch[], discountPct = dna.defaultDiscountPct) {
   const lines: PricedLine[] = [];
 
-  for (const a of scope.areas) {
-    const m = matchSystem(a.system, dna.rates.systems);
-    if (!m) continue; // no rate card systems at all — nothing to price this area against
-    const amount = r2(a.sqft * m.rate);
+  scope.areas.forEach((a, i) => {
+    const m = matches[i];
+    if (!m || m.rate == null) {
+      // Out-of-envelope: no listed system applies. Flag it, don't guess a number.
+      lines.push({
+        code: "SYS",
+        label: `${a.system}${a.location ? ` — ${a.location}` : ""} — needs your price`,
+        qty: a.sqft,
+        unitRate: 0,
+        amount: 0,
+        attrs: { unpriced: true, reason: m?.reason ?? "No matching system in your price list.", system: a.system, location: a.location, sqft: a.sqft },
+      });
+      return;
+    }
     lines.push({
       code: "SYS",
-      label: `${m.matchedName}${a.location ? ` — ${a.location}` : ""}${m.assumed ? ` (system assumed from "${a.system}")` : ""}`,
+      label: `${m.matchedSystem}${a.location ? ` — ${a.location}` : ""}`,
       qty: a.sqft,
       unitRate: m.rate,
-      amount,
-      attrs: { system: m.matchedName, reportedSystem: a.system, assumedSystem: m.assumed, location: a.location, sqft: a.sqft },
+      amount: r2(a.sqft * m.rate),
+      attrs: { system: m.matchedSystem, reportedSystem: a.system, source: m.source, confidence: m.confidence, location: a.location, sqft: a.sqft },
     });
-  }
+  });
 
   if (scope.prep && dna.rates.prepPerSqft != null && scope.prep.sqft > 0) {
     lines.push({

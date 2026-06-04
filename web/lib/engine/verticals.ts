@@ -7,6 +7,7 @@ import { priceScope, type PricingDNA, type Scope } from "./price";
 import { runFlooringPipeline } from "./flooring-pipeline";
 import { loadFlooringPricingDNA } from "./flooring-pricing";
 import { priceFlooringScope, type FlooringPricingDNA, type FlooringScope } from "./flooring-price";
+import { matchScopeToRates } from "./price-match";
 
 /**
  * Vertical registry — one adapter per CATEGORY. extractBid dispatches on a trade's
@@ -51,7 +52,8 @@ export interface VerticalRun {
 export interface VerticalAdapter {
   run(docs: PipelineDoc[], cfg: unknown): Promise<VerticalRun>;
   loadDNA(db: SupabaseClient, workspaceId: string, tradeId: string): Promise<unknown | null>;
-  price(scope: unknown, dna: unknown): PricedResult;
+  // Async: flooring runs the AI pricing-match before the deterministic compute.
+  price(scope: unknown, dna: unknown): Promise<PricedResult>;
   lineUnit(code: string): string;
 }
 
@@ -63,7 +65,10 @@ const wtAdapter: VerticalAdapter = {
     return { extraction, scope, gaps, quantifiable, scopeSummary: extraction.bidReasoning, usage };
   },
   loadDNA: (db, ws, tid) => loadWtPricingDNA(db, ws, tid),
-  price(scope, dna) {
+  // WT matching is exact (ganging count / width tier, keyed lookup) and the semantic
+  // call already happens at extraction — so it stays deterministic for now. The AI
+  // pricing-match + oversized-blind edge handling is the planned WT follow-up.
+  async price(scope, dna) {
     const d = dna as PricingDNA;
     return { ...priceScope(scope as Scope, d), taxRate: d.salesTaxRate };
   },
@@ -76,9 +81,13 @@ const flooringAdapter: VerticalAdapter = {
     return { extraction, scope, gaps, quantifiable: scope.areas.length > 0, scopeSummary: extraction.bidReasoning, usage };
   },
   loadDNA: (db, ws, tid) => loadFlooringPricingDNA(db, ws, tid),
-  price(scope, dna) {
+  async price(scope, dna) {
     const d = dna as FlooringPricingDNA;
-    return { ...priceFlooringScope(scope as FlooringScope, d), taxRate: d.salesTaxRate };
+    const fs = scope as FlooringScope;
+    // AI decides which listed system applies to each area (or flags it unpriced);
+    // the deterministic compute then multiplies. Memory is [] until Pillar 3.
+    const { matches } = await matchScopeToRates(fs.areas, d.rates.systems, []);
+    return { ...priceFlooringScope(fs, d, matches), taxRate: d.salesTaxRate };
   },
   lineUnit: (code) => (code === "BASE" ? "lf" : "sqft"), // SYS + PREP are per-sqft
 };

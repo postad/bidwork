@@ -20,6 +20,7 @@ export const scanRequest = schemaTask({
   id: "engine.scan-request",
   machine: { preset: "medium-1x" }, // pdf-lib loads big packages into memory
   maxDuration: 1800,
+  retry: { maxAttempts: 1 }, // re-reads the whole package per attempt; a 400 (credits/auth) is permanent — don't burn 12 min retrying
   schema: z.object({ bidRequestId: z.string().uuid() }),
   run: async ({ bidRequestId }) => {
     const db = engineDb();
@@ -304,7 +305,7 @@ export const extractBid = schemaTask({
           logger.warn("Skipping contractor — incomplete Pricing DNA", { workspaceId: cov.workspace_id });
           continue;
         }
-        const priced = vertical.price(scope, dna);
+        const priced = await vertical.price(scope, dna);
 
         const { data: bid, error: bErr } = await db
           .from("bids")
