@@ -34,7 +34,7 @@ export default function UploadPage() {
       // gated by the slowest zip; project #1 scans while #4 is still uploading.
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const title = file.name.replace(/\.zip$/i, "");
+        const title = file.name.replace(/\.(zip|pdf)$/i, "");
         setStatus(`Uploading ${i + 1}/${files.length}: ${file.name}`);
         const { bidRequestId, path, token } = await createZipUpload({ title, zip, radius, fileName: file.name });
         const { error: upErr } = await supabase.storage.from("bid-docs").uploadToSignedUrl(path, token, file);
@@ -57,13 +57,13 @@ export default function UploadPage() {
     <div className="max-w-[640px]">
       <h1 className="text-[1.6rem] font-extrabold tracking-tight mb-1">New bid request</h1>
       <p className="text-[14px] text-bw-body mb-6">
-        Drop one PlanHub project zip per project — or several at once. The system unzips, drops the junk files, reads the package, scores every trade, and queues priced drafts for review.
+        Drop a PlanHub project <strong>zip or a single PDF</strong> per project — or several at once. The system unzips (or takes the PDF as-is), drops the junk files, reads the package, scores every trade, and queues priced drafts for review.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Card className="p-5">
-          <div className="font-semibold mb-2">1 · The project zips</div>
-          <input type="file" accept=".zip,application/zip,application/x-zip-compressed" multiple onChange={onPick} className="block w-full text-[13px]" />
+          <div className="font-semibold mb-2">1 · The project files (zip or PDF)</div>
+          <input type="file" accept=".zip,.pdf,application/zip,application/x-zip-compressed,application/pdf" multiple onChange={onPick} className="block w-full text-[13px]" />
           {files.length > 0 && (
             <ul className="mt-3 space-y-1 text-[13px] text-bw-body">
               {files.map((f) => (

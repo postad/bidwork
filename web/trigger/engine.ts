@@ -108,17 +108,29 @@ export const ingestZip = schemaTask({
   schema: z.object({ bidRequestId: z.string().uuid(), zipPath: z.string() }),
   run: async ({ bidRequestId, zipPath }) => {
     const db = engineDb();
-    metadata.set("status", "unzipping");
+    metadata.set("status", "reading");
 
     const { data: blob, error } = await db.storage.from("bid-docs").download(zipPath);
-    if (error || !blob) throw new Error(`download zip: ${error?.message}`);
+    if (error || !blob) throw new Error(`download upload: ${error?.message}`);
 
-    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()), {
-      filter: (f) => /\.pdf$/i.test(f.name) && !f.name.startsWith("__MACOSX"),
-    });
-    const docs = Object.entries(entries).map(([name, bytes]) => ({ name: name.split("/").pop() ?? name, bytes }));
-    if (!docs.length) throw new Error("zip contained no PDF files");
-    logger.info("Unzipped package", { pdfs: docs.length });
+    // Accept EITHER a PlanHub project zip OR a single PDF — detect by magic bytes
+    // (a truncated/non-matching upload throws a clear error instead of fflate's).
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    const isZip = buf[0] === 0x50 && buf[1] === 0x4b; // 'PK'
+    const isPdf = buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46; // '%PDF'
+
+    let docs: { name: string; bytes: Uint8Array }[];
+    if (isZip) {
+      const entries = unzipSync(buf, { filter: (f) => /\.pdf$/i.test(f.name) && !f.name.startsWith("__MACOSX") });
+      docs = Object.entries(entries).map(([name, bytes]) => ({ name: name.split("/").pop() ?? name, bytes }));
+      if (!docs.length) throw new Error("zip contained no PDF files");
+      logger.info("Unzipped package", { pdfs: docs.length });
+    } else if (isPdf) {
+      docs = [{ name: zipPath.split("/").pop() ?? "document.pdf", bytes: buf }];
+      logger.info("Single PDF upload", { name: docs[0].name });
+    } else {
+      throw new Error(`Unsupported upload: expected a .zip or .pdf (got ${buf.length} bytes, header ${buf[0]?.toString(16)} ${buf[1]?.toString(16)}) — likely a non-PDF/zip file or a truncated upload.`);
+    }
 
     metadata.set("status", "triaging");
     const { results: verdicts, usage } = await triageDocuments(docs);
