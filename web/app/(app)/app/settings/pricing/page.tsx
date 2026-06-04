@@ -10,6 +10,6 @@ export default async function PricingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const cards = await getPricingModel();
-  return <PricingEditor cards={cards} />;
+  const { category, cards } = await getPricingModel();
+  return <PricingEditor category={category} cards={cards} />;
 }
