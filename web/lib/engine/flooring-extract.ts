@@ -21,6 +21,7 @@ const SYSTEM = (cfg: FlooringVerticalConfig) =>
   `RULES:\n` +
   `- This trade is priced by these drivers: ${cfg.scopeDrivers.map((d) => `${d.label} (${d.pricingUnit})`).join("; ")}.\n` +
   `- Identify the distinct floor SYSTEMS in scope (with their spec/build) and, for EACH room the finish schedule assigns one to, report the floor AREA in square feet.\n` +
+  `- SCOPE ONLY — count an area ONLY if it RECEIVES this trade's new work. EXCLUDE any area the documents mark as "(existing) finish to remain", "no work", "NIC"/"not in contract", "by others", or shown merely as an adjacent existing finish for reference. Finish/takeoff schedules routinely list BOTH the work scope AND existing finishes that stay — counting a "to remain" area over-bills the job. (Note: "finish to MATCH existing" IS work — that area is getting new finish and counts; only an area whose existing finish REMAINS as-is is excluded.)\n` +
   `- CRITICAL: report sqft ONLY when the schedule/plan states or directly gives it (room area, dimensions). If a room clearly gets this floor but NO area is available, set sqft=null with low-ish confidence — a flagged blank becomes a field-measure request, which is far safer than a guessed number.\n` +
   `- Report total base/trim in linear feet (wall base, integral cove base, transitions) when stated, and any separately-scoped substrate prep (type + SF).\n` +
   `- Every field carries a confidence (0..1) and a citation (sheet/page). NEVER invent a value to fill the schema.\n` +
