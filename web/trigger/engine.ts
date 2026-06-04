@@ -134,6 +134,13 @@ export const ingestZip = schemaTask({
 
     metadata.set("status", "triaging");
     const { results: verdicts, usage } = await triageDocuments(docs);
+    // Triage prunes junk from a big PlanHub zip, but it must NEVER zero out the whole
+    // request — a single uploaded PDF (or a package triage misjudged) IS the scope. If
+    // it kept nothing, keep everything and let the scan score relevance instead of dead-ending.
+    if (!verdicts.some((v) => v.keep)) {
+      logger.warn("Triage kept nothing — keeping all files so the request can still scan", { docs: docs.length });
+      verdicts.forEach((v) => { v.keep = true; });
+    }
     const kept = verdicts.filter((v) => v.keep);
     logger.info("Triage complete", {
       kept: kept.map((v) => `${v.name} (${v.kind})`),
@@ -174,7 +181,6 @@ export const ingestZip = schemaTask({
     // Drop the transient zip now that the PDFs are extracted.
     await db.storage.from("bid-docs").remove([zipPath]);
 
-    if (!kept.length) throw new Error("triage dropped every file — nothing to scan");
     metadata.set("status", "scanning");
     await scanRequest.trigger({ bidRequestId });
 
