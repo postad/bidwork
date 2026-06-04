@@ -52,20 +52,35 @@ export async function matchScopeToRates(
   const memText = memory.length ? `\nPast learned corrections (memory):\n${memory.map((m) => `- ${m.situation}${m.matchedSystem ? ` → "${m.matchedSystem}"` : ""}${m.note ? ` (${m.note})` : ""}`).join("\n")}\n` : "";
   const areaText = areas.map((a, i) => `[${i}] ${a.location ? `${a.location}: ` : ""}system="${a.system}", ${a.sqft} SF`).join("\n");
 
-  const { data, message } = await structuredCall({
-    model: MODELS.scan, // semantic matching — same reasoning tier as the relevance scan
-    system: SYSTEM,
-    content: [
-      {
-        type: "text",
-        text: `Contractor's price list (the ONLY systems you may match to):\n${listText}\n${memText}\nProject areas to match:\n${areaText}\n\nReturn one decision per area.`,
-      },
-    ],
-    toolName: "report_matches",
-    toolDescription: "For each scope area, which price-list system applies (by name) or unpriced.",
-    schema: RateMatchResult,
-    maxTokens: 2000,
-  });
+  // The AI match must NEVER take down the whole bid. If the call fails (API error,
+  // schema mismatch), degrade to all-unpriced (flagged) lines so the draft still gets
+  // created + gated — and log the real error so we can fix the match itself.
+  let data: RateMatchResult;
+  let usage: Usage = emptyUsage();
+  try {
+    const res = await structuredCall({
+      model: MODELS.scan, // semantic matching — same reasoning tier as the relevance scan
+      system: SYSTEM,
+      content: [
+        {
+          type: "text",
+          text: `Contractor's price list (the ONLY systems you may match to):\n${listText}\n${memText}\nProject areas to match:\n${areaText}\n\nReturn one decision per area.`,
+        },
+      ],
+      toolName: "report_matches",
+      toolDescription: "For each scope area, which price-list system applies (by name) or unpriced.",
+      schema: RateMatchResult,
+      maxTokens: 2000,
+    });
+    data = res.data;
+    usage = addUsage(emptyUsage(), res.message);
+  } catch (e) {
+    console.error("price-match failed — degrading to unpriced (bid still created)", { error: (e as Error)?.message, areas: areas.length, systems: systems.length });
+    return {
+      matches: areas.map(() => ({ rate: null as number | null, matchedSystem: null, source: "unpriced" as const, confidence: 0, reason: "Pricing match unavailable — please set this line's price." })),
+      usage: emptyUsage(),
+    };
+  }
 
   // Resolve each chosen NAME back to the contractor's actual rate (deterministic) —
   // the AI never supplies a number, so a price can't be hallucinated. An unknown
@@ -81,5 +96,5 @@ export async function matchScopeToRates(
     return { rate, matchedSystem: m.matchedSystem, source: m.source === "memory" ? "memory" : "rate_card", confidence: m.confidence, reason: m.reason };
   });
 
-  return { matches, usage: addUsage(emptyUsage(), message) };
+  return { matches, usage };
 }
