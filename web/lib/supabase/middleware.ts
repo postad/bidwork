@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAppArea = pathname.startsWith("/app");
-  const isLogin = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   if (!user && isAppArea) {
     const url = request.nextUrl.clone();
@@ -40,7 +40,7 @@ export async function updateSession(request: NextRequest) {
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
-  if (user && isLogin) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
     url.search = "";

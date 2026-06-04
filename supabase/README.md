@@ -10,14 +10,30 @@ the two test users and link their profiles. Idempotent where possible.
 | `migrations/0001_schema.sql` | extensions, enums, ~16 tables, triggers, enables RLS |
 | `migrations/0002_rls.sql`    | RLS helper functions + tenant-isolation policies |
 | `migrations/0003_seed.sql`   | 3 trade configs, plan catalog, Shade Co workspace + Pricing DNA |
+| `migrations/0004_pricing_extras.sql` | TAX/DISCOUNT pricing-item convention |
+| `migrations/0005_workspace_settings.sql` | workspace settings + pricing_items unique key |
+| `migrations/0006_bid_kind.sql` | `bids.kind` ('priced' \| 'site_visit') |
+| `migrations/0007_bucket_size_limits.sql` | Storage bucket file-size limits (100 MB bid-docs) |
+| `migrations/0008_categories.sql` | `trades.category` + `category_label` (catalog grouping) |
+| `migrations/0009_flooring_catalog.sql` | full **Flooring** category — sub-trade chips (carpet, vinyl/VCT, epoxy, polished/sealed concrete, wood, tile, …) sharing one pipeline |
+| `migrations/0010_wt_seed_review.sql` | expands window-treatments router keywords/CSI (recall) |
 
-Paste each file's contents into **SQL Editor → New query → Run**, 0001 → 0002 → 0003.
+Paste each file's contents into **SQL Editor → New query → Run**, in order 0001 → 0010.
 
-## 2 · Create the two test users
+> **Categories vs. pricing.** 0008–0010 seed only the trade *catalog* + scanner keywords — never prices. Every contractor's rate card is trained from their own proposals at onboarding (`pricing_items`), never seeded.
 
-Supabase **Authentication → Users → Add user** (email + password, auto-confirm):
+## 1b · Self-serve signup (turn email-confirmation OFF for testing)
+
+Contractors can now create their own accounts at **`/signup`** (workspace + profile + trialing subscription are provisioned automatically), then pick category + sub-trades at `/app/onboarding/trades` and train pricing at `/app/onboarding`.
+
+For this to complete in one step, the signup must return a session immediately:
+**Authentication → Providers → Email → turn OFF "Confirm email"** (test/dev). With it ON, signUp returns no session and the UI tells the user to confirm then sign in (provisioning then runs on first authenticated load is NOT automatic — keep it off while testing).
+
+## 2 · Create the operator (admin) user
+
+The **admin** still has no signup path (operators are created by hand). Contractors use `/signup` above. Supabase **Authentication → Users → Add user** (email + password, auto-confirm):
 - an **operator/admin** (e.g. `support@postad.io`)
-- a **contractor** (e.g. `sales@shadesco.com`)
+- optionally the legacy **Shade Co contractor** (e.g. `sales@shadesco.com`) to use the seeded fixture
 
 Copy each user's **UID**, then run this once (replace the two UIDs):
 
@@ -39,10 +55,10 @@ on conflict (id) do update
 ## 3 · Create Storage buckets
 
 ```sql
-insert into storage.buckets (id, name, public) values
-  ('bid-docs','bid-docs', false),   -- uploaded ITB/RFP PDFs
-  ('bid-files','bid-files', false), -- generated proposal PDFs
-  ('logos','logos', true)           -- tenant logos
+insert into storage.buckets (id, name, public, file_size_limit) values
+  ('bid-docs','bid-docs', false, 104857600),   -- uploaded ITB/RFP PDFs (100 MB — combined arch sets get big)
+  ('bid-files','bid-files', false, 52428800),  -- generated proposal PDFs (50 MB)
+  ('logos','logos', true, 5242880)             -- tenant logos (5 MB)
 on conflict (id) do nothing;
 ```
 Storage RLS policies are added in Stage 1 when uploads are wired.

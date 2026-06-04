@@ -9,9 +9,12 @@ import {
   createOnboardingUploads,
   startPricingExtraction,
   getPendingDna,
+  getOnboardingContext,
   confirmPricingDna,
+  confirmFlooringPricingDna,
   saveOnboardingSettings,
   type ConfirmDna,
+  type ConfirmFlooringDna,
 } from "./actions";
 
 type Step = 1 | 2 | 3;
@@ -24,12 +27,35 @@ export default function OnboardingPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Which category this contractor is training (drives the wizard copy + step 2 shape).
+  const [category, setCategory] = useState<string | null>(null);
+  const [categoryLabel, setCategoryLabel] = useState<string>("");
+  const [subTrades, setSubTrades] = useState<{ slug: string; label: string }[]>([]);
+  const isFlooring = category === "flooring";
+
+  useEffect(() => {
+    let active = true;
+    getOnboardingContext()
+      .then((ctx) => {
+        if (!active) return;
+        setCategory(ctx.category ?? "window-treatments");
+        setCategoryLabel(ctx.categoryLabel ?? "Window Treatments");
+        setSubTrades(ctx.subTrades);
+      })
+      .catch(() => {
+        if (active) setCategory("window-treatments");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const field = "w-full rounded-lg border border-bw-border px-3 py-2 text-[14px] outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint";
 
   // ---------- Step 1: upload ----------
   const [files, setFiles] = useState<File[]>([]);
   async function onUpload() {
-    if (!files.length) return;
+    if (!files.length || !category) return;
     setBusy(true);
     setError(null);
     try {
@@ -41,7 +67,7 @@ export default function OnboardingPage() {
         if (error) throw error;
       }
       setStatus("Reading your proposals…");
-      await startPricingExtraction(uploads.map((u) => u.path));
+      await startPricingExtraction(uploads.map((u) => u.path), category);
       setStep(2);
     } catch (e) {
       setError((e as Error).message);
@@ -54,6 +80,7 @@ export default function OnboardingPage() {
   // ---------- Step 2: poll + confirm DNA ----------
   const [dnaStatus, setDnaStatus] = useState<"extracting" | "ready" | "error" | null>(null);
   const [dna, setDna] = useState<ConfirmDna | null>(null);
+  const [floorDna, setFloorDna] = useState<ConfirmFlooringDna | null>(null);
   const polling = useRef(false);
 
   useEffect(() => {
@@ -66,19 +93,38 @@ export default function OnboardingPage() {
         if (!active || !p) return;
         const s = p.status as "extracting" | "ready" | "error";
         setDnaStatus(s);
-        if (s === "ready" && !dna) {
-          setDna({
-            motorizedByGanging: (p.motorizedByGanging as ConfirmDna["motorizedByGanging"]) ?? [],
-            blindsByWidth: (p.blindsByWidth as ConfirmDna["blindsByWidth"]) ?? [],
-            fixedPanelPrice: (p.fixedPanelPrice as number) ?? null,
-            installFee: (p.installFee as number) ?? null,
-            discountPct: (p.discountPct as number) ?? null,
-            taxPct: (p.taxPct as number) ?? null,
-            paymentTerms: (p.paymentTerms as string) ?? null,
-            warranty: (p.warranty as string) ?? null,
-            validityDays: (p.validityDays as number) ?? null,
-            exclusions: (p.exclusions as string[]) ?? [],
-          });
+        if (s === "ready") {
+          if (isFlooring) {
+            setFloorDna((prev) =>
+              prev ?? {
+                systems: ((p.systems as { name: string; perSqft: number }[]) ?? []).map((x) => ({ name: x.name, perSqft: x.perSqft })),
+                prepPerSqft: (p.prepPerSqft as number) ?? null,
+                baseTrimPerLf: (p.baseTrimPerLf as number) ?? null,
+                mobilizationFee: (p.mobilizationFee as number) ?? null,
+                discountPct: (p.discountPct as number) ?? null,
+                taxPct: (p.taxPct as number) ?? null,
+                paymentTerms: (p.paymentTerms as string) ?? null,
+                warranty: (p.warranty as string) ?? null,
+                validityDays: (p.validityDays as number) ?? null,
+                exclusions: (p.exclusions as string[]) ?? [],
+              },
+            );
+          } else {
+            setDna((prev) =>
+              prev ?? {
+                motorizedByGanging: (p.motorizedByGanging as ConfirmDna["motorizedByGanging"]) ?? [],
+                blindsByWidth: (p.blindsByWidth as ConfirmDna["blindsByWidth"]) ?? [],
+                fixedPanelPrice: (p.fixedPanelPrice as number) ?? null,
+                installFee: (p.installFee as number) ?? null,
+                discountPct: (p.discountPct as number) ?? null,
+                taxPct: (p.taxPct as number) ?? null,
+                paymentTerms: (p.paymentTerms as string) ?? null,
+                warranty: (p.warranty as string) ?? null,
+                validityDays: (p.validityDays as number) ?? null,
+                exclusions: (p.exclusions as string[]) ?? [],
+              },
+            );
+          }
         }
         if (s === "error") setError((p.error as string) ?? "Extraction failed");
       } catch {
@@ -86,22 +132,25 @@ export default function OnboardingPage() {
       }
     };
     tick();
-    const iv = setInterval(() => {
-      void tick();
-    }, 3000);
+    const iv = setInterval(() => void tick(), 3000);
     return () => {
       active = false;
       polling.current = false;
       clearInterval(iv);
     };
-  }, [step, dna]);
+  }, [step, isFlooring]);
 
   async function onConfirmDna() {
-    if (!dna) return;
     setBusy(true);
     setError(null);
     try {
-      await confirmPricingDna(dna);
+      if (isFlooring) {
+        if (!floorDna) return;
+        await confirmFlooringPricingDna(floorDna);
+      } else {
+        if (!dna) return;
+        await confirmPricingDna(dna);
+      }
       setStep(3);
     } catch (e) {
       setError((e as Error).message);
@@ -115,6 +164,9 @@ export default function OnboardingPage() {
   }
   function setBlind(i: number, price: number) {
     setDna((d) => (d ? { ...d, blindsByWidth: d.blindsByWidth.map((b, j) => (j === i ? { ...b, price } : b)) } : d));
+  }
+  function setSys(i: number, perSqft: number) {
+    setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
   }
 
   // ---------- Step 3: gap-fill ----------
@@ -145,6 +197,10 @@ export default function OnboardingPage() {
     }
   }
 
+  const noBidOptions = isFlooring
+    ? ["Residential / single-family", "Jobs under 1,000 SF", "Occupied / phased work", "Out-of-hours / night work only"]
+    : ["Residential / single-family", "Drive-thru / QSR only", "Drapery / soft goods", "Jobs under 10 windows"];
+
   return (
     <div className="max-w-[760px] mx-auto">
       {/* step rail */}
@@ -172,9 +228,12 @@ export default function OnboardingPage() {
 
       {step === 1 && (
         <div>
-          <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-3">Window Treatments · base pricing</div>
+          <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-3">
+            {categoryLabel || "Loading…"} · base pricing
+            {subTrades.length > 0 && <span className="text-bw-muted normal-case tracking-normal font-normal"> — {subTrades.map((t) => t.label).join(", ")}</span>}
+          </div>
           <h1 className="text-[1.8rem] font-extrabold tracking-tight mb-2">Show us how you bid.</h1>
-          <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">Drop in 2–3 recent proposals. We&apos;ll read them and recover your products, prices, exclusions, and terms — you confirm everything next.</p>
+          <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">Drop in 2–3 recent proposals. We&apos;ll read them and recover your {isFlooring ? "systems, per-SF rates" : "products, prices"}, exclusions, and terms — you confirm everything next.</p>
           <Card className="p-6">
             <input type="file" accept="application/pdf" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} className="block w-full text-[13px]" />
             {files.length > 0 && (
@@ -186,7 +245,7 @@ export default function OnboardingPage() {
             )}
           </Card>
           <div className="flex items-center gap-3 mt-5">
-            <Button onClick={onUpload} disabled={busy || !files.length}>{busy ? "Working…" : "Upload & read my bids"}</Button>
+            <Button onClick={onUpload} disabled={busy || !files.length || !category}>{busy ? "Working…" : "Upload & read my bids"}</Button>
             {status && <span className="text-[13px] text-bw-body">{status}</span>}
           </div>
         </div>
@@ -197,7 +256,7 @@ export default function OnboardingPage() {
           <h1 className="text-[1.8rem] font-extrabold tracking-tight mb-2">Here&apos;s your pricing DNA.</h1>
           <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">What we learned from your own bids. Confirm what&apos;s right, fix what&apos;s not. Every number is a <span className="font-medium text-bw-text">charged price</span> — we never ask cost or margin.</p>
 
-          {dnaStatus !== "ready" || !dna ? (
+          {dnaStatus !== "ready" || (isFlooring ? !floorDna : !dna) ? (
             <Card className="p-8 text-center">
               <div className="inline-flex items-center gap-3 text-[14px] font-semibold">
                 <span className="w-2 h-2 rounded-full bg-bw-green animate-pulse" />
@@ -205,7 +264,49 @@ export default function OnboardingPage() {
               </div>
               {dnaStatus !== "error" && <p className="text-[13px] text-bw-muted mt-2">This takes a minute. The page updates automatically.</p>}
             </Card>
-          ) : (
+          ) : isFlooring && floorDna ? (
+            <div className="space-y-4">
+              <Card className="p-6">
+                <div className="font-semibold mb-3">Floor systems — charged price per square foot</div>
+                {floorDna.systems.length === 0 && <p className="text-[13px] text-bw-muted">None found — add your systems in Settings later.</p>}
+                <div className="space-y-2">
+                  {floorDna.systems.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3">
+                      <span className="text-[14px]">{s.name}</span>
+                      <div className="flex items-center gap-1"><span className="text-bw-muted">$</span><input type="number" step="0.01" value={s.perSqft} onChange={(e) => setSys(i, Number(e.target.value))} className="w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">/SF</span></div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Card className="p-6 space-y-3">
+                  <DnaNum label="Substrate prep" suffix="/SF" value={floorDna.prepPerSqft} onChange={(v) => setFloorDna((d) => (d ? { ...d, prepPerSqft: v } : d))} />
+                  <DnaNum label="Base / trim" suffix="/LF" value={floorDna.baseTrimPerLf} onChange={(v) => setFloorDna((d) => (d ? { ...d, baseTrimPerLf: v } : d))} />
+                  <DnaNum label="Mobilization fee" suffix="flat" value={floorDna.mobilizationFee} onChange={(v) => setFloorDna((d) => (d ? { ...d, mobilizationFee: v } : d))} />
+                </Card>
+                <Card className="p-6 space-y-3">
+                  <DnaNum label="Default discount" suffix="%" value={floorDna.discountPct} onChange={(v) => setFloorDna((d) => (d ? { ...d, discountPct: v } : d))} />
+                  <DnaNum label="Sales tax" suffix="%" value={floorDna.taxPct} onChange={(v) => setFloorDna((d) => (d ? { ...d, taxPct: v } : d))} />
+                </Card>
+              </div>
+
+              {floorDna.exclusions.length > 0 && (
+                <Card className="p-6">
+                  <div className="font-semibold mb-1">Your standard exclusions</div>
+                  <div className="text-[12px] text-bw-muted mb-3">Pulled from your proposals — reused on every generated bid</div>
+                  <ul className="text-[13px] text-bw-body space-y-1 list-disc pl-5">
+                    {floorDna.exclusions.map((x, i) => <li key={i}>{x}</li>)}
+                  </ul>
+                </Card>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <button onClick={() => setStep(1)} className="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
+                <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Looks right — continue"}</Button>
+              </div>
+            </div>
+          ) : dna ? (
             <div className="space-y-4">
               <Card className="p-6">
                 <div className="font-semibold mb-3">Motorized roller — charged price by ganging</div>
@@ -258,7 +359,7 @@ export default function OnboardingPage() {
                 <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Looks right — continue"}</Button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -267,14 +368,16 @@ export default function OnboardingPage() {
           <h1 className="text-[1.8rem] font-extrabold tracking-tight mb-2">A few things your bids don&apos;t say.</h1>
           <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">Quick, non-sensitive details that make your auto-generated bids sharper.</p>
           <div className="space-y-4">
-            <Card className="p-6">
-              <label className="block font-semibold mb-1">When the spec doesn&apos;t name a product, default to…</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
-                {["Solar 5%", "Solar 3%", "Roller", "Ask me"].map((p) => (
-                  <button key={p} type="button" onClick={() => setDefaultProduct(p)} className={`border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center ${defaultProduct === p ? "border-bw-green bg-bw-green-tint text-bw-text" : "border-bw-border text-bw-body"}`}>{p}</button>
-                ))}
-              </div>
-            </Card>
+            {!isFlooring && (
+              <Card className="p-6">
+                <label className="block font-semibold mb-1">When the spec doesn&apos;t name a product, default to…</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
+                  {["Solar 5%", "Solar 3%", "Roller", "Ask me"].map((p) => (
+                    <button key={p} type="button" onClick={() => setDefaultProduct(p)} className={`border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center ${defaultProduct === p ? "border-bw-green bg-bw-green-tint text-bw-text" : "border-bw-border text-bw-body"}`}>{p}</button>
+                  ))}
+                </div>
+              </Card>
+            )}
             <div className="grid sm:grid-cols-2 gap-4">
               <Card className="p-6">
                 <label className="block font-semibold mb-1">Minimum job charge</label>
@@ -295,7 +398,7 @@ export default function OnboardingPage() {
             <Card className="p-6">
               <label className="block font-semibold mb-1">Anything you don&apos;t bid?</label>
               <div className="grid sm:grid-cols-2 gap-2 text-[13px] mt-3">
-                {["Residential / single-family", "Drive-thru / QSR only", "Drapery / soft goods", "Jobs under 10 windows"].map((v) => (
+                {noBidOptions.map((v) => (
                   <label key={v} className="flex items-center gap-2.5"><input type="checkbox" checked={noBid.includes(v)} onChange={() => toggleNoBid(v)} className="accent-bw-green w-4 h-4" /> {v}</label>
                 ))}
               </div>

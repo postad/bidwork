@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
@@ -55,6 +56,9 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+        <p className="text-[13px] text-bw-body mt-4 text-center">
+          New here? <Link href="/signup" className="font-semibold text-bw-green hover:text-bw-green-hover">Create a workspace</Link>
+        </p>
       </Card>
     </div>
   );

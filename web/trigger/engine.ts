@@ -2,12 +2,11 @@ import { schemaTask, logger, metadata } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { engineDb } from "../lib/engine/supabase";
 import { runMultiTradeScan, type ScanDoc, type TradeInput } from "../lib/engine/scan";
-import { runWtPipeline, type PipelineDoc } from "../lib/engine/wt-pipeline";
-import { loadWtPricingDNA } from "../lib/engine/pricing";
-import { priceScope } from "../lib/engine/price";
+import { type PipelineDoc } from "../lib/engine/wt-pipeline";
+import { VERTICALS } from "../lib/engine/verticals";
 import { mergeToBase64 } from "../lib/engine/pdf";
 import { extractPricingDna } from "../lib/engine/extract-pricing";
-import type { WtVerticalConfig } from "../lib/engine/extract";
+import { extractFlooringPricingDna } from "../lib/engine/extract-flooring-pricing";
 
 /**
  * engine.scan-request — read the uploaded package ONCE and score every trade.
@@ -108,17 +107,19 @@ export const extractBid = schemaTask({
 
     const { data: trade, error: tErr } = await db
       .from("trades")
-      .select("id, slug, label, vertical_config")
+      .select("id, slug, label, vertical_config, category")
       .eq("slug", tradeSlug)
       .single();
     if (tErr || !trade) throw new Error(`load trade ${tradeSlug}: ${tErr?.message}`);
 
-    if (tradeSlug !== "window-treatments") {
-      logger.info("No extraction pipe for this trade yet — skipping", { tradeSlug });
-      return { skipped: true, reason: "vertical not yet implemented (Stage 3)" };
+    // Dispatch by category — every flooring sub-trade shares the flooring pipeline.
+    const vertical = VERTICALS[(trade.category ?? "") as string];
+    if (!vertical) {
+      logger.info("No pipeline for this trade's category — skipping", { tradeSlug, category: trade.category });
+      return { skipped: true, reason: `no vertical pipeline for category '${trade.category}'` };
     }
 
-    const cfg = (trade.vertical_config ?? {}) as WtVerticalConfig;
+    const cfg = trade.vertical_config ?? {};
 
     // Pull the scan's per-trade relevant pages (grouped by document).
     const { data: req, error: rErr } = await db
@@ -154,10 +155,10 @@ export const extractBid = schemaTask({
     }
 
     metadata.set("status", "extracting");
-    logger.info("Extracting window-treatments scope", { docs: pipelineDocs.length, relevantPages: relevant.length });
+    logger.info("Extracting scope", { tradeSlug, category: trade.category, docs: pipelineDocs.length, relevantPages: relevant.length });
 
-    const { extraction, scope, gaps, counts, usage } = await runWtPipeline(pipelineDocs, cfg);
-    logger.info("Extraction complete", { counts, motorizedSets: scope.motorizedSets.length, blinds: scope.blinds.length, fixed: scope.fixedPanels, tokens: usage });
+    const { extraction, scope, gaps, quantifiable, scopeSummary, usage } = await vertical.run(pipelineDocs, cfg);
+    logger.info("Extraction complete", { tradeSlug, quantifiable, gaps: gaps.length, tokens: usage });
 
     // 1 · Persist the extraction artifact (one per request × trade).
     const { error: exErr } = await db.from("extractions").upsert(
@@ -188,11 +189,9 @@ export const extractBid = schemaTask({
 
     const gc = extraction.contacts.find((c) => c.role === "GC" && c.email) ?? extraction.contacts.find((c) => c.email);
     const projectName = extraction.projectName ?? null;
-    // Scope present but not quantifiable (named in keynotes, but no schedule/plan/
-    // tags to count) → a no-price site-visit request instead of an install-only
-    // floor. Shows we read the project and asks to field-measure. (SPEC-ADDITIONS #1)
-    const quantifiable = scope.motorizedSets.length > 0 || scope.blinds.length > 0 || scope.fixedPanels > 0;
-    const scopeSummary = extraction.bidReasoning;
+    // `quantifiable` + `scopeSummary` come from the vertical. A scope named but not
+    // quantifiable (no SF / no counts) → a no-price site-visit request instead of an
+    // install-only bid. Shows we read the project and asks to field-measure. (SPEC-ADDITIONS #1)
     let bidsCreated = 0;
 
     for (const cov of coverage ?? []) {
@@ -215,12 +214,12 @@ export const extractBid = schemaTask({
         if (svErr) throw new Error(`create site-visit bid: ${svErr.message}`);
         bidsCreated++;
       } else {
-        const dna = await loadWtPricingDNA(db, cov.workspace_id, trade.id);
+        const dna = await vertical.loadDNA(db, cov.workspace_id, trade.id);
         if (!dna) {
           logger.warn("Skipping contractor — incomplete Pricing DNA", { workspaceId: cov.workspace_id });
           continue;
         }
-        const priced = priceScope(scope, dna);
+        const priced = vertical.price(scope, dna);
 
         const { data: bid, error: bErr } = await db
           .from("bids")
@@ -237,7 +236,7 @@ export const extractBid = schemaTask({
             discount_label: `${Math.round(priced.discountPct * 100)}%`,
             discount_amount: priced.discount,
             delivery_install: priced.installFee,
-            tax_rate: dna.salesTaxRate,
+            tax_rate: priced.taxRate,
             tax_amount: priced.tax,
             total: priced.total,
           })
@@ -252,7 +251,7 @@ export const extractBid = schemaTask({
           type_code: l.code,
           description: l.label,
           qty: l.qty,
-          unit: l.code === "FPS" ? "shade" : l.code === "MB" ? "blind" : "motor-set",
+          unit: vertical.lineUnit(l.code),
           unit_price: l.unitRate,
           amount: l.amount,
           attrs: l.attrs ?? {},
@@ -282,7 +281,7 @@ export const extractBid = schemaTask({
     }
 
     metadata.set("status", "priced");
-    return { trade: tradeSlug, counts, bidsCreated, gaps: gaps.length };
+    return { trade: tradeSlug, quantifiable, bidsCreated, gaps: gaps.length };
   },
 });
 
@@ -297,8 +296,8 @@ export const extractPricing = schemaTask({
   machine: { preset: "medium-1x" },
   maxDuration: 900,
   retry: { maxAttempts: 1 },
-  schema: z.object({ workspaceId: z.string().uuid(), storagePaths: z.array(z.string()).min(1) }),
-  run: async ({ workspaceId, storagePaths }) => {
+  schema: z.object({ workspaceId: z.string().uuid(), storagePaths: z.array(z.string()).min(1), category: z.string().default("window-treatments") }),
+  run: async ({ workspaceId, storagePaths, category }) => {
     const db = engineDb();
 
     const setStatus = async (patch: Record<string, unknown>) => {
@@ -309,7 +308,7 @@ export const extractPricing = schemaTask({
     };
 
     try {
-      await setStatus({ status: "extracting", error: null });
+      await setStatus({ status: "extracting", error: null, category });
       const bytes: Uint8Array[] = [];
       for (const path of storagePaths) {
         const { data: blob, error } = await db.storage.from("bid-docs").download(path);
@@ -317,8 +316,18 @@ export const extractPricing = schemaTask({
         bytes.push(new Uint8Array(await blob.arrayBuffer()));
       }
 
-      logger.info("Reading past proposals for pricing DNA", { files: bytes.length });
+      logger.info("Reading past proposals for pricing DNA", { files: bytes.length, category });
       const merged = await mergeToBase64(bytes);
+
+      // Branch the DNA extractor by category — flooring recovers a per-SF-by-system
+      // rate card; window-treatments recovers shade/blind rates.
+      if (category === "flooring") {
+        const { dna, usage } = await extractFlooringPricingDna(merged);
+        logger.info("Flooring pricing DNA extracted", { systems: dna.systems.length, prep: dna.prepPerSqft, base: dna.baseTrimPerLf, mob: dna.mobilizationFee, tokens: usage });
+        await setStatus({ status: "ready", error: null, category, ...dna });
+        return { ok: true, systems: dna.systems.length };
+      }
+
       const { dna, usage } = await extractPricingDna(merged);
       logger.info("Pricing DNA extracted", {
         motorized: dna.motorizedByGanging.length,
@@ -328,7 +337,7 @@ export const extractPricing = schemaTask({
         tokens: usage,
       });
 
-      await setStatus({ status: "ready", error: null, ...dna });
+      await setStatus({ status: "ready", error: null, category, ...dna });
       return { ok: true, motorized: dna.motorizedByGanging.length, blinds: dna.blindsByWidth.length };
     } catch (e) {
       await setStatus({ status: "error", error: (e as Error).message });
