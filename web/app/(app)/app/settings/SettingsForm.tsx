@@ -2,22 +2,42 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { saveSettings } from "./actions";
+import { saveSettings, createLogoUpload, saveLogo } from "./actions";
 
-type BrandingForm = { companyName: string; website: string; address: string; description: string; replyToEmail: string };
+type BrandingForm = { companyName: string; website: string; address: string; description: string; replyToEmail: string; logoUrl: string };
 type BoilerplateForm = { paymentTerms: string; warranty: string; validityDays: number | null; exclusions: string[]; disclaimer: string };
 
 const field = "w-full rounded-lg border border-bw-border px-3 py-2.5 text-[14px] outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint";
 
 export function SettingsForm({ branding: b0, boilerplate: bp0 }: { branding: BrandingForm; boilerplate: BoilerplateForm }) {
   const router = useRouter();
+  const supabase = createClient();
   const [b, setB] = useState<BrandingForm>(b0);
   const [bp, setBp] = useState<BoilerplateForm>({ ...bp0, exclusions: bp0.exclusions.length ? bp0.exclusions : [""] });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  async function onLogo(file: File | undefined) {
+    if (!file) return;
+    setLogoBusy(true);
+    setError(null);
+    try {
+      const { path, token } = await createLogoUpload(file.name);
+      const { error: upErr } = await supabase.storage.from("logos").uploadToSignedUrl(path, token, file);
+      if (upErr) throw upErr;
+      const { logoUrl } = await saveLogo(path);
+      setB((prev) => ({ ...prev, logoUrl }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLogoBusy(false);
+    }
+  }
 
   function setExcl(i: number, v: string) {
     setBp((p) => ({ ...p, exclusions: p.exclusions.map((x, j) => (j === i ? v : x)) }));
@@ -56,6 +76,26 @@ export function SettingsForm({ branding: b0, boilerplate: bp0 }: { branding: Bra
         {/* branding */}
         <Card className="p-6">
           <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-4">Company branding</div>
+
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-16 h-16 rounded-xl border border-bw-border bg-bw-surface flex items-center justify-center overflow-hidden flex-shrink-0">
+              {b.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={b.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9AA59A" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+              )}
+            </div>
+            <div>
+              <div className="text-[13px] font-medium mb-1">Logo</div>
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-[13px] font-semibold text-bw-green hover:text-bw-green-hover">
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" disabled={logoBusy} onChange={(e) => onLogo(e.target.files?.[0])} />
+                {logoBusy ? "Uploading…" : b.logoUrl ? "Replace logo" : "Upload logo"}
+              </label>
+              <div className="text-[12px] text-bw-muted mt-0.5">PNG, JPG, or SVG — appears on every proposal.</div>
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[13px] font-medium mb-1.5">Company name</label>
@@ -92,7 +132,7 @@ export function SettingsForm({ branding: b0, boilerplate: bp0 }: { branding: Bra
         {/* boilerplate */}
         <Card className="p-6">
           <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-1">Proposal boilerplate</div>
-          <p className="text-[13px] text-bw-body mb-5">The standing text on every bid we generate. <a href="/app/onboarding" className="text-bw-green font-semibold">Edit full pricing model →</a></p>
+          <p className="text-[13px] text-bw-body mb-5">The standing text on every bid we generate. <a href="/app/settings/pricing" className="text-bw-green font-semibold">Edit full pricing model →</a></p>
 
           <div className="grid sm:grid-cols-3 gap-4 mb-6">
             <div>

@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("workspace_id, company_name, website, address, description, reply_to_email")
+    .select("workspace_id, company_name, website, address, description, reply_to_email, logo_url")
     .eq("id", user.id)
     .single();
   if (!profile?.workspace_id) redirect("/app");
@@ -27,6 +27,7 @@ export default async function SettingsPage() {
         address: profile.address ?? "",
         description: profile.description ?? "",
         replyToEmail: profile.reply_to_email ?? "",
+        logoUrl: profile.logo_url ?? "",
       }}
       boilerplate={{
         paymentTerms: (bp.paymentTerms as string) ?? "",

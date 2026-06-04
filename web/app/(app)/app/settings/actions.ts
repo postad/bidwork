@@ -2,6 +2,36 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { engineDb } from "@/lib/engine/supabase";
+
+/** Mint a signed upload URL for the contractor's logo (public `logos` bucket). */
+export async function createLogoUpload(filename: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data: profile } = await supabase.from("profiles").select("workspace_id").eq("id", user.id).single();
+  if (!profile?.workspace_id) throw new Error("No workspace on this account.");
+
+  const db = engineDb();
+  const safe = filename.replace(/[^\w.\-]+/g, "_");
+  const path = `${profile.workspace_id}/${Date.now()}_${safe}`;
+  const { data, error } = await db.storage.from("logos").createSignedUploadUrl(path);
+  if (error || !data) throw new Error(error?.message ?? "Could not create upload URL");
+  return { path, token: data.token };
+}
+
+/** After the browser uploads, save the logo's public URL to the profile. */
+export async function saveLogo(path: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: pub } = engineDb().storage.from("logos").getPublicUrl(path);
+  const { error } = await supabase.from("profiles").update({ logo_url: pub.publicUrl }).eq("id", user.id);
+  if (error) throw new Error(`save logo: ${error.message}`);
+  revalidatePath("/app/settings");
+  return { logoUrl: pub.publicUrl };
+}
 
 export type Branding = {
   companyName: string;
