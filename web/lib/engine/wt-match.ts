@@ -35,6 +35,16 @@ export async function checkWtEnvelope(scope: Scope, dna: PricingDNA, memory: Mem
     return { env: { motorized: [], blinds: [] }, usage: emptyUsage() };
   }
 
+  // Only invoke the AI when there's a real CANDIDATE for abnormality — a physically
+  // large blind/shade (> ~10 ft). A normal-sized package never touches the AI, so its
+  // pricing is GUARANTEED byte-identical (no misflag risk, no cost). The AI still makes
+  // the final call on the candidates (it can keep a 130" blind in-envelope if apt).
+  const WIDE_IN = 120;
+  const hasCandidate = scope.blinds.some((b) => (b.widthInches ?? 0) > WIDE_IN);
+  if (!hasCandidate) {
+    return { env: { motorized: allOk(scope.motorizedSets.length), blinds: allOk(scope.blinds.length) }, usage: emptyUsage() };
+  }
+
   const widthTiers = dna.rates.MB.byWidthTier.map((t) => `≤${t.maxWidthInches}"`).join(", ");
   const ganging = Object.keys(dna.rates.WT.byShadesPerMotor).join(", ");
   const memText = memory.length ? `\nPast learned corrections (memory):\n${memory.map((m) => `- ${m.situation}${m.note ? ` (${m.note})` : ""}`).join("\n")}\n` : "";
