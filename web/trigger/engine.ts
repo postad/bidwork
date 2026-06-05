@@ -79,10 +79,23 @@ export const scanRequest = schemaTask({
 
     metadata.set("status", "needs_review");
 
-    // Extraction + pricing per bid trade (background). Window-treatments has the
-    // full pipe in Stage 1; other trades no-op until their verticals land (Stage 3).
+    // Extraction + pricing per bid trade (background) — but ONLY for trades a
+    // contractor actually covers. Running the (expensive Opus) extraction for a trade
+    // nobody bids is pure waste; uncovered bid trades still show as scored demand in
+    // review (recruit a contractor + re-trigger later). This is the main cost lever.
     if (bidTrades.length) {
-      await extractBid.batchTrigger(bidTrades.map((t) => ({ payload: { bidRequestId, tradeSlug: t.slug } })));
+      const { data: tRows } = await db.from("trades").select("id, slug").in("slug", bidTrades.map((t) => t.slug));
+      const idBySlug = new Map((tRows ?? []).map((t) => [t.slug as string, t.id as string]));
+      const allIds = [...idBySlug.values()];
+      const { data: cov } = allIds.length
+        ? await db.from("workspace_trades").select("trade_id").in("trade_id", allIds)
+        : { data: [] as { trade_id: string }[] };
+      const covered = new Set((cov ?? []).map((c) => c.trade_id as string));
+      const toExtract = bidTrades.filter((t) => covered.has(idBySlug.get(t.slug) ?? ""));
+      logger.info("Extraction gating", { bidTrades: bidTrades.length, covered: toExtract.length, slugs: toExtract.map((t) => t.slug) });
+      if (toExtract.length) {
+        await extractBid.batchTrigger(toExtract.map((t) => ({ payload: { bidRequestId, tradeSlug: t.slug } })));
+      }
     }
 
     return {
