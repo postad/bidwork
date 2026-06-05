@@ -1,4 +1,4 @@
-import { loadDoc, chunkForApi, subsetBase64 } from "./pdf";
+import { loadDoc, subsetBase64 } from "./pdf";
 import { MODELS, addUsage, emptyUsage, pdfBlock, structuredCall, type Usage } from "./anthropic";
 import { ScanChunkResult } from "./schemas/scan";
 
@@ -14,6 +14,7 @@ export interface TradeInput {
 export interface ScanDoc {
   id: string; // document id (or filename) for page citations
   bytes: Uint8Array;
+  pages?: number[]; // 0-based pages to scan (spec page-triage); undefined = all pages
 }
 
 export interface ScanTradeResult {
@@ -118,10 +119,15 @@ export async function runMultiTradeScan(docs: ScanDoc[], trades: TradeInput[]): 
   }
 
   for (const doc of docs) {
-    const { doc: src } = await loadDoc(doc.bytes);
-    const chunks = await chunkForApi(src);
-    for (const [ci, chunk] of chunks.entries()) {
-      await scanIndices(doc, src, chunk.pageIndices, `${doc.id}#${ci + 1}/${chunks.length}`);
+    const { doc: src, pageCount } = await loadDoc(doc.bytes);
+    // Restrict to the doc's triaged pages when provided (spec page-triage); else all.
+    // Page indices stay ORIGINAL (scanIndices maps the model's in-chunk pages back via
+    // these indices), so the relevant-page citations remain valid for extraction.
+    const allowed = doc.pages?.length ? doc.pages.filter((p) => p >= 0 && p < pageCount) : Array.from({ length: pageCount }, (_, i) => i);
+    const CHUNK = 40; // page cap per call; scanIndices splits further on byte overflow
+    const total = Math.max(1, Math.ceil(allowed.length / CHUNK));
+    for (let g = 0; g < allowed.length; g += CHUNK) {
+      await scanIndices(doc, src, allowed.slice(g, g + CHUNK), `${doc.id}#${Math.floor(g / CHUNK) + 1}/${total}`);
     }
   }
 

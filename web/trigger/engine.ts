@@ -7,6 +7,7 @@ import { type PipelineDoc } from "../lib/engine/wt-pipeline";
 import { VERTICALS } from "../lib/engine/verticals";
 import { mergeToBase64 } from "../lib/engine/pdf";
 import { triageDocuments } from "../lib/engine/triage";
+import { selectSpecPages, activeDivisions } from "../lib/engine/page-triage";
 import { extractPricingDna } from "../lib/engine/extract-pricing";
 import { extractFlooringPricingDna } from "../lib/engine/extract-flooring-pricing";
 
@@ -45,7 +46,7 @@ export const scanRequest = schemaTask({
     // (standalone takeoffs, bonds, insurance certs) so the scan reads only scope content.
     const { data: docs, error: dErr } = await db
       .from("documents")
-      .select("id, filename, storage_path")
+      .select("id, filename, storage_path, page_meta")
       .eq("bid_request_id", bidRequestId)
       .eq("skipped", false);
     if (dErr) throw new Error(`load documents: ${dErr.message}`);
@@ -55,7 +56,9 @@ export const scanRequest = schemaTask({
     for (const d of docs) {
       const { data: blob, error } = await db.storage.from("bid-docs").download(d.storage_path);
       if (error || !blob) throw new Error(`download ${d.filename}: ${error?.message}`);
-      scanDocs.push({ id: d.id, bytes: new Uint8Array(await blob.arrayBuffer()) });
+      // Spec page-triage stored which pages to scan; undefined → whole doc.
+      const pages = (d.page_meta as { scanPages?: number[] } | null)?.scanPages;
+      scanDocs.push({ id: d.id, bytes: new Uint8Array(await blob.arrayBuffer()), pages: pages?.length ? pages : undefined });
     }
 
     logger.info("Scanning package", { docs: scanDocs.length, trades: tradeInputs.length });
@@ -161,6 +164,13 @@ export const ingestZip = schemaTask({
       tokens: usage,
     });
 
+    // Page-level triage for the spec book: read the active trades' CSI divisions and
+    // keep only those pages, so the scan reads ~10% of a 2,000-page spec. Divisions
+    // come from the live catalog's configs — add a category, its division joins.
+    const { data: activeTrades } = await db.from("trades").select("vertical_config").eq("active", true);
+    const divisions = activeDivisions((activeTrades ?? []).map((t) => (t.vertical_config ?? {}) as { router?: { csiSections?: string[]; keywords?: string[] } }));
+    logger.info("Page-triage divisions", { divisions: [...divisions] });
+
     // Upload every PDF (kept and dropped) and register it; dropped → skipped=true so
     // it's visible in review but never scanned. email/title/zip enriched from triage.
     let projectName: string | null = null;
@@ -172,12 +182,22 @@ export const ingestZip = schemaTask({
       const path = `${bidRequestId}/${safe}`;
       const { error: upErr } = await db.storage.from("bid-docs").upload(path, d.bytes, { contentType: "application/pdf", upsert: true });
       if (upErr) throw new Error(`upload ${d.name}: ${upErr.message}`);
+
+      // Spec books get page-triaged to the active divisions; everything else scans whole.
+      let pageMeta: Record<string, unknown> = {};
+      if (v.keep && v.kind === "specs" && divisions.size) {
+        const scanPages = selectSpecPages(d.bytes, divisions);
+        pageMeta = { scanPages };
+        logger.info("Spec page-triage", { file: d.name, kept: scanPages.length });
+      }
+
       const { error: insErr } = await db.from("documents").insert({
         bid_request_id: bidRequestId,
         filename: d.name,
         storage_path: path,
         bytes: d.bytes.byteLength,
         skipped: !v.keep,
+        page_meta: pageMeta,
         triage: { kind: v.kind, keep: v.keep, confidence: v.confidence, reason: v.reason },
       });
       if (insErr) throw new Error(`register ${d.name}: ${insErr.message}`);
