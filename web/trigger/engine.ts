@@ -184,8 +184,10 @@ export const ingestZip = schemaTask({
       if (upErr) throw new Error(`upload ${d.name}: ${upErr.message}`);
 
       // Spec books get page-triaged to the active divisions; everything else scans whole.
+      // Gate on the triage kind OR a "spec" filename (belt-and-suspenders if Haiku
+      // mislabels the file) — only real spec books match, and page-triage is safe on them.
       let pageMeta: Record<string, unknown> = {};
-      if (v.keep && v.kind === "specs" && divisions.size) {
+      if (v.keep && (v.kind === "specs" || /spec/i.test(d.name)) && divisions.size) {
         const scanPages = selectSpecPages(d.bytes, divisions);
         pageMeta = { scanPages };
         logger.info("Spec page-triage", { file: d.name, kept: scanPages.length });
