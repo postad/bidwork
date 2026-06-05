@@ -47,16 +47,10 @@ export async function matchScopeToRates(
       usage: emptyUsage(),
     };
   }
-  // Single system → the scan ALREADY routed every area to this sub-trade, so the
-  // contractor's one rate for the trade applies. Nothing to disambiguate — skip the
-  // AI (and the call). The AI match only earns its keep with 2+ systems to choose between.
-  if (systems.length === 1) {
-    const s = systems[0];
-    return {
-      matches: areas.map(() => ({ rate: s.perSqft, matchedSystem: s.name, source: "rate_card" as const, confidence: 0.9, reason: "Your only rate for this trade." })),
-      usage: emptyUsage(),
-    };
-  }
+  // NOTE: no single-system shortcut. Even with one rate, the AI must confirm it
+  // actually FITS the area — a contractor's lone "grind & polish concrete" rate must
+  // NOT be auto-applied to an LVT or epoxy area (that's the silent misprice we exist to
+  // prevent). The AI matches same-material (concrete↔concrete) and flags cross-material.
 
   const listText = systems.map((s) => `- "${s.name}" ($${s.perSqft}/SF)`).join("\n");
   const memText = memory.length ? `\nPast learned corrections (memory):\n${memory.map((m) => `- ${m.situation}${m.matchedSystem ? ` → "${m.matchedSystem}"` : ""}${m.note ? ` (${m.note})` : ""}`).join("\n")}\n` : "";

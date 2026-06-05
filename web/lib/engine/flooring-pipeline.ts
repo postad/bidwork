@@ -51,11 +51,21 @@ export async function runFlooringPipeline(docs: PipelineDoc[], cfg: FlooringVert
   const pagesSent = Math.min(extractItems.reduce((a, it) => a + it.indices.length, 0), MAX_EXTRACT_PAGES);
   const ex = await extractFlooring(b64, cfg, pagesSent);
 
+  // Resolve each area's system reference (often a tag like "LVT1"/"ERF1") to the
+  // extraction's descriptive system name, so the AI pricing-match judges the real
+  // material ("Luxury Vinyl Tile") vs the rate card — not a cryptic code.
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const sysByRef = new Map<string, string>();
+  for (const s of ex.result.systems) {
+    if (s.code) sysByRef.set(norm(s.code), s.name);
+    if (s.name) sysByRef.set(norm(s.name), s.name);
+  }
+
   // Assemble the priceable scope deterministically — only rooms with a known SF.
   const areas = ex.result.areas
     .filter((a) => a.sqft != null && a.sqft > 0)
     .map((a) => ({
-      system: a.system,
+      system: sysByRef.get(norm(a.system)) ?? a.system,
       sqft: a.sqft as number,
       location: [a.level, a.room].filter(Boolean).join(" / ") || undefined,
     }));
