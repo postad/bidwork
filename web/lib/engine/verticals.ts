@@ -8,6 +8,7 @@ import { runFlooringPipeline } from "./flooring-pipeline";
 import { loadFlooringPricingDNA } from "./flooring-pricing";
 import { priceFlooringScope, type FlooringPricingDNA, type FlooringScope } from "./flooring-price";
 import { matchScopeToRates } from "./price-match";
+import { checkWtEnvelope } from "./wt-match";
 
 /**
  * Vertical registry — one adapter per CATEGORY. extractBid dispatches on a trade's
@@ -65,12 +66,15 @@ const wtAdapter: VerticalAdapter = {
     return { extraction, scope, gaps, quantifiable, scopeSummary: extraction.bidReasoning, usage };
   },
   loadDNA: (db, ws, tid) => loadWtPricingDNA(db, ws, tid),
-  // WT matching is exact (ganging count / width tier, keyed lookup) and the semantic
-  // call already happens at extraction — so it stays deterministic for now. The AI
-  // pricing-match + oversized-blind edge handling is the planned WT follow-up.
+  // WT matching is exact (ganging count / width tier, keyed lookup), so it stays
+  // deterministic. The AI's WT job is a conservative OUT-OF-ENVELOPE guard: flag the
+  // rare abnormal window (a 20 ft blind, an unsupported product) so it's left unpriced
+  // for the contractor instead of silently tier-mispriced. Memory is [] until Pillar 3.
   async price(scope, dna) {
     const d = dna as PricingDNA;
-    return { ...priceScope(scope as Scope, d), taxRate: d.salesTaxRate };
+    const s = scope as Scope;
+    const { env } = await checkWtEnvelope(s, d, []);
+    return { ...priceScope(s, d, env), taxRate: d.salesTaxRate };
   },
   lineUnit: (code) => (code === "FPS" ? "shade" : code === "MB" ? "blind" : "motor-set"),
 };

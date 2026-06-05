@@ -34,12 +34,24 @@ export interface PricedLine {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export function priceScope(scope: Scope, dna: PricingDNA, discountPct = dna.defaultDiscountPct) {
+/** Per-item out-of-envelope verdicts from the WT guard (wt-match.ts). Optional — when
+ *  omitted (or every item in-envelope), pricing is byte-identical to before. */
+export interface WtEnvelopeArg {
+  motorized: { inEnvelope: boolean; reason: string }[];
+  blinds: { inEnvelope: boolean; reason: string }[];
+}
+
+export function priceScope(scope: Scope, dna: PricingDNA, env?: WtEnvelopeArg, discountPct = dna.defaultDiscountPct) {
   const lines: PricedLine[] = [];
 
-  for (const s of scope.motorizedSets) {
+  scope.motorizedSets.forEach((s, i) => {
+    if (env?.motorized[i]?.inEnvelope === false) {
+      // Abnormal (e.g. unusual ganging/size) → unpriced, flagged for the contractor.
+      lines.push({ code: "WT", label: `Motorized roller — ${s.shadesPerMotor} on 1 motor${s.location ? ` (${s.location})` : ""} — needs your price`, qty: 1, unitRate: 0, amount: 0, attrs: { unpriced: true, reason: env.motorized[i].reason, shadesPerMotor: s.shadesPerMotor, location: s.location } });
+      return;
+    }
     const rate = dna.rates.WT.byShadesPerMotor[String(s.shadesPerMotor)];
-    if (rate == null) continue;
+    if (rate == null) return;
     lines.push({
       code: "WT",
       label: `Motorized roller — ${s.shadesPerMotor} on 1 motor${s.location ? ` (${s.location})` : ""}`,
@@ -48,8 +60,13 @@ export function priceScope(scope: Scope, dna: PricingDNA, discountPct = dna.defa
       amount: rate,
       attrs: { shadesPerMotor: s.shadesPerMotor, location: s.location },
     });
-  }
-  for (const b of scope.blinds) {
+  });
+  scope.blinds.forEach((b, i) => {
+    if (env?.blinds[i]?.inEnvelope === false) {
+      // Oversized / abnormal blind (e.g. 20 ft) → unpriced, flagged — never tier-mispriced.
+      lines.push({ code: "MB", label: `Manual blind${b.widthInches ? ` (${b.widthInches}" W)` : ""} — needs your price`, qty: 1, unitRate: 0, amount: 0, attrs: { unpriced: true, reason: env.blinds[i].reason, widthInches: b.widthInches, location: b.location } });
+      return;
+    }
     const tier = dna.rates.MB.byWidthTier.find((t) => (b.widthInches ?? 0) <= t.maxWidthInches) ?? dna.rates.MB.byWidthTier.at(-1)!;
     lines.push({
       code: "MB",
@@ -59,7 +76,7 @@ export function priceScope(scope: Scope, dna: PricingDNA, discountPct = dna.defa
       amount: tier.price,
       attrs: { widthInches: b.widthInches, location: b.location },
     });
-  }
+  });
   if (scope.fixedPanels > 0) {
     lines.push({ code: "FPS", label: "Fixed panel shade", qty: scope.fixedPanels, unitRate: dna.rates.FPS.flat, amount: r2(scope.fixedPanels * dna.rates.FPS.flat) });
   }
