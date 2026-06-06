@@ -411,6 +411,19 @@ export function BidReview({ data }: { data: BidData }) {
   );
 }
 
+/** Amber "?" beside a flagged price — tells the sub the system learns from what they
+ *  set here (Pillar-3 nudge: pricing the line trains their engine for next time). */
+function LearnInfo() {
+  return (
+    <span className="relative group inline-flex align-middle">
+      <span className="w-[15px] h-[15px] rounded-full bg-bw-amber/20 text-bw-amber text-[10px] font-bold flex items-center justify-center cursor-help select-none">?</span>
+      <span className="pointer-events-none absolute right-0 bottom-full mb-2 w-60 rounded-lg bg-bw-text text-white text-[12px] leading-snug px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg text-left font-normal normal-case tracking-normal">
+        Set your price once — BidWork learns it and auto-prices this product on your future bids. The more you fill in, the smarter and faster your bids get.
+      </span>
+    </span>
+  );
+}
+
 function GroupRows({ group, editing, onChange, onRemove, onRemoveGroup }: { group: { location: string; items: BidLine[] }; editing: boolean; onChange: (id: string, patch: Partial<BidLine>) => void; onRemove: (id: string) => void; onRemoveGroup: (location: string) => void }) {
   return (
     <>
@@ -452,9 +465,20 @@ function GroupRows({ group, editing, onChange, onRemove, onRemoveGroup }: { grou
           </td>
           <td className="text-right align-top">
             {editing ? (
-              <input type="number" value={l.unitPrice} placeholder={flagged ? "set price" : undefined} onChange={(e) => onChange(l.id, { unitPrice: Number(e.target.value) })} className={`w-24 font-mono text-right border rounded px-1 py-0.5 outline-none focus:border-bw-green ${flagged ? "border-bw-amber/60 bg-bw-amber-tint/30" : "border-bw-green/40"}`} />
+              <div className="inline-flex items-center justify-end gap-1">
+                <input
+                  type="number"
+                  value={l.unitPrice || ""}
+                  placeholder={flagged ? "your price" : undefined}
+                  onChange={(e) => onChange(l.id, { unitPrice: Number(e.target.value) })}
+                  className={`w-24 font-mono text-right rounded px-1 py-0.5 outline-none ${flagged ? "border-2 border-bw-amber bg-bw-amber-tint/40 placeholder:text-bw-amber/70 focus:border-bw-amber" : "border border-bw-green/40 focus:border-bw-green"}`}
+                />
+                {flagged && <LearnInfo />}
+              </div>
+            ) : flagged ? (
+              <span className="inline-flex items-center justify-end gap-1 font-medium text-bw-amber">needs your price<LearnInfo /></span>
             ) : (
-              <span className={`font-mono ${flagged ? "text-bw-amber" : ""}`}>{flagged ? "needs price" : l.unitPrice.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}</span>
+              <span className="font-mono">{l.unitPrice.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}</span>
             )}
           </td>
           <td className="text-right align-top font-mono font-semibold">
