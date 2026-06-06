@@ -253,8 +253,8 @@ function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => voi
   const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", prices: { small: null, standard: 0, large: null } }] });
   const removeProduct = (i: number) => onChange({ ...card, products: card.products.filter((_, j) => j !== i) });
   const charges = card.globalCharges ?? [];
-  const addCharge = () => onChange({ ...card, globalCharges: [...charges, { label: "", amount: 0 }] });
-  const setCharge = (i: number, patch: Partial<{ label: string; amount: number }>) => onChange({ ...card, globalCharges: charges.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const addCharge = () => onChange({ ...card, globalCharges: [...charges, { label: "", amount: 0, kind: "percent" as const }] });
+  const setCharge = (i: number, patch: Partial<{ label: string; amount: number; kind: "flat" | "percent" }>) => onChange({ ...card, globalCharges: charges.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
   const removeCharge = (i: number) => onChange({ ...card, globalCharges: charges.filter((_, j) => j !== i) });
 
   return (
@@ -315,7 +315,7 @@ function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => voi
           {charges.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
               <input className={txtCls + " flex-1"} placeholder="Charge name (e.g. Installation)" value={c.label} onChange={(e) => setCharge(i, { label: e.target.value })} />
-              <span className="text-bw-muted">$</span>
+              <button type="button" onClick={() => setCharge(i, { kind: c.kind === "percent" ? "flat" : "percent" })} title="Switch $ / %" className="w-9 h-9 rounded-lg border border-bw-border font-semibold text-bw-body hover:bg-bw-surface flex-shrink-0">{c.kind === "percent" ? "%" : "$"}</button>
               <input type="number" step="0.01" className={numCls} value={c.amount || ""} onChange={(e) => setCharge(i, { amount: Number(e.target.value) })} />
               <button type="button" onClick={() => removeCharge(i)} className="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>

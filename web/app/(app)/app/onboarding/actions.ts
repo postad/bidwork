@@ -125,7 +125,7 @@ export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBu
 export type ConfirmWtDna = {
   products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
   buckets: WtBuckets;
-  globalCharges: { label: string; amount: number }[];
+  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
   discountPct: number | null;
   taxPct: number | null;
   paymentTerms: string | null;

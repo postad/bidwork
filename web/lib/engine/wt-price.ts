@@ -34,7 +34,7 @@ export interface WtSizeBuckets {
 
 export interface WtPricingDNA {
   salesTaxRate: number;
-  globalCharges: { label: string; amount: number }[]; // flat per-quote charges (Installation, Delivery, …) — summed into the subtotal
+  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[]; // per-quote charges (Installation, …): flat $ or % of the products subtotal
   defaultDiscountPct: number;
   products: WtProduct[];
   buckets: WtSizeBuckets | null; // null → everything prices at Standard
@@ -196,7 +196,8 @@ export function priceWtScope(scope: WtScope, dna: WtPricingDNA, matches: ShadeMa
   const productsSubtotal = r2(lines.reduce((a, l) => a + l.amount, 0));
   const discount = -Math.round(productsSubtotal * discountPct);
   const afterDiscount = r2(productsSubtotal + discount);
-  const charges = r2(dna.globalCharges.reduce((a, c) => a + (Number(c.amount) || 0), 0)); // Installation + any other flat charges
+  // Installation + any other charges: flat $ added as-is, or % of the products subtotal.
+  const charges = r2(dna.globalCharges.reduce((a, c) => a + (c.kind === "percent" ? (productsSubtotal * (Number(c.amount) || 0)) / 100 : Number(c.amount) || 0), 0));
   const subtotal = r2(afterDiscount + charges);
   const tax = r2(subtotal * dna.salesTaxRate);
   const total = r2(subtotal + tax);
@@ -224,7 +225,7 @@ export async function loadWtProductDNA(db: SupabaseClient, workspaceId: string, 
   const byCode = new Map((items ?? []).map((i) => [i.code, i]));
   const sys = byCode.get("SYS")?.pricing as { bySystem?: { name: string; prices?: { small?: number | null; standard?: number | null; large?: number | null } }[] } | undefined;
   const sizes = byCode.get("SIZES")?.pricing as WtSizeBuckets | undefined;
-  const chargeRow = byCode.get("CHARGES")?.pricing as { items?: { label: string; amount: number }[] } | undefined;
+  const chargeRow = byCode.get("CHARGES")?.pricing as { items?: { label: string; amount: number; kind?: "flat" | "percent" }[] } | undefined;
   const mob = byCode.get("MOB")?.sell_price;
   const tax = byCode.get("TAX")?.sell_price;
   const discount = byCode.get("DISCOUNT")?.sell_price;
@@ -239,9 +240,9 @@ export async function loadWtProductDNA(db: SupabaseClient, workspaceId: string, 
 
   // Global charges (Installation, etc.); fall back to a legacy MOB row as one "Mobilization" charge.
   const globalCharges = chargeRow?.items?.length
-    ? chargeRow.items.filter((c) => c && c.label && c.amount != null).map((c) => ({ label: c.label, amount: Number(c.amount) }))
+    ? chargeRow.items.filter((c) => c && c.label && c.amount != null).map((c) => ({ label: c.label, amount: Number(c.amount), kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) }))
     : mob != null
-      ? [{ label: "Mobilization", amount: Number(mob) }]
+      ? [{ label: "Mobilization", amount: Number(mob), kind: "flat" as const }]
       : [];
 
   return {

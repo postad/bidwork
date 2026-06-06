@@ -136,7 +136,7 @@ export default function OnboardingPage() {
                   standard: { maxW: num("standardMaxW"), maxH: num("standardMaxH") },
                   large: { maxW: num("largeMaxW"), maxH: num("largeMaxH") },
                 },
-                globalCharges: ((p.globalCharges as { label: string; amount: number }[]) ?? []).map((c) => ({ label: c.label, amount: c.amount })),
+                globalCharges: ((p.globalCharges as { label: string; amount: number; kind?: "flat" | "percent" }[]) ?? []).map((c) => ({ label: c.label, amount: c.amount, kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) })),
                 discountPct: num("discountPct"),
                 taxPct: num("taxPct"),
                 paymentTerms: (p.paymentTerms as string) ?? null,
@@ -190,9 +190,9 @@ export default function OnboardingPage() {
     setDna((d) => (d ? { ...d, buckets: { ...d.buckets, [tier]: { ...d.buckets[tier], [dim]: n } } } : d));
   }
   function addCharge() {
-    setDna((d) => (d ? { ...d, globalCharges: [...d.globalCharges, { label: "", amount: 0 }] } : d));
+    setDna((d) => (d ? { ...d, globalCharges: [...d.globalCharges, { label: "", amount: 0, kind: "percent" as const }] } : d));
   }
-  function setCharge(i: number, patch: Partial<{ label: string; amount: number }>) {
+  function setCharge(i: number, patch: Partial<{ label: string; amount: number; kind: "flat" | "percent" }>) {
     setDna((d) => (d ? { ...d, globalCharges: d.globalCharges.map((c, j) => (j === i ? { ...c, ...patch } : c)) } : d));
   }
   function removeCharge(i: number) {
@@ -366,7 +366,7 @@ export default function OnboardingPage() {
                   {dna.globalCharges.map((c, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <input value={c.label} onChange={(e) => setCharge(i, { label: e.target.value })} placeholder="Installation" className="flex-1 rounded-lg border border-bw-border px-2 py-1.5 text-[13px] outline-none focus:border-bw-green" />
-                      <span className="text-bw-muted">$</span>
+                      <button type="button" onClick={() => setCharge(i, { kind: c.kind === "percent" ? "flat" : "percent" })} title="Switch $ / %" className="w-8 h-8 rounded-lg border border-bw-border font-semibold text-bw-body hover:bg-bw-surface flex-shrink-0">{c.kind === "percent" ? "%" : "$"}</button>
                       <input type="number" step="0.01" value={c.amount || ""} onChange={(e) => setCharge(i, { amount: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
                       <button type="button" onClick={() => removeCharge(i)} className="w-8 h-8 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text flex items-center justify-center flex-shrink-0" aria-label="Remove">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>

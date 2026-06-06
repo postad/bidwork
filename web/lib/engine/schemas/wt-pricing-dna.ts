@@ -27,8 +27,12 @@ export const WtPricingDnaExtract = z.object({
   largeMaxW: z.number().nullable().describe("LARGE bucket: max width in inches."),
   largeMaxH: z.number().nullable().describe("LARGE bucket: max height in inches."),
   globalCharges: z
-    .array(z.object({ label: z.string().describe('e.g. "Installation", "Delivery", "Mobilization", "Minimum job charge"'), amount: z.number() }))
-    .describe("Flat per-project charges the contractor adds on top of products (installation, delivery, mobilization, minimum). Empty if none."),
+    .array(z.object({
+      label: z.string().describe('e.g. "Installation", "Delivery", "Mobilization", "Minimum job charge"'),
+      amount: z.number().describe("The dollar amount if kind=flat, or the percent value (e.g. 15) if kind=percent"),
+      kind: z.enum(["flat", "percent"]).describe('"flat" = a fixed $ amount; "percent" = a % of the product total (e.g. installation quoted as 15% of materials).'),
+    }))
+    .describe("Per-project charges the contractor adds on top of products (installation, delivery, mobilization, minimum) — each a flat $ or a % of the products. Empty if none."),
   discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10 (also where grouped/ganged savings land)"),
   taxPct: z.number().nullable().describe("Sales tax rate as a percent, e.g. 8.875"),
   paymentTerms: z.string().nullable().describe("e.g. '50% deposit, 50% on completion'"),

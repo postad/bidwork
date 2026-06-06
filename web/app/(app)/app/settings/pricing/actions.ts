@@ -36,7 +36,7 @@ export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBu
 export type WtCard = {
   products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
   buckets: WtBuckets;
-  globalCharges: { label: string; amount: number }[];
+  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
   taxPct: number | null;
   discountPct: number | null;
 };
@@ -71,9 +71,13 @@ function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   }));
   const buckets = (by.get("SIZES")?.pricing as WtBuckets) ?? EMPTY_BUCKETS;
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
-  const chargeItems = (by.get("CHARGES")?.pricing as { items?: { label: string; amount: number }[] })?.items ?? [];
+  const chargeItems = (by.get("CHARGES")?.pricing as { items?: { label: string; amount: number; kind?: "flat" | "percent" }[] })?.items ?? [];
   const mob = num("MOB");
-  const globalCharges = chargeItems.length ? chargeItems.map((c) => ({ label: c.label, amount: Number(c.amount) })) : mob != null ? [{ label: "Mobilization", amount: mob }] : [];
+  const globalCharges = chargeItems.length
+    ? chargeItems.map((c) => ({ label: c.label, amount: Number(c.amount), kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) }))
+    : mob != null
+      ? [{ label: "Mobilization", amount: mob, kind: "flat" as const }]
+      : [];
   const card: WtCard = { products, buckets, globalCharges, taxPct: num("TAX"), discountPct: num("DISCOUNT") };
   return { card, complete: products.filter((p) => p.prices.standard != null && p.prices.standard > 0).length > 0 };
 }
