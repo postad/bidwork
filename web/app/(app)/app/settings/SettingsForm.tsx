@@ -132,7 +132,7 @@ export function SettingsForm({ branding: b0, boilerplate: bp0 }: { branding: Bra
         {/* boilerplate */}
         <Card className="p-6">
           <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-1">Proposal boilerplate</div>
-          <p className="text-[13px] text-bw-body mb-5">The standing text on every bid we generate. <a href="/app/settings/pricing" className="text-bw-green font-semibold">Edit full pricing model →</a></p>
+          <p className="text-[13px] text-bw-body mb-5">The standing text on every bid we generate. <a href="/app/settings/pricing" className="text-bw-green font-semibold">Edit full pricing model →</a> <span className="text-bw-muted">·</span> <a href="/app/settings/learning" className="text-bw-green font-semibold">Proposal learning →</a></p>
 
           <div className="grid sm:grid-cols-3 gap-4 mb-6">
             <div>

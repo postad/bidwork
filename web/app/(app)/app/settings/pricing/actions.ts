@@ -24,7 +24,7 @@ async function requireWorkspace() {
 }
 
 export type FlooringCard = {
-  systems: { name: string; perSqft: number }[];
+  systems: { name: string; perSqft: number; learned?: boolean; learnedFrom?: string | null }[];
   prepPerSqft: number | null;
   baseTrimPerLf: number | null;
   globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
@@ -34,7 +34,7 @@ export type FlooringCard = {
 type SizeBucket = { maxW: number | null; maxH: number | null };
 export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBucket };
 export type WtCard = {
-  products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
+  products: { name: string; prices: { small: number | null; standard: number; large: number | null }; learned?: boolean; learnedFrom?: string | null }[];
   buckets: WtBuckets;
   globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
   taxPct: number | null;
@@ -57,7 +57,7 @@ type Item = { trade_id: string; code: string; sell_price: number | null; pricing
 
 function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean } {
   const by = new Map(items.map((i) => [i.code, i]));
-  const systems = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perSqft: number }[] })?.bySystem ?? []).map((s) => ({ name: s.name, perSqft: Number(s.perSqft) }));
+  const systems = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perSqft: number; learned?: boolean; learnedFrom?: string | null }[] })?.bySystem ?? []).map((s) => ({ name: s.name, perSqft: Number(s.perSqft), ...(s.learned ? { learned: true as const, learnedFrom: s.learnedFrom ?? null } : {}) }));
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
   const chargeItems = (by.get("CHARGES")?.pricing as { items?: { label: string; amount: number; kind?: "flat" | "percent" }[] })?.items ?? [];
   const mob = num("MOB");
@@ -72,9 +72,10 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
 
 function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   const by = new Map(items.map((i) => [i.code, i]));
-  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; prices?: { small?: number | null; standard?: number | null; large?: number | null } }[] })?.bySystem ?? []).map((p) => ({
+  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; prices?: { small?: number | null; standard?: number | null; large?: number | null }; learned?: boolean; learnedFrom?: string | null }[] })?.bySystem ?? []).map((p) => ({
     name: p.name,
     prices: { small: p.prices?.small ?? null, standard: Number(p.prices?.standard ?? 0), large: p.prices?.large ?? null },
+    ...(p.learned ? { learned: true as const, learnedFrom: p.learnedFrom ?? null } : {}),
   }));
   const buckets = (by.get("SIZES")?.pricing as WtBuckets) ?? EMPTY_BUCKETS;
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);

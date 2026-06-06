@@ -60,6 +60,7 @@ async function learnPricedProducts(
   workspaceId: string,
   tradeId: string,
   learned: { name: string; price: number }[],
+  project: string | null,
 ) {
   if (!learned.length) return;
   const { data: trade } = await supabase.from("trades").select("category").eq("id", tradeId).single();
@@ -79,7 +80,9 @@ async function learnPricedProducts(
   for (const item of learned) {
     const name = item.name.trim();
     if (!name || have.has(normName(name))) continue;
-    bySystem.push(isWt ? { name, prices: { small: null, standard: item.price, large: null } } : { name, perSqft: item.price });
+    // Tag provenance so the Settings → Proposal Learning tab can list what was learned.
+    const learnedMeta = { learned: true, learnedFrom: project ?? null, learnedAt: new Date().toISOString() };
+    bySystem.push(isWt ? { name, prices: { small: null, standard: item.price, large: null }, ...learnedMeta } : { name, perSqft: item.price, ...learnedMeta });
     have.add(normName(name));
     changed = true;
   }
@@ -155,7 +158,7 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
       return name ? { name: String(name).trim(), price: l.unitPrice } : null;
     })
     .filter((x): x is { name: string; price: number } => x !== null);
-  await learnPricedProducts(supabase, bid.workspace_id as string, bid.trade_id as string, learned);
+  await learnPricedProducts(supabase, bid.workspace_id as string, bid.trade_id as string, learned, bid.project_name ?? null);
 
   const p = priceFromLines(lines, pct, install, Number(bid.tax_rate ?? 0));
   const { error: bErr } = await supabase
