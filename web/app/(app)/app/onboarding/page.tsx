@@ -10,10 +10,10 @@ import {
   startPricingExtraction,
   getPendingDna,
   getOnboardingContext,
-  confirmPricingDna,
+  confirmWtPricingDna,
   confirmFlooringPricingDna,
   saveOnboardingSettings,
-  type ConfirmDna,
+  type ConfirmWtDna,
   type ConfirmFlooringDna,
 } from "./actions";
 
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
 
   // ---------- Step 2: poll + confirm DNA ----------
   const [dnaStatus, setDnaStatus] = useState<"extracting" | "ready" | "error" | null>(null);
-  const [dna, setDna] = useState<ConfirmDna | null>(null);
+  const [dna, setDna] = useState<ConfirmWtDna | null>(null);
   const [floorDna, setFloorDna] = useState<ConfirmFlooringDna | null>(null);
   const polling = useRef(false);
 
@@ -112,10 +112,8 @@ export default function OnboardingPage() {
           } else {
             setDna((prev) =>
               prev ?? {
-                motorizedByGanging: (p.motorizedByGanging as ConfirmDna["motorizedByGanging"]) ?? [],
-                blindsByWidth: (p.blindsByWidth as ConfirmDna["blindsByWidth"]) ?? [],
-                fixedPanelPrice: (p.fixedPanelPrice as number) ?? null,
-                installFee: (p.installFee as number) ?? null,
+                products: ((p.products as { name: string; perShade: number }[]) ?? []).map((x) => ({ name: x.name, perShade: x.perShade })),
+                mobilizationFee: (p.mobilizationFee as number) ?? null,
                 discountPct: (p.discountPct as number) ?? null,
                 taxPct: (p.taxPct as number) ?? null,
                 paymentTerms: (p.paymentTerms as string) ?? null,
@@ -149,7 +147,7 @@ export default function OnboardingPage() {
         await confirmFlooringPricingDna(floorDna);
       } else {
         if (!dna) return;
-        await confirmPricingDna(dna);
+        await confirmWtPricingDna(dna);
       }
       setStep(3);
     } catch (e) {
@@ -159,11 +157,8 @@ export default function OnboardingPage() {
     }
   }
 
-  function setMotor(i: number, price: number) {
-    setDna((d) => (d ? { ...d, motorizedByGanging: d.motorizedByGanging.map((m, j) => (j === i ? { ...m, price } : m)) } : d));
-  }
-  function setBlind(i: number, price: number) {
-    setDna((d) => (d ? { ...d, blindsByWidth: d.blindsByWidth.map((b, j) => (j === i ? { ...b, price } : b)) } : d));
+  function setProd(i: number, perShade: number) {
+    setDna((d) => (d ? { ...d, products: d.products.map((p, j) => (j === i ? { ...p, perShade } : p)) } : d));
   }
   function setSys(i: number, perSqft: number) {
     setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
@@ -312,25 +307,13 @@ export default function OnboardingPage() {
           ) : dna ? (
             <div className="space-y-4">
               <Card className="p-6">
-                <div className="font-semibold mb-3">Motorized roller — charged price by ganging</div>
-                {dna.motorizedByGanging.length === 0 && <p className="text-[13px] text-bw-muted">None found — add rates in Settings later.</p>}
+                <div className="font-semibold mb-3">Shade products — charged price per shade</div>
+                {dna.products.length === 0 && <p className="text-[13px] text-bw-muted">None found — add your products in Settings later.</p>}
                 <div className="space-y-2">
-                  {dna.motorizedByGanging.map((m, i) => (
+                  {dna.products.map((p, i) => (
                     <div key={i} className="flex items-center justify-between gap-3">
-                      <span className="text-[14px]">{m.shadesPerMotor} on 1 motor</span>
-                      <div className="flex items-center gap-1"><span className="text-bw-muted">$</span><input type="number" value={m.price} onChange={(e) => setMotor(i, Number(e.target.value))} className="w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">/set</span></div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="font-semibold mb-3">Manual blinds — charged price by width</div>
-                <div className="space-y-2">
-                  {dna.blindsByWidth.map((b, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3">
-                      <span className="text-[14px]">≤ {b.maxWidthInches}&quot; wide</span>
-                      <div className="flex items-center gap-1"><span className="text-bw-muted">$</span><input type="number" value={b.price} onChange={(e) => setBlind(i, Number(e.target.value))} className="w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">/blind</span></div>
+                      <span className="text-[14px]">{p.name}</span>
+                      <div className="flex items-center gap-1"><span className="text-bw-muted">$</span><input type="number" step="0.01" value={p.perShade} onChange={(e) => setProd(i, Number(e.target.value))} className="w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">/shade</span></div>
                     </div>
                   ))}
                 </div>
@@ -338,8 +321,7 @@ export default function OnboardingPage() {
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <Card className="p-6 space-y-3">
-                  <DnaNum label="Fixed panel shade" suffix="/shade" value={dna.fixedPanelPrice} onChange={(v) => setDna((d) => (d ? { ...d, fixedPanelPrice: v } : d))} />
-                  <DnaNum label="Install fee" suffix="flat" value={dna.installFee} onChange={(v) => setDna((d) => (d ? { ...d, installFee: v } : d))} />
+                  <DnaNum label="Mobilization fee" suffix="flat" value={dna.mobilizationFee} onChange={(v) => setDna((d) => (d ? { ...d, mobilizationFee: v } : d))} />
                 </Card>
                 <Card className="p-6 space-y-3">
                   <DnaNum label="Default discount" suffix="%" value={dna.discountPct} onChange={(v) => setDna((d) => (d ? { ...d, discountPct: v } : d))} />
@@ -423,7 +405,7 @@ export default function OnboardingPage() {
 function ReadingProposals({ flooring }: { flooring: boolean }) {
   const steps = flooring
     ? ["Opening your proposals…", "Finding your floor systems…", "Reading your per-SF rates…", "Spotting prep, base & trim…", "Recovering terms & exclusions…"]
-    : ["Opening your proposals…", "Finding your products…", "Reading motor & ganging rates…", "Spotting blind width tiers…", "Recovering terms & exclusions…"];
+    : ["Opening your proposals…", "Finding your shade products…", "Reading your per-shade prices…", "Spotting mobilization & terms…", "Recovering exclusions…"];
   const [i, setI] = useState(0);
   useEffect(() => {
     const iv = setInterval(() => setI((p) => (p + 1) % steps.length), 2200);

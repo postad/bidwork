@@ -32,10 +32,8 @@ export type FlooringCard = {
   discountPct: number | null;
 };
 export type WtCard = {
-  motorized: { shadesPerMotor: number; price: number }[];
-  blinds: { maxWidthInches: number; price: number }[];
-  fixedPanelPrice: number | null;
-  installFee: number | null;
+  products: { name: string; perShade: number }[];
+  mobilizationFee: number | null;
   taxPct: number | null;
   discountPct: number | null;
 };
@@ -62,11 +60,10 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
 
 function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   const by = new Map(items.map((i) => [i.code, i]));
-  const motorized = Object.entries(((by.get("WT")?.pricing as { byShadesPerMotor?: Record<string, number> })?.byShadesPerMotor ?? {})).map(([k, v]) => ({ shadesPerMotor: Number(k), price: Number(v) })).sort((a, b) => a.shadesPerMotor - b.shadesPerMotor);
-  const blinds = (((by.get("MB")?.pricing as { byWidthTier?: { maxWidthInches: number; price: number }[] })?.byWidthTier ?? [])).map((t) => ({ maxWidthInches: Number(t.maxWidthInches), price: Number(t.price) }));
+  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number }[] })?.bySystem ?? []).map((p) => ({ name: p.name, perShade: Number(p.perShade) }));
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
-  const card: WtCard = { motorized, blinds, fixedPanelPrice: num("FPS"), installFee: num("INSTALL"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
-  return { card, complete: motorized.length > 0 && blinds.length > 0 && card.fixedPanelPrice != null && card.installFee != null };
+  const card: WtCard = { products, mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
+  return { card, complete: products.filter((p) => p.perShade != null && p.perShade > 0).length > 0 };
 }
 
 /**
@@ -165,13 +162,9 @@ export async function savePricingCard(tradeId: string, category: string, card: F
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
   } else if (category === "window-treatments") {
     const c = card as WtCard;
-    const byShadesPerMotor: Record<string, number> = {};
-    for (const m of c.motorized) if (m.price != null) byShadesPerMotor[String(m.shadesPerMotor)] = m.price;
-    const byWidthTier = [...c.blinds].sort((a, b) => a.maxWidthInches - b.maxWidthInches);
-    push("WT", "Motorized Roller Shade", "per-motor-set", null, { byShadesPerMotor });
-    push("MB", "Manual Aluminum Blind", "per-blind", null, { byWidthTier });
-    if (c.fixedPanelPrice != null) push("FPS", "Fixed Roller Shade", "per-shade", c.fixedPanelPrice);
-    if (c.installFee != null) push("INSTALL", "Installation Fee", "flat", c.installFee);
+    const products = c.products.filter((p) => p.name && p.perShade != null);
+    push("SYS", "Shade products ($/shade)", "per-shade", null, { bySystem: products });
+    if (c.mobilizationFee != null) push("MOB", "Mobilization Fee", "flat", c.mobilizationFee);
     if (c.taxPct != null) push("TAX", "Sales Tax Rate", "percent", c.taxPct);
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
   } else {

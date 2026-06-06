@@ -13,7 +13,7 @@ function flooringComplete(c: FlooringCard) {
   return c.systems.filter((s) => s.perSqft != null && s.perSqft > 0).length > 0;
 }
 function wtComplete(c: WtCard) {
-  return c.motorized.length > 0 && c.blinds.length > 0 && c.fixedPanelPrice != null && c.installFee != null;
+  return c.products.filter((p) => p.perShade != null && p.perShade > 0).length > 0;
 }
 
 /** Small hover tooltip — plain-language help for non-technical contractors. */
@@ -239,42 +239,50 @@ function FlooringForm({ label, card, onChange }: { label: string; card: Flooring
 }
 
 function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => void }) {
+  const [showAddons, setShowAddons] = useState(card.mobilizationFee != null || card.discountPct != null || card.taxPct != null);
+  const setProduct = (i: number, k: "name" | "perShade", v: string) =>
+    onChange({ ...card, products: card.products.map((p, j) => (j === i ? { ...p, [k]: k === "perShade" ? (v === "" ? 0 : Number(v)) : v } : p)) });
+  const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", perShade: 0 }] });
+  const removeProduct = (i: number) => onChange({ ...card, products: card.products.filter((_, j) => j !== i) });
+
   return (
     <div className="space-y-5">
       <div>
-        <div className="text-[13px] font-semibold mb-2 inline-flex items-center">Motorized roller — by ganging<Info text="Your charged price per motor SET, by how many shades share one motor (1, 2, or 3). Ganged shades cost more per set." /></div>
-        <div className="space-y-2">
-          {card.motorized.map((m, i) => (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <span className="text-[14px]">{m.shadesPerMotor} on 1 motor</span>
-              <div className="flex items-center gap-1"><span className="text-bw-muted">$</span>
-                <input type="number" className={numCls} value={m.price} onChange={(e) => onChange({ ...card, motorized: card.motorized.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} />
-                <span className="text-bw-muted text-[12px]">/set</span>
+        <label className="text-[14px] font-semibold inline-flex items-center">
+          Your shade products — price per shade
+          <Info text="Each shade product you install and the charged price per shade (all-in). Name them by operation + fabric (e.g. 'Motorized solar roller shade') so the engine matches the right one to a spec." />
+        </label>
+        <div className="space-y-2 mt-2">
+          {card.products.map((p, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input className={txtCls + " flex-1"} placeholder="Product name (e.g. Motorized solar roller shade)" value={p.name} onChange={(e) => setProduct(i, "name", e.target.value)} />
+              <div className="flex items-center gap-1 flex-shrink-0"><span className="text-bw-muted">$</span>
+                <input type="number" step="0.01" className={numCls} value={p.perShade || ""} onChange={(e) => setProduct(i, "perShade", e.target.value)} />
+                <span className="text-bw-muted text-[12px]">/shade</span>
               </div>
+              <button type="button" onClick={() => removeProduct(i)} className="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
             </div>
           ))}
+          {card.products.length === 0 && <p className="text-[13px] text-bw-muted">No products yet — add the shade types you install.</p>}
         </div>
+        <button type="button" onClick={addProduct} className="text-[13px] text-bw-green font-semibold mt-2">+ Add a shade product</button>
       </div>
-      <div>
-        <div className="text-[13px] font-semibold mb-2 inline-flex items-center">Manual blinds — by width<Info text="Your charged price per blind, by the window's width tier." /></div>
-        <div className="space-y-2">
-          {card.blinds.map((b, i) => (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <span className="text-[14px]">≤ {b.maxWidthInches}&quot; wide</span>
-              <div className="flex items-center gap-1"><span className="text-bw-muted">$</span>
-                <input type="number" className={numCls} value={b.price} onChange={(e) => onChange({ ...card, blinds: card.blinds.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} />
-                <span className="text-bw-muted text-[12px]">/blind</span>
-              </div>
-            </div>
-          ))}
-        </div>
+
+      <div className="border-t border-bw-border pt-4">
+        {!showAddons ? (
+          <button type="button" onClick={() => setShowAddons(true)} className="text-[13px] text-bw-green font-semibold">+ Add optional extras (mobilization, discount, tax)</button>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+            <Num label="Mobilization fee" suffix="flat" value={card.mobilizationFee} onChange={(v) => onChange({ ...card, mobilizationFee: v })} tip="A one-time flat setup/mobilization charge per job, if you have one. Leave blank or 0 if you don't charge it." />
+            <Num label="Default discount" suffix="%" value={card.discountPct} onChange={(v) => onChange({ ...card, discountPct: v })} tip="A standard discount you usually apply, as a percent. Leave blank for none." />
+            <Num label="Sales tax" suffix="%" value={card.taxPct} onChange={(v) => onChange({ ...card, taxPct: v })} tip="Your sales-tax rate as a percent. Leave blank if you quote tax-excluded (most commercial subs do)." />
+          </div>
+        )}
       </div>
-      <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 border-t border-bw-border pt-4">
-        <Num label="Fixed panel shade" suffix="/shade" value={card.fixedPanelPrice} onChange={(v) => onChange({ ...card, fixedPanelPrice: v })} tip="Flat charged price per fixed-panel shade." />
-        <Num label="Install fee" suffix="flat" value={card.installFee} onChange={(v) => onChange({ ...card, installFee: v })} tip="Your flat delivery/installation fee per project." />
-        <Num label="Default discount" suffix="%" value={card.discountPct} onChange={(v) => onChange({ ...card, discountPct: v })} tip="A standard discount you usually apply, as a percent. Leave blank for none." />
-        <Num label="Sales tax" suffix="%" value={card.taxPct} onChange={(v) => onChange({ ...card, taxPct: v })} tip="Your sales-tax rate as a percent. Leave blank if you quote tax-excluded." />
-      </div>
+
+      <p className="text-[12px] text-bw-muted">Name each product by operation + fabric so the engine matches it to the spec; the per-shade price is what gets bid.</p>
     </div>
   );
 }

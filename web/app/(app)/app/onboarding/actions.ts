@@ -17,12 +17,6 @@ async function requireContractor() {
   return { supabase, workspaceId: profile.workspace_id as string };
 }
 
-async function wtTradeId(db: ReturnType<typeof engineDb>) {
-  const { data: trade, error } = await db.from("trades").select("id").eq("slug", "window-treatments").single();
-  if (error || !trade) throw new Error("window-treatments trade not found");
-  return trade.id as string;
-}
-
 type TradeRow = { id: string; slug: string; label: string; category: string | null; category_label: string | null };
 
 /** The trades a workspace has opted into (workspace_trades → trades catalog). */
@@ -126,11 +120,9 @@ export async function getPendingDna() {
   return (settings.pendingDna ?? null) as Record<string, unknown> | null;
 }
 
-export type ConfirmDna = {
-  motorizedByGanging: { shadesPerMotor: number; price: number }[];
-  blindsByWidth: { maxWidthInches: number; price: number }[];
-  fixedPanelPrice: number | null;
-  installFee: number | null;
+export type ConfirmWtDna = {
+  products: { name: string; perShade: number }[];
+  mobilizationFee: number | null;
   discountPct: number | null;
   taxPct: number | null;
   paymentTerms: string | null;
@@ -139,24 +131,30 @@ export type ConfirmDna = {
   exclusions: string[];
 };
 
-/** Step 2: write the confirmed Pricing DNA to pricing_items + boilerplate to settings. */
-export async function confirmPricingDna(dna: ConfirmDna) {
+/** WT training: write the confirmed per-PRODUCT ($/shade) rate card to pricing_items
+ *  for EACH window-treatments sub-trade the workspace covers, plus boilerplate to
+ *  settings. Same codes/shape as flooring (SYS/MOB/TAX/DISCOUNT) — SYS.bySystem
+ *  entries carry `perShade`. Mirrors confirmFlooringPricingDna. */
+export async function confirmWtPricingDna(dna: ConfirmWtDna) {
   const { workspaceId } = await requireContractor();
   const db = engineDb();
-  const tradeId = await wtTradeId(db);
+  const wtTrades = (await workspaceTradeRows(db, workspaceId)).filter((t) => t.category === "window-treatments");
+  if (!wtTrades.length) throw new Error("No window-treatments sub-trades selected for this workspace.");
 
-  const byShadesPerMotor: Record<string, number> = {};
-  for (const m of dna.motorizedByGanging) byShadesPerMotor[String(m.shadesPerMotor)] = m.price;
-  const byWidthTier = [...dna.blindsByWidth].sort((a, b) => a.maxWidthInches - b.maxWidthInches);
-
-  const rows: { workspace_id: string; trade_id: string; code: string; label: string; unit: string; sell_price: number | null; pricing: Record<string, unknown> }[] = [
-    { workspace_id: workspaceId, trade_id: tradeId, code: "WT", label: "Motorized Roller Shade", unit: "per-motor-set", sell_price: null, pricing: { byShadesPerMotor } },
-    { workspace_id: workspaceId, trade_id: tradeId, code: "MB", label: "Manual Aluminum Blind", unit: "per-blind", sell_price: null, pricing: { byWidthTier } },
-  ];
-  if (dna.fixedPanelPrice != null) rows.push({ workspace_id: workspaceId, trade_id: tradeId, code: "FPS", label: "Fixed Roller Shade", unit: "per-shade", sell_price: dna.fixedPanelPrice, pricing: {} });
-  if (dna.installFee != null) rows.push({ workspace_id: workspaceId, trade_id: tradeId, code: "INSTALL", label: "Installation Fee", unit: "flat", sell_price: dna.installFee, pricing: {} });
-  if (dna.taxPct != null) rows.push({ workspace_id: workspaceId, trade_id: tradeId, code: "TAX", label: "Sales Tax Rate", unit: "percent", sell_price: dna.taxPct, pricing: {} });
-  if (dna.discountPct != null) rows.push({ workspace_id: workspaceId, trade_id: tradeId, code: "DISCOUNT", label: "Default Proposal Discount", unit: "percent", sell_price: dna.discountPct, pricing: {} });
+  const products = dna.products.filter((p) => p.name && p.perShade != null);
+  // Guard: a confirm writes SYS to EVERY covered WT trade, so an empty extraction
+  // would wipe a card you already trained. Refuse rather than silently overwrite.
+  if (!products.length) {
+    throw new Error("No shade products were found in those proposals — nothing to save here. Add or edit your products in Settings → Edit full pricing model.");
+  }
+  type Row = { workspace_id: string; trade_id: string; code: string; label: string; unit: string; sell_price: number | null; pricing: Record<string, unknown> };
+  const rows: Row[] = [];
+  for (const t of wtTrades) {
+    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Shade products ($/shade)", unit: "per-shade", sell_price: null, pricing: { bySystem: products } });
+    if (dna.mobilizationFee != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "MOB", label: "Mobilization Fee", unit: "flat", sell_price: dna.mobilizationFee, pricing: {} });
+    if (dna.taxPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "TAX", label: "Sales Tax Rate", unit: "percent", sell_price: dna.taxPct, pricing: {} });
+    if (dna.discountPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "DISCOUNT", label: "Default Proposal Discount", unit: "percent", sell_price: dna.discountPct, pricing: {} });
+  }
 
   const { error } = await db.from("pricing_items").upsert(rows, { onConflict: "workspace_id,trade_id,code" });
   if (error) throw new Error(`save pricing: ${error.message}`);

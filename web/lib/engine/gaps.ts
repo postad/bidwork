@@ -1,5 +1,6 @@
 import type { ExtractionResult } from "./schemas/extract";
 import type { FlooringExtractionResult } from "./schemas/flooring-extract";
+import type { WtExtractionResult } from "./schemas/wt-extract";
 
 export interface Gap {
   kind: "required-but-empty" | "low-confidence" | "missing-document" | "referenced-not-present" | "no-bid";
@@ -9,7 +10,7 @@ export interface Gap {
 }
 
 interface VerticalConfig {
-  requiredEvidence: { key: string; label: string; blocking: boolean }[];
+  requiredEvidence?: { key: string; label: string; blocking: boolean }[];
 }
 
 const LOW_CONF = 0.6;
@@ -54,6 +55,49 @@ export function detectGaps(result: ExtractionResult, cfg: VerticalConfig): Gap[]
     }
 
   // 4 · Referenced-but-not-present (reference chasing — flagged for admin to confirm)
+  for (const ref of result.referencedSheets) {
+    gaps.push({ kind: "referenced-not-present", severity: "warning", message: `Document references "${ref}" — confirm it was in the package.` });
+  }
+
+  return gaps;
+}
+
+/**
+ * Window-treatment gaps (new schedule-driven schema). Same config-driven detectors
+ * as flooring, plus the WT-specific signal: a scheduled shade missing a size or
+ * count → field measure (the WT equivalent of flooring's null-SF room).
+ */
+export function detectWtGaps(result: WtExtractionResult, cfg: VerticalConfig): Gap[] {
+  const gaps: Gap[] = [];
+
+  if (!result.bid) {
+    gaps.push({ kind: "no-bid", severity: "warning", message: `Scored no-bid: ${result.bidReasoning}` });
+  }
+
+  const found = new Map(result.evidenceFound.map((e) => [e.key, e.present]));
+  for (const req of cfg.requiredEvidence ?? []) {
+    const present = found.get(req.key);
+    if (present !== true) {
+      gaps.push({
+        kind: "required-but-empty",
+        severity: req.blocking ? "critical" : "warning",
+        message: `Required evidence missing: ${req.label}`,
+        evidenceKey: req.key,
+      });
+    }
+  }
+
+  for (const s of result.systems) {
+    if (s.confidence < LOW_CONF) gaps.push({ kind: "low-confidence", severity: "warning", message: `Low confidence on shade product ${s.name} (${s.confidence.toFixed(2)})` });
+  }
+  for (const it of result.items) {
+    const where = `${it.level ?? "?"}/${it.room ?? "?"}`;
+    if (it.widthInches == null || it.heightInches == null || it.qty == null)
+      gaps.push({ kind: "required-but-empty", severity: "warning", message: `Shade size/count not fully determined for ${it.system} at ${where} — confirm by field measure.` });
+    else if (it.confidence < LOW_CONF)
+      gaps.push({ kind: "low-confidence", severity: "warning", message: `Low confidence on ${it.qty}× ${it.system} at ${where} (${it.confidence.toFixed(2)})` });
+  }
+
   for (const ref of result.referencedSheets) {
     gaps.push({ kind: "referenced-not-present", severity: "warning", message: `Document references "${ref}" — confirm it was in the package.` });
   }

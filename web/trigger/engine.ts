@@ -8,8 +8,8 @@ import { VERTICALS } from "../lib/engine/verticals";
 import { mergeToBase64 } from "../lib/engine/pdf";
 import { triageDocuments } from "../lib/engine/triage";
 import { selectSpecPages, activeDivisions } from "../lib/engine/page-triage";
-import { extractPricingDna } from "../lib/engine/extract-pricing";
 import { extractFlooringPricingDna } from "../lib/engine/extract-flooring-pricing";
+import { extractWtPricingDna } from "../lib/engine/extract-wt-pricing";
 
 /**
  * engine.scan-request — read the uploaded package ONCE and score every trade.
@@ -371,6 +371,7 @@ export const extractBid = schemaTask({
             project_name: projectName,
             gc_contact_name: gc?.name ?? null,
             gc_contact_email: gc?.email ?? null,
+            notes_to_gc: priced.clarifications ?? null, // GC-facing exclusions/assumptions (price-neutral)
             subtotal: priced.subtotal,
             discount_label: `${Math.round(priced.discountPct * 100)}%`,
             discount_amount: priced.discount,
@@ -467,17 +468,12 @@ export const extractPricing = schemaTask({
         return { ok: true, systems: dna.systems.length };
       }
 
-      const { dna, usage } = await extractPricingDna(merged);
-      logger.info("Pricing DNA extracted", {
-        motorized: dna.motorizedByGanging.length,
-        blinds: dna.blindsByWidth.length,
-        fps: dna.fixedPanelPrice,
-        install: dna.installFee,
-        tokens: usage,
-      });
+      // Window treatments — per-product ($/shade) rate card recovered from proposals.
+      const { dna, usage } = await extractWtPricingDna(merged);
+      logger.info("WT pricing DNA extracted", { products: dna.products.length, mob: dna.mobilizationFee, tokens: usage });
 
       await setStatus({ status: "ready", error: null, category, ...dna });
-      return { ok: true, motorized: dna.motorizedByGanging.length, blinds: dna.blindsByWidth.length };
+      return { ok: true, products: dna.products.length };
     } catch (e) {
       await setStatus({ status: "error", error: (e as Error).message });
       throw e;

@@ -2,22 +2,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Usage } from "./anthropic";
 import type { Gap } from "./gaps";
 import { runWtPipeline, type PipelineDoc } from "./wt-pipeline";
-import { loadWtPricingDNA } from "./pricing";
-import { priceScope, type PricingDNA, type Scope } from "./price";
 import { runFlooringPipeline } from "./flooring-pipeline";
 import { loadFlooringPricingDNA } from "./flooring-pricing";
 import { priceFlooringScope, type FlooringPricingDNA, type FlooringScope } from "./flooring-price";
 import { matchScopeToRates } from "./price-match";
-import { checkWtEnvelope } from "./wt-match";
+import { loadWtProductDNA, matchShadeProducts, priceWtScope, type WtPricingDNA, type WtScope } from "./wt-price";
 
 /**
  * Vertical registry — one adapter per CATEGORY. extractBid dispatches on a trade's
  * `category`, so every flooring sub-trade (epoxy, carpet, resilient, …) shares the
- * single flooring pipeline, and window-treatments keeps its own. The engine's DB
- * writes stay generic; only these adapters know the per-vertical shapes.
- *
- * The WT adapter wraps the existing, validated functions verbatim — WT output must
- * be byte-identical after this refactor.
+ * single flooring pipeline, and window-treatments shares the same PATTERN (a named-
+ * product rate card + AI semantic match + deterministic arithmetic + unpriced flag),
+ * differing only in unit: flooring is area-priced ($/SF), WT is per-product ($/shade).
+ * The engine's DB writes stay generic; only these adapters know the per-vertical shapes.
  */
 
 /** The subset of any extraction the generic engine reads (project, relevance, contacts). */
@@ -39,6 +36,7 @@ export interface PricedResult {
   tax: number;
   total: number;
   taxRate: number; // → bids.tax_rate
+  clarifications?: string; // GC-facing notes (exclusions/assumptions) → bids.notes_to_gc; never affects price
 }
 
 export interface VerticalRun {
@@ -60,23 +58,25 @@ export interface VerticalAdapter {
 
 const wtAdapter: VerticalAdapter = {
   async run(docs, cfg) {
-    const { extraction, scope, gaps, counts, usage } = await runWtPipeline(docs, cfg as Parameters<typeof runWtPipeline>[1]);
-    const quantifiable = scope.motorizedSets.length > 0 || scope.blinds.length > 0 || scope.fixedPanels > 0;
-    void counts;
-    return { extraction, scope, gaps, quantifiable, scopeSummary: extraction.bidReasoning, usage };
+    const { extraction, scope, gaps, usage } = await runWtPipeline(docs, cfg as Parameters<typeof runWtPipeline>[1]);
+    // Quantifiable when ≥1 shade has a known count (price = count × per-product rate).
+    return { extraction, scope, gaps, quantifiable: scope.items.length > 0, scopeSummary: extraction.bidReasoning, usage };
   },
-  loadDNA: (db, ws, tid) => loadWtPricingDNA(db, ws, tid),
-  // WT matching is exact (ganging count / width tier, keyed lookup), so it stays
-  // deterministic. The AI's WT job is a conservative OUT-OF-ENVELOPE guard: flag the
-  // rare abnormal window (a 20 ft blind, an unsupported product) so it's left unpriced
-  // for the contractor instead of silently tier-mispriced. Memory is [] until Pillar 3.
+  loadDNA: (db, ws, tid) => loadWtProductDNA(db, ws, tid),
+  // Per-product: the AI matches each scheduled shade to the contractor's shade-product
+  // rate card; the deterministic compute does qty × price-per-shade. A product the
+  // contractor has NO rate for → unpriced + flagged (blocks send, their call). The
+  // GC-facing clarifications (excluded/uncounted shades, assumptions) ride notes_to_gc
+  // and never change the price. Memory [] until Pillar 3.
   async price(scope, dna) {
-    const d = dna as PricingDNA;
-    const s = scope as Scope;
-    const { env } = await checkWtEnvelope(s, d, []);
-    return { ...priceScope(s, d, env), taxRate: d.salesTaxRate };
+    const d = dna as WtPricingDNA;
+    const ws = scope as WtScope;
+    const { matches } = await matchShadeProducts(ws.items, d.products, []);
+    const priced = priceWtScope(ws, d, matches);
+    const clarifications = ws.clarifications.length ? ws.clarifications.map((c) => `• ${c}`).join("\n") : undefined;
+    return { ...priced, taxRate: d.salesTaxRate, clarifications };
   },
-  lineUnit: (code) => (code === "FPS" ? "shade" : code === "MB" ? "blind" : "motor-set"),
+  lineUnit: () => "shade",
 };
 
 const flooringAdapter: VerticalAdapter = {
