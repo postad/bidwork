@@ -23,7 +23,7 @@ async function loadOwnedBid(bidId: string) {
   // RLS already scopes bids to the caller's workspace; this is a clear error if not.
   const { data: bid, error } = await supabase
     .from("bids")
-    .select("id, status, workspace_id, trade_id, discount_label, delivery_install, tax_rate, gc_contact_email, project_name")
+    .select("id, status, workspace_id, trade_id, bid_request_id, discount_label, delivery_install, tax_rate, gc_contact_email, project_name")
     .eq("id", bidId)
     .single();
   if (error || !bid) throw new Error(error?.message ?? "Bid not found");
@@ -176,11 +176,21 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
  */
 export async function approveAndSend(bidId: string, email: { subject: string; body: string; ccMe: boolean }) {
   const { supabase, user, bid } = await loadOwnedBid(bidId);
-  if (bid.status === "sent") throw new Error("This bid was already sent.");
-  if (!bid.gc_contact_email) throw new Error("No GC email on this bid — can't send.");
 
-  // Don't let a "needs your price" line reach the GC — price or remove it in Edit first.
-  const { data: flagged } = await supabase.from("bid_line_items").select("attrs").eq("bid_id", bidId);
+  // The proposal = all this sub's bids (sections) for the same request — send as ONE.
+  const { data: group, error: gErr } = await supabase
+    .from("bids")
+    .select("id, status, gc_contact_email")
+    .eq("bid_request_id", bid.bid_request_id)
+    .eq("workspace_id", bid.workspace_id);
+  if (gErr || !group?.length) throw new Error(gErr?.message ?? "Proposal not found");
+  if (group.some((g) => g.status === "sent")) throw new Error("This proposal was already sent.");
+  const gcEmail = bid.gc_contact_email ?? group.find((g) => g.gc_contact_email)?.gc_contact_email ?? null;
+  if (!gcEmail) throw new Error("No GC email on this proposal — can't send.");
+
+  // Don't let a "needs your price" line (any section) reach the GC.
+  const groupIds = group.map((g) => g.id);
+  const { data: flagged } = await supabase.from("bid_line_items").select("attrs").in("bid_id", groupIds);
   if ((flagged ?? []).some((l) => (l.attrs as { unpriced?: boolean })?.unpriced)) {
     throw new Error('Some lines still say "needs your price." Price or remove them in Edit before sending.');
   }
@@ -200,7 +210,7 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
   };
 
   const { delivered, messageId } = await sendViaMailgun({
-    to: bid.gc_contact_email,
+    to: gcEmail,
     replyTo,
     subject: email.subject,
     body: email.body,
@@ -208,11 +218,12 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
     fromName: profile?.company_name ?? null,
   });
 
+  // One email record for the whole proposal (anchored to the clicked section).
   const { error: eErr } = await supabase.from("emails").insert({
     workspace_id: profile?.workspace_id,
     stream: "bid",
     bid_id: bidId,
-    to_email: bid.gc_contact_email,
+    to_email: gcEmail,
     reply_to: replyTo,
     subject: email.subject,
     status: delivered ? "delivered" : "queued",
@@ -220,10 +231,11 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
   });
   if (eErr) throw new Error(`record email: ${eErr.message}`);
 
+  // Mark every section sent.
   const { error: bErr } = await supabase
     .from("bids")
     .update({ status: "sent", sent_at: now, boilerplate_snapshot: boilerplate })
-    .eq("id", bidId);
+    .in("id", groupIds);
   if (bErr) throw new Error(`mark sent: ${bErr.message}`);
 
   revalidatePath(`/app/bids/${bidId}`);

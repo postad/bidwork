@@ -19,19 +19,37 @@ export default async function DashboardPage() {
 
   const { data: bids } = await supabase
     .from("bids")
-    .select("id, project_name, gc_contact_name, bid_due_date, total, status")
+    .select("id, bid_request_id, workspace_id, project_name, gc_contact_name, bid_due_date, total, status, created_at")
     .order("created_at", { ascending: false });
-  const list = bids ?? [];
 
   // Reply-aware status: which bids' outbound email got a reply.
   const { data: bidEmails } = await supabase.from("emails").select("bid_id, status").eq("stream", "bid");
   const repliedBids = new Set((bidEmails ?? []).filter((e) => e.status === "replied").map((e) => e.bid_id));
 
-  const ready = list.filter((b) => b.status === "ready").length;
-  const sentBids = list.filter((b) => b.status === "sent");
-  const awaitingReply = sentBids.filter((b) => !repliedBids.has(b.id)).length;
-  const replied = sentBids.filter((b) => repliedBids.has(b.id)).length;
-  const valueSent = sentBids.reduce((a, b) => a + Number(b.total ?? 0), 0);
+  // ONE proposal per (request, workspace): lazy-group the per-trade bids (rows are
+  // newest-first, so the first seen per group is the anchor we link to).
+  type Proposal = { anchorId: string; project: string | null; gc: string | null; due: string | null; total: number; statuses: Set<string>; bidIds: string[] };
+  const propMap = new Map<string, Proposal>();
+  for (const b of bids ?? []) {
+    const key = `${b.bid_request_id}:${b.workspace_id}`;
+    let p = propMap.get(key);
+    if (!p) { p = { anchorId: b.id, project: b.project_name, gc: b.gc_contact_name, due: b.bid_due_date, total: 0, statuses: new Set(), bidIds: [] }; propMap.set(key, p); }
+    p.total += Number(b.total ?? 0);
+    p.statuses.add(b.status);
+    p.bidIds.push(b.id);
+  }
+  const list = [...propMap.values()].map((p) => {
+    const allSent = [...p.statuses].every((s) => s === "sent");
+    const status = allSent ? "sent" : p.statuses.has("ready") ? "ready" : "draft";
+    const replied = p.bidIds.some((id) => repliedBids.has(id));
+    return { ...p, status, replied };
+  });
+
+  const ready = list.filter((p) => p.status === "ready").length;
+  const sentProps = list.filter((p) => p.status === "sent");
+  const awaitingReply = sentProps.filter((p) => !p.replied).length;
+  const replied = sentProps.filter((p) => p.replied).length;
+  const valueSent = sentProps.reduce((a, p) => a + p.total, 0);
 
   const tiles: [string, number | string, string][] = [
     ["Ready to review", ready, "new bids"],
@@ -77,16 +95,17 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {list.map((b) => (
-                <tr key={b.id} className="border-t border-bw-border hover:bg-bw-surface">
+              {list.map((p) => (
+                <tr key={p.anchorId} className="border-t border-bw-border hover:bg-bw-surface">
                   <td className="px-4 py-3 font-medium">
-                    <Link href={`/app/bids/${b.id}`} className="hover:text-bw-green hover:underline">{b.project_name ?? "—"}</Link>
+                    <Link href={`/app/bids/${p.anchorId}`} className="hover:text-bw-green hover:underline">{p.project ?? "—"}</Link>
+                    {p.bidIds.length > 1 && <span className="ml-2 text-[11px] text-bw-muted">{p.bidIds.length} sections</span>}
                   </td>
-                  <td className="px-4 py-3 text-bw-body">{b.gc_contact_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-bw-body">{b.bid_due_date ?? "—"}</td>
-                  <td className="px-4 py-3 text-right font-mono">{b.total ? usd(Number(b.total)) : "—"}</td>
+                  <td className="px-4 py-3 text-bw-body">{p.gc ?? "—"}</td>
+                  <td className="px-4 py-3 text-bw-body">{p.due ?? "—"}</td>
+                  <td className="px-4 py-3 text-right font-mono">{p.total ? usd(p.total) : "—"}</td>
                   <td className="px-4 py-3">
-                    {repliedBids.has(b.id) ? <Tag tone="green">Replied</Tag> : <StatusPill status={b.status} />}
+                    {p.replied ? <Tag tone="green">Replied</Tag> : <StatusPill status={p.status} />}
                   </td>
                 </tr>
               ))}
