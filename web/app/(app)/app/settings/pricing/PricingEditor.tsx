@@ -240,25 +240,29 @@ function FlooringForm({ label, card, onChange }: { label: string; card: Flooring
 
 function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => void }) {
   const [showAddons, setShowAddons] = useState(card.mobilizationFee != null || card.discountPct != null || card.taxPct != null);
-  const setProduct = (i: number, k: "name" | "perShade", v: string) =>
-    onChange({ ...card, products: card.products.map((p, j) => (j === i ? { ...p, [k]: k === "perShade" ? (v === "" ? 0 : Number(v)) : v } : p)) });
-  const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", perShade: 0 }] });
+  const setProduct = (i: number, k: "name" | "perShade" | "size", v: string) =>
+    onChange({
+      ...card,
+      products: card.products.map((p, j) => (j === i ? { ...p, [k]: k === "perShade" ? (v === "" ? 0 : Number(v)) : k === "size" ? (v || null) : v } : p)),
+    });
+  const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", perShade: 0, size: null }] });
   const removeProduct = (i: number) => onChange({ ...card, products: card.products.filter((_, j) => j !== i) });
 
   return (
     <div className="space-y-5">
       <div>
         <label className="text-[14px] font-semibold inline-flex items-center">
-          Your shade products — price per shade
-          <Info text="Each shade product you install and the charged price per shade (all-in). Name them by operation + fabric (e.g. 'Motorized solar roller shade') so the engine matches the right one to a spec." />
+          Your shade products — price each
+          <Info text="Each shade/blind product you install and the charged price per unit (all-in). Name by operation + fabric (e.g. 'Motorized solar roller shade'); the size is the window size that price is for — the engine matches by product and notes the size on the bid." />
         </label>
         <div className="space-y-2 mt-2">
           {card.products.map((p, i) => (
             <div key={i} className="flex items-center gap-2">
               <input className={txtCls + " flex-1"} placeholder="Product name (e.g. Motorized solar roller shade)" value={p.name} onChange={(e) => setProduct(i, "name", e.target.value)} />
+              <input className="w-32 rounded-lg border border-bw-border px-2 py-2 text-[12px] text-bw-body outline-none focus:border-bw-green flex-shrink-0" placeholder={'60"W x 96"H'} value={p.size ?? ""} onChange={(e) => setProduct(i, "size", e.target.value)} />
               <div className="flex items-center gap-1 flex-shrink-0"><span className="text-bw-muted">$</span>
                 <input type="number" step="0.01" className={numCls} value={p.perShade || ""} onChange={(e) => setProduct(i, "perShade", e.target.value)} />
-                <span className="text-bw-muted text-[12px]">/shade</span>
+                <span className="text-bw-muted text-[12px]">each</span>
               </div>
               <button type="button" onClick={() => removeProduct(i)} className="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>

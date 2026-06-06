@@ -112,7 +112,7 @@ export default function OnboardingPage() {
           } else {
             setDna((prev) =>
               prev ?? {
-                products: ((p.products as { name: string; perShade: number }[]) ?? []).map((x) => ({ name: x.name, perShade: x.perShade })),
+                products: ((p.products as { name: string; perShade: number; size: string | null }[]) ?? []).map((x) => ({ name: x.name, perShade: x.perShade, size: x.size ?? null })),
                 mobilizationFee: (p.mobilizationFee as number) ?? null,
                 discountPct: (p.discountPct as number) ?? null,
                 taxPct: (p.taxPct as number) ?? null,
@@ -157,8 +157,8 @@ export default function OnboardingPage() {
     }
   }
 
-  function setProd(i: number, perShade: number) {
-    setDna((d) => (d ? { ...d, products: d.products.map((p, j) => (j === i ? { ...p, perShade } : p)) } : d));
+  function setProd(i: number, patch: Partial<{ name: string; perShade: number; size: string | null }>) {
+    setDna((d) => (d ? { ...d, products: d.products.map((p, j) => (j === i ? { ...p, ...patch } : p)) } : d));
   }
   function setSys(i: number, perSqft: number) {
     setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
@@ -307,13 +307,15 @@ export default function OnboardingPage() {
           ) : dna ? (
             <div className="space-y-4">
               <Card className="p-6">
-                <div className="font-semibold mb-3">Shade products — charged price per shade</div>
+                <div className="font-semibold mb-1">Shade products — charged price each</div>
+                <div className="text-[12px] text-bw-muted mb-3">Each price is for the product&apos;s reference size — confirm or adjust the size we read.</div>
                 {dna.products.length === 0 && <p className="text-[13px] text-bw-muted">None found — add your products in Settings later.</p>}
                 <div className="space-y-2">
                   {dna.products.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3">
-                      <span className="text-[14px]">{p.name}</span>
-                      <div className="flex items-center gap-1"><span className="text-bw-muted">$</span><input type="number" step="0.01" value={p.perShade} onChange={(e) => setProd(i, Number(e.target.value))} className="w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">/shade</span></div>
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[14px] flex-1">{p.name}</span>
+                      <input value={p.size ?? ""} onChange={(e) => setProd(i, { size: e.target.value || null })} placeholder={'60"W x 96"H'} className="w-32 border border-bw-border rounded-lg px-2 py-1.5 text-[12px] text-bw-body" />
+                      <div className="flex items-center gap-1 flex-shrink-0"><span className="text-bw-muted">$</span><input type="number" step="0.01" value={p.perShade} onChange={(e) => setProd(i, { perShade: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">each</span></div>
                     </div>
                   ))}
                 </div>

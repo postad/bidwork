@@ -32,7 +32,7 @@ export type FlooringCard = {
   discountPct: number | null;
 };
 export type WtCard = {
-  products: { name: string; perShade: number }[];
+  products: { name: string; perShade: number; size: string | null }[];
   mobilizationFee: number | null;
   taxPct: number | null;
   discountPct: number | null;
@@ -60,7 +60,7 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
 
 function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   const by = new Map(items.map((i) => [i.code, i]));
-  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number }[] })?.bySystem ?? []).map((p) => ({ name: p.name, perShade: Number(p.perShade) }));
+  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number; size?: string | null }[] })?.bySystem ?? []).map((p) => ({ name: p.name, perShade: Number(p.perShade), size: p.size ?? null }));
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
   const card: WtCard = { products, mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
   return { card, complete: products.filter((p) => p.perShade != null && p.perShade > 0).length > 0 };

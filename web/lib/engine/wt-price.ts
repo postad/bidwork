@@ -21,7 +21,8 @@ import type { MemoryEntry } from "./price-match";
 
 export interface WtProduct {
   name: string;
-  perShade: number;
+  perShade: number; // charged price per unit (one shade/blind), at the reference size
+  size?: string | null; // reference window size this price is for, e.g. '60"W x 96"H'
 }
 
 export interface WtPricingDNA {
@@ -53,8 +54,9 @@ export interface PricedLine {
 }
 
 export interface ShadeMatch {
-  rate: number | null; // resolved per-shade price, or null = unpriced
+  rate: number | null; // resolved per-unit price, or null = unpriced
   matchedProduct: string | null;
+  matchedSize: string | null; // the reference size of the matched product (for the bid note)
   source: "rate_card" | "memory" | "unpriced";
   confidence: number;
   reason: string;
@@ -99,18 +101,18 @@ const MATCH_SYSTEM =
  */
 export async function matchShadeProducts(
   items: { product: string; qty: number; location?: string }[],
-  products: { name: string; perShade: number }[],
+  products: { name: string; perShade: number; size?: string | null }[],
   memory: MemoryEntry[] = [],
 ): Promise<{ matches: ShadeMatch[]; usage: Usage }> {
   if (!items.length) return { matches: [], usage: emptyUsage() };
   if (!products.length) {
     return {
-      matches: items.map(() => ({ rate: null, matchedProduct: null, source: "unpriced" as const, confidence: 1, reason: "No products in your price list yet." })),
+      matches: items.map(() => ({ rate: null, matchedProduct: null, matchedSize: null, source: "unpriced" as const, confidence: 1, reason: "No products in your price list yet." })),
       usage: emptyUsage(),
     };
   }
 
-  const listText = products.map((p) => `- "${p.name}" ($${p.perShade}/shade)`).join("\n");
+  const listText = products.map((p) => `- "${p.name}"${p.size ? ` [ref size ${p.size}]` : ""} ($${p.perShade} each)`).join("\n");
   const memText = memory.length ? `\nPast learned corrections (memory):\n${memory.map((m) => `- ${m.situation}${m.matchedSystem ? ` → "${m.matchedSystem}"` : ""}${m.note ? ` (${m.note})` : ""}`).join("\n")}\n` : "";
   const itemText = items.map((it, i) => `[${i}] ${it.location ? `${it.location}: ` : ""}product="${it.product}", ${it.qty} shade(s)`).join("\n");
 
@@ -136,20 +138,20 @@ export async function matchShadeProducts(
   } catch (e) {
     console.error("wt product-match failed — degrading to unpriced (bid still created)", { error: (e as Error)?.message, items: items.length, products: products.length });
     return {
-      matches: items.map(() => ({ rate: null as number | null, matchedProduct: null, source: "unpriced" as const, confidence: 0, reason: "Pricing match unavailable — please set this line's price." })),
+      matches: items.map(() => ({ rate: null as number | null, matchedProduct: null, matchedSize: null, source: "unpriced" as const, confidence: 0, reason: "Pricing match unavailable — please set this line's price." })),
       usage: emptyUsage(),
     };
   }
 
-  const byName = new Map(products.map((p) => [norm(p.name), p.perShade]));
+  const byName = new Map(products.map((p) => [norm(p.name), { perShade: p.perShade, size: p.size ?? null }]));
   const byIndex = new Map(data.matches.map((m) => [m.itemIndex, m]));
 
   const matches: ShadeMatch[] = items.map((_, i) => {
     const m = byIndex.get(i);
-    if (!m || !m.matchedProduct) return { rate: null, matchedProduct: null, source: "unpriced", confidence: m?.confidence ?? 0.5, reason: m?.reason ?? "No matching product." };
-    const rate = byName.get(norm(m.matchedProduct));
-    if (rate == null) return { rate: null, matchedProduct: null, source: "unpriced", confidence: m.confidence, reason: `Matched "${m.matchedProduct}" but it's not in your price list — needs your price.` };
-    return { rate, matchedProduct: m.matchedProduct, source: m.source === "memory" ? "memory" : "rate_card", confidence: m.confidence, reason: m.reason };
+    if (!m || !m.matchedProduct) return { rate: null, matchedProduct: null, matchedSize: null, source: "unpriced", confidence: m?.confidence ?? 0.5, reason: m?.reason ?? "No matching product." };
+    const hit = byName.get(norm(m.matchedProduct));
+    if (hit == null) return { rate: null, matchedProduct: null, matchedSize: null, source: "unpriced", confidence: m.confidence, reason: `Matched "${m.matchedProduct}" but it's not in your price list — needs your price.` };
+    return { rate: hit.perShade, matchedProduct: m.matchedProduct, matchedSize: hit.size, source: m.source === "memory" ? "memory" : "rate_card", confidence: m.confidence, reason: m.reason };
   });
 
   return { matches, usage };
@@ -177,11 +179,11 @@ export function priceWtScope(scope: WtScope, dna: WtPricingDNA, matches: ShadeMa
     }
     lines.push({
       code: "WT",
-      label: `${m.matchedProduct}${it.location ? ` — ${it.location}` : ""}`,
+      label: `${m.matchedProduct}${m.matchedSize ? ` (${m.matchedSize})` : ""}${it.location ? ` — ${it.location}` : ""}`,
       qty: it.qty,
       unitRate: m.rate,
       amount: r2(it.qty * m.rate),
-      attrs: { product: m.matchedProduct, reportedProduct: it.product, source: m.source, confidence: m.confidence, location: it.location },
+      attrs: { product: m.matchedProduct, refSize: m.matchedSize, reportedProduct: it.product, source: m.source, confidence: m.confidence, location: it.location },
     });
   });
 
@@ -213,7 +215,7 @@ export async function loadWtProductDNA(db: SupabaseClient, workspaceId: string, 
   if (error) throw new Error(`load pricing_items: ${error.message}`);
 
   const byCode = new Map((items ?? []).map((i) => [i.code, i]));
-  const sys = byCode.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number }[] } | undefined;
+  const sys = byCode.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number; size?: string | null }[] } | undefined;
   const mob = byCode.get("MOB")?.sell_price;
   const tax = byCode.get("TAX")?.sell_price;
   const discount = byCode.get("DISCOUNT")?.sell_price;
@@ -225,6 +227,6 @@ export async function loadWtProductDNA(db: SupabaseClient, workspaceId: string, 
     salesTaxRate: tax != null ? Number(tax) / 100 : 0,
     mobilizationFee: mob != null ? Number(mob) : 0,
     defaultDiscountPct: discount != null ? Number(discount) / 100 : 0,
-    products: products.map((p) => ({ name: p.name, perShade: Number(p.perShade) })),
+    products: products.map((p) => ({ name: p.name, perShade: Number(p.perShade), size: p.size ?? null })),
   };
 }

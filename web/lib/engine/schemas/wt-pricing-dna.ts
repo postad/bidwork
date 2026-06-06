@@ -12,11 +12,12 @@ import { z } from "zod";
 export const WtPricingDnaExtract = z.object({
   products: z
     .array(z.object({
-      name: z.string().describe("Shade product as the contractor names it, e.g. 'Motorized solar roller shade', 'Manual room-darkening dual shade', 'Manual aluminum blind'"),
-      perShade: z.number().describe("charged price per shade"),
+      name: z.string().describe("Shade product as the contractor names it, e.g. 'Motorized solar roller shade', 'Manual room-darkening dual shade', 'Manual aluminum blind'. Do NOT split by ganging (1/2/3-on-a-motor) — that grouping discount is captured separately; recover ONE per-unit price per product."),
+      perShade: z.number().describe("charged price per UNIT (one shade/blind) for this product, at its reference size"),
+      size: z.string().nullable().describe('The window/shade size this price corresponds to, as the DEFAULT/reference size, formatted EXACTLY as `60"W x 96"H`. Read it from the proposal (the size that price was quoted for; if several, the most representative). If sizes drive different prices for the same product, this is how you DISTINGUISH otherwise-identical products. Null only if no size is stated anywhere.'),
       source: z.string().nullable(),
     }))
-    .describe("Per-shade charged price for each shade product the contractor installs. Empty if not found."),
+    .describe("Per-unit charged price for each shade product the contractor installs, each with the reference size that price is for. Empty if not found."),
   mobilizationFee: z.number().nullable().describe("Flat mobilization / setup / minimum fee per project"),
   discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10"),
   taxPct: z.number().nullable().describe("Sales tax rate as a percent, e.g. 8.875"),

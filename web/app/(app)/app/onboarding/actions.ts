@@ -121,7 +121,7 @@ export async function getPendingDna() {
 }
 
 export type ConfirmWtDna = {
-  products: { name: string; perShade: number }[];
+  products: { name: string; perShade: number; size: string | null }[];
   mobilizationFee: number | null;
   discountPct: number | null;
   taxPct: number | null;
