@@ -150,18 +150,9 @@ export async function dispatchBids(bidRequestId: string, bidIds: string[]) {
   const dispatchable = (bids ?? []).filter((b) => b.status === "draft");
   if (!dispatchable.length) throw new Error("No draft bids to dispatch (already dispatched, or pricing still pending).");
 
-  // Per-line gate: a bid with an out-of-envelope UNPRICED line (flagged by the AI
-  // pricing-match) can't dispatch — the contractor must price it first, so nothing
-  // ever goes out missing scope. (Reuses the line item's attrs.unpriced flag.)
-  const { data: lineFlags, error: lfErr } = await supabase
-    .from("bid_line_items")
-    .select("bid_id, attrs")
-    .in("bid_id", dispatchable.map((b) => b.id));
-  if (lfErr) throw new Error(`check line items: ${lfErr.message}`);
-  const unpricedBids = new Set((lineFlags ?? []).filter((l) => (l.attrs as { unpriced?: boolean })?.unpriced === true).map((l) => l.bid_id as string));
-  if (unpricedBids.size) {
-    throw new Error(`${unpricedBids.size} selected bid(s) have an unpriced line that's out of the rate card — the contractor must price it before dispatch.`);
-  }
+  // NOTE: a flagged "needs your price" line does NOT block dispatch — that flag is for
+  // the CONTRACTOR to resolve. Dispatch makes the proposal visible to them; the guard
+  // that a $0 line never reaches the GC lives at the contractor's send (approveAndSend).
 
   const now = new Date().toISOString();
 
