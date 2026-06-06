@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { savePricingCard, setTradeCoverage, type TradeCard, type FlooringCard, type WtCard } from "./actions";
+import { GlobalChargesEditor } from "@/components/GlobalChargesEditor";
 
 const numCls = "w-28 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px] outline-none focus:border-bw-green";
 const txtCls = "w-full rounded-lg border border-bw-border px-3 py-2 text-[14px] outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint";
@@ -165,7 +166,7 @@ function Num({ label, suffix, value, onChange, tip }: { label: string; suffix: s
 
 function FlooringForm({ label, card, onChange }: { label: string; card: FlooringCard; onChange: (c: FlooringCard) => void }) {
   const [showAddons, setShowAddons] = useState(
-    card.prepPerSqft != null || card.baseTrimPerLf != null || card.mobilizationFee != null || card.discountPct != null || card.taxPct != null,
+    card.prepPerSqft != null || card.baseTrimPerLf != null || card.discountPct != null || card.taxPct != null,
   );
   const primary = card.systems[0] ?? { name: "", perSqft: 0 };
   const variants = card.systems.slice(1);
@@ -218,15 +219,19 @@ function FlooringForm({ label, card, onChange }: { label: string; card: Flooring
       )}
       <button type="button" onClick={addVariant} className="text-[13px] text-bw-green font-semibold">+ I charge a different rate for another system</button>
 
+      {/* Global charges — flat $ or % of products (mobilization, delivery, …) */}
+      <div className="border-t border-bw-border pt-4">
+        <GlobalChargesEditor charges={card.globalCharges ?? []} onChange={(g) => onChange({ ...card, globalCharges: g })} />
+      </div>
+
       {/* Optional add-ons, collapsed by default */}
       <div className="border-t border-bw-border pt-4">
         {!showAddons ? (
-          <button type="button" onClick={() => setShowAddons(true)} className="text-[13px] text-bw-green font-semibold">+ Add optional extras (prep, base, mobilization, discount, tax)</button>
+          <button type="button" onClick={() => setShowAddons(true)} className="text-[13px] text-bw-green font-semibold">+ Add optional extras (prep, base, discount, tax)</button>
         ) : (
           <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
             <Num label="Substrate prep" suffix="/SF" value={card.prepPerSqft} onChange={(v) => onChange({ ...card, prepPerSqft: v })} tip="Extra per-SF charge to prep the slab (grinding, moisture, leveling) when the spec calls for it. Leave blank if it's already included in your per-SF price." />
             <Num label="Base / trim" suffix="/LF" value={card.baseTrimPerLf} onChange={(v) => onChange({ ...card, baseTrimPerLf: v })} tip="Per linear foot for wall base, cove base, or transition strips — only if you bill those separately." />
-            <Num label="Mobilization fee" suffix="flat" value={card.mobilizationFee} onChange={(v) => onChange({ ...card, mobilizationFee: v })} tip="A one-time flat setup/mobilization charge per job, if you have one. Leave blank or 0 if you don't charge it." />
             <Num label="Default discount" suffix="%" value={card.discountPct} onChange={(v) => onChange({ ...card, discountPct: v })} tip="A standard discount you usually apply, as a percent. Leave blank for none." />
             <Num label="Sales tax" suffix="%" value={card.taxPct} onChange={(v) => onChange({ ...card, taxPct: v })} tip="Your sales-tax rate as a percent. Leave blank if you quote tax-excluded (most commercial subs do)." />
           </div>
@@ -252,10 +257,6 @@ function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => voi
     onChange({ ...card, buckets: { ...buckets, [tier]: { ...buckets[tier], [dim]: v === "" ? null : Number(v) } } });
   const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", prices: { small: null, standard: 0, large: null } }] });
   const removeProduct = (i: number) => onChange({ ...card, products: card.products.filter((_, j) => j !== i) });
-  const charges = card.globalCharges ?? [];
-  const addCharge = () => onChange({ ...card, globalCharges: [...charges, { label: "", amount: 0, kind: "percent" as const }] });
-  const setCharge = (i: number, patch: Partial<{ label: string; amount: number; kind: "flat" | "percent" }>) => onChange({ ...card, globalCharges: charges.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
-  const removeCharge = (i: number) => onChange({ ...card, globalCharges: charges.filter((_, j) => j !== i) });
 
   return (
     <div className="space-y-5">
@@ -305,25 +306,8 @@ function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => voi
         <button type="button" onClick={addProduct} className="text-[13px] text-bw-green font-semibold mt-2">+ Add a shade product</button>
       </div>
 
-      {/* Global charges — flat fees added to every quote */}
       <div className="border-t border-bw-border pt-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[14px] font-semibold inline-flex items-center">Global charges<Info text="Flat fees added to every quote — Installation, Delivery, mobilization, minimum. Add as many as you need." /></span>
-          <button type="button" onClick={addCharge} className="text-[13px] text-bw-green font-semibold">+ Add global charge</button>
-        </div>
-        <div className="space-y-2 mt-2">
-          {charges.map((c, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input className={txtCls + " flex-1"} placeholder="Charge name (e.g. Installation)" value={c.label} onChange={(e) => setCharge(i, { label: e.target.value })} />
-              <button type="button" onClick={() => setCharge(i, { kind: c.kind === "percent" ? "flat" : "percent" })} title="Switch $ / %" className="w-9 h-9 rounded-lg border border-bw-border font-semibold text-bw-body hover:bg-bw-surface flex-shrink-0">{c.kind === "percent" ? "%" : "$"}</button>
-              <input type="number" step="0.01" className={numCls} value={c.amount || ""} onChange={(e) => setCharge(i, { amount: Number(e.target.value) })} />
-              <button type="button" onClick={() => removeCharge(i)} className="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
-              </button>
-            </div>
-          ))}
-          {charges.length === 0 && <p className="text-[13px] text-bw-muted">None — add Installation or other flat fees if you charge them.</p>}
-        </div>
+        <GlobalChargesEditor charges={card.globalCharges ?? []} onChange={(g) => onChange({ ...card, globalCharges: g })} />
       </div>
 
       <div className="border-t border-bw-border pt-4">

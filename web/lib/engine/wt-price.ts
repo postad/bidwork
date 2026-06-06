@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { MODELS, addUsage, emptyUsage, structuredCall, type Usage } from "./anthropic";
 import type { MemoryEntry } from "./price-match";
+import { sumGlobalCharges, parseGlobalCharges, type GlobalCharge } from "./charges";
 
 /**
  * Window-treatments pricing — PER PRODUCT, by SIZE TIER. WT shares the flooring
@@ -34,7 +35,7 @@ export interface WtSizeBuckets {
 
 export interface WtPricingDNA {
   salesTaxRate: number;
-  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[]; // per-quote charges (Installation, …): flat $ or % of the products subtotal
+  globalCharges: GlobalCharge[]; // per-quote charges (Installation, …): flat $ or % of the products subtotal
   defaultDiscountPct: number;
   products: WtProduct[];
   buckets: WtSizeBuckets | null; // null → everything prices at Standard
@@ -197,7 +198,7 @@ export function priceWtScope(scope: WtScope, dna: WtPricingDNA, matches: ShadeMa
   const discount = -Math.round(productsSubtotal * discountPct);
   const afterDiscount = r2(productsSubtotal + discount);
   // Installation + any other charges: flat $ added as-is, or % of the products subtotal.
-  const charges = r2(dna.globalCharges.reduce((a, c) => a + (c.kind === "percent" ? (productsSubtotal * (Number(c.amount) || 0)) / 100 : Number(c.amount) || 0), 0));
+  const charges = sumGlobalCharges(dna.globalCharges, productsSubtotal);
   const subtotal = r2(afterDiscount + charges);
   const tax = r2(subtotal * dna.salesTaxRate);
   const total = r2(subtotal + tax);
@@ -239,11 +240,7 @@ export async function loadWtProductDNA(db: SupabaseClient, workspaceId: string, 
   if (!products.length) return null;
 
   // Global charges (Installation, etc.); fall back to a legacy MOB row as one "Mobilization" charge.
-  const globalCharges = chargeRow?.items?.length
-    ? chargeRow.items.filter((c) => c && c.label && c.amount != null).map((c) => ({ label: c.label, amount: Number(c.amount), kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) }))
-    : mob != null
-      ? [{ label: "Mobilization", amount: Number(mob), kind: "flat" as const }]
-      : [];
+  const globalCharges = parseGlobalCharges(chargeRow?.items, mob != null ? Number(mob) : null);
 
   return {
     salesTaxRate: tax != null ? Number(tax) / 100 : 0,

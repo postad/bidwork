@@ -27,7 +27,7 @@ export type FlooringCard = {
   systems: { name: string; perSqft: number }[];
   prepPerSqft: number | null;
   baseTrimPerLf: number | null;
-  mobilizationFee: number | null;
+  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
   taxPct: number | null;
   discountPct: number | null;
 };
@@ -59,7 +59,14 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
   const by = new Map(items.map((i) => [i.code, i]));
   const systems = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perSqft: number }[] })?.bySystem ?? []).map((s) => ({ name: s.name, perSqft: Number(s.perSqft) }));
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
-  const card: FlooringCard = { systems, prepPerSqft: num("PREP"), baseTrimPerLf: num("BASE"), mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
+  const chargeItems = (by.get("CHARGES")?.pricing as { items?: { label: string; amount: number; kind?: "flat" | "percent" }[] })?.items ?? [];
+  const mob = num("MOB");
+  const globalCharges = chargeItems.length
+    ? chargeItems.map((c) => ({ label: c.label, amount: Number(c.amount), kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) }))
+    : mob != null
+      ? [{ label: "Mobilization", amount: mob, kind: "flat" as const }]
+      : [];
+  const card: FlooringCard = { systems, prepPerSqft: num("PREP"), baseTrimPerLf: num("BASE"), globalCharges, taxPct: num("TAX"), discountPct: num("DISCOUNT") };
   return { card, complete: systems.length > 0 };
 }
 
@@ -173,7 +180,7 @@ export async function savePricingCard(tradeId: string, category: string, card: F
     push("SYS", "Floor systems ($/SF)", "per-sqft", null, { bySystem: systems });
     if (c.prepPerSqft != null) push("PREP", "Substrate Prep", "per-sqft", c.prepPerSqft);
     if (c.baseTrimPerLf != null) push("BASE", "Base / Trim", "per-lf", c.baseTrimPerLf);
-    if (c.mobilizationFee != null) push("MOB", "Mobilization Fee", "flat", c.mobilizationFee);
+    push("CHARGES", "Global charges", "flat", null, { items: (c.globalCharges ?? []).filter((g) => g.label) });
     if (c.taxPct != null) push("TAX", "Sales Tax Rate", "percent", c.taxPct);
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
   } else if (category === "window-treatments") {

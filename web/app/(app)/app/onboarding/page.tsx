@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { GlobalChargesEditor } from "@/components/GlobalChargesEditor";
 import {
   createOnboardingUploads,
   startPricingExtraction,
@@ -114,7 +115,7 @@ export default function OnboardingPage() {
                 systems: ((p.systems as { name: string; perSqft: number }[]) ?? []).map((x) => ({ name: x.name, perSqft: x.perSqft })),
                 prepPerSqft: (p.prepPerSqft as number) ?? null,
                 baseTrimPerLf: (p.baseTrimPerLf as number) ?? null,
-                mobilizationFee: (p.mobilizationFee as number) ?? null,
+                globalCharges: ((p.globalCharges as { label: string; amount: number; kind?: "flat" | "percent" }[]) ?? []).map((c) => ({ label: c.label, amount: c.amount, kind: c.kind === "percent" ? ("percent" as const) : ("flat" as const) })),
                 discountPct: (p.discountPct as number) ?? null,
                 taxPct: (p.taxPct as number) ?? null,
                 paymentTerms: (p.paymentTerms as string) ?? null,
@@ -188,15 +189,6 @@ export default function OnboardingPage() {
   function setBucket(tier: Tier, dim: "maxW" | "maxH", v: string) {
     const n = v === "" ? null : Number(v);
     setDna((d) => (d ? { ...d, buckets: { ...d.buckets, [tier]: { ...d.buckets[tier], [dim]: n } } } : d));
-  }
-  function addCharge() {
-    setDna((d) => (d ? { ...d, globalCharges: [...d.globalCharges, { label: "", amount: 0, kind: "percent" as const }] } : d));
-  }
-  function setCharge(i: number, patch: Partial<{ label: string; amount: number; kind: "flat" | "percent" }>) {
-    setDna((d) => (d ? { ...d, globalCharges: d.globalCharges.map((c, j) => (j === i ? { ...c, ...patch } : c)) } : d));
-  }
-  function removeCharge(i: number) {
-    setDna((d) => (d ? { ...d, globalCharges: d.globalCharges.filter((_, j) => j !== i) } : d));
   }
   function setSys(i: number, perSqft: number) {
     setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
@@ -286,11 +278,14 @@ export default function OnboardingPage() {
                 </div>
               </Card>
 
+              <Card className="p-6">
+                <GlobalChargesEditor charges={floorDna.globalCharges} onChange={(g) => setFloorDna((d) => (d ? { ...d, globalCharges: g } : d))} />
+              </Card>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <Card className="p-6 space-y-3">
                   <DnaNum label="Substrate prep" suffix="/SF" value={floorDna.prepPerSqft} onChange={(v) => setFloorDna((d) => (d ? { ...d, prepPerSqft: v } : d))} />
                   <DnaNum label="Base / trim" suffix="/LF" value={floorDna.baseTrimPerLf} onChange={(v) => setFloorDna((d) => (d ? { ...d, baseTrimPerLf: v } : d))} />
-                  <DnaNum label="Mobilization fee" suffix="flat" value={floorDna.mobilizationFee} onChange={(v) => setFloorDna((d) => (d ? { ...d, mobilizationFee: v } : d))} />
                 </Card>
                 <Card className="p-6 space-y-3">
                   <DnaNum label="Default discount" suffix="%" value={floorDna.discountPct} onChange={(v) => setFloorDna((d) => (d ? { ...d, discountPct: v } : d))} />
@@ -355,26 +350,8 @@ export default function OnboardingPage() {
                 )}
               </Card>
 
-              {/* Global charges — flat fees added to every quote (Installation, Delivery, …) */}
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="font-semibold">Global charges</div>
-                  <button onClick={addCharge} className="text-[13px] text-bw-green font-semibold">+ Add charge</button>
-                </div>
-                <div className="text-[12px] text-bw-muted mb-3">Flat fees added to every quote — e.g. Installation, Delivery, Minimum.</div>
-                <div className="space-y-2">
-                  {dna.globalCharges.map((c, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input value={c.label} onChange={(e) => setCharge(i, { label: e.target.value })} placeholder="Installation" className="flex-1 rounded-lg border border-bw-border px-2 py-1.5 text-[13px] outline-none focus:border-bw-green" />
-                      <button type="button" onClick={() => setCharge(i, { kind: c.kind === "percent" ? "flat" : "percent" })} title="Switch $ / %" className="w-8 h-8 rounded-lg border border-bw-border font-semibold text-bw-body hover:bg-bw-surface flex-shrink-0">{c.kind === "percent" ? "%" : "$"}</button>
-                      <input type="number" step="0.01" value={c.amount || ""} onChange={(e) => setCharge(i, { amount: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
-                      <button type="button" onClick={() => removeCharge(i)} className="w-8 h-8 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text flex items-center justify-center flex-shrink-0" aria-label="Remove">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-                  ))}
-                  {dna.globalCharges.length === 0 && <p className="text-[13px] text-bw-muted">None — add Installation or other flat fees if you charge them.</p>}
-                </div>
+                <GlobalChargesEditor charges={dna.globalCharges} onChange={(g) => setDna((d) => (d ? { ...d, globalCharges: g } : d))} />
               </Card>
 
               <div className="grid sm:grid-cols-2 gap-4">

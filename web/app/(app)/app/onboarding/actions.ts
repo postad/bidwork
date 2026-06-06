@@ -183,7 +183,7 @@ export type ConfirmFlooringDna = {
   systems: { name: string; perSqft: number }[];
   prepPerSqft: number | null;
   baseTrimPerLf: number | null;
-  mobilizationFee: number | null;
+  globalCharges: { label: string; amount: number; kind: "flat" | "percent" }[];
   discountPct: number | null;
   taxPct: number | null;
   paymentTerms: string | null;
@@ -214,7 +214,7 @@ export async function confirmFlooringPricingDna(dna: ConfirmFlooringDna) {
     rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Floor systems ($/SF)", unit: "per-sqft", sell_price: null, pricing: { bySystem: systems } });
     if (dna.prepPerSqft != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "PREP", label: "Substrate Prep", unit: "per-sqft", sell_price: dna.prepPerSqft, pricing: {} });
     if (dna.baseTrimPerLf != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "BASE", label: "Base / Trim", unit: "per-lf", sell_price: dna.baseTrimPerLf, pricing: {} });
-    if (dna.mobilizationFee != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "MOB", label: "Mobilization Fee", unit: "flat", sell_price: dna.mobilizationFee, pricing: {} });
+    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "CHARGES", label: "Global charges", unit: "flat", sell_price: null, pricing: { items: dna.globalCharges } });
     if (dna.taxPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "TAX", label: "Sales Tax Rate", unit: "percent", sell_price: dna.taxPct, pricing: {} });
     if (dna.discountPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "DISCOUNT", label: "Default Proposal Discount", unit: "percent", sell_price: dna.discountPct, pricing: {} });
   }

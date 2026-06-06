@@ -20,7 +20,13 @@ export const FlooringPricingDnaExtract = z.object({
     .describe("Per-SF charged price for each floor system the contractor installs. Empty if not found."),
   prepPerSqft: z.number().nullable().describe("Substrate prep charged price per SF (grind/shot-blast/moisture/leveling)"),
   baseTrimPerLf: z.number().nullable().describe("Base / cove / transition charged price per linear foot"),
-  mobilizationFee: z.number().nullable().describe("Flat mobilization / setup fee per project"),
+  globalCharges: z
+    .array(z.object({
+      label: z.string().describe('e.g. "Mobilization", "Installation", "Delivery", "Minimum job charge"'),
+      amount: z.number().describe("Dollar amount if kind=flat, or the percent value (e.g. 10) if kind=percent"),
+      kind: z.enum(["flat", "percent"]).describe('"flat" = fixed $; "percent" = a % of the product/material total'),
+    }))
+    .describe("Flat or % per-project charges added on top of the floor systems (mobilization, delivery, minimum). Empty if none."),
   discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10"),
   taxPct: z.number().nullable().describe("Sales tax rate as a percent, e.g. 8.875"),
   paymentTerms: z.string().nullable().describe("e.g. '50% deposit, 50% on completion'"),

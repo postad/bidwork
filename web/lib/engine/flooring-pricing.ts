@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FlooringPricingDNA } from "./flooring-price";
+import { parseGlobalCharges } from "./charges";
 
 /**
  * Build a flooring FlooringPricingDNA from a workspace's pricing_items rows for a
@@ -30,17 +31,17 @@ export async function loadFlooringPricingDNA(
   const prep = byCode.get("PREP")?.sell_price;
   const base = byCode.get("BASE")?.sell_price;
   const mob = byCode.get("MOB")?.sell_price;
+  const chargeRow = byCode.get("CHARGES")?.pricing as { items?: { label: string; amount: number; kind?: "flat" | "percent" }[] } | undefined;
   const tax = byCode.get("TAX")?.sell_price;
   const discount = byCode.get("DISCOUNT")?.sell_price;
 
   const systems = (sys?.bySystem ?? []).filter((s) => s && s.name && s.perSqft != null);
-  // A flooring rate card just needs ≥1 priceable system. Mobilization is OPTIONAL
-  // (most contractors don't charge it separately) — treat missing as $0, don't skip.
+  // A flooring rate card just needs ≥1 priceable system. Global charges are OPTIONAL.
   if (!systems.length) return null;
 
   return {
     salesTaxRate: tax != null ? Number(tax) / 100 : 0,
-    mobilizationFee: mob != null ? Number(mob) : 0,
+    globalCharges: parseGlobalCharges(chargeRow?.items, mob != null ? Number(mob) : null),
     defaultDiscountPct: discount != null ? Number(discount) / 100 : 0,
     rates: {
       systems: systems.map((s) => ({ name: s.name, perSqft: Number(s.perSqft) })),

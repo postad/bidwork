@@ -36,8 +36,8 @@ export type BidData = {
 };
 
 const DEFAULT_EXCLUSIONS = [
-  "Electrical rough-in / line voltage for motorized units (by others)",
-  "Structural blocking and backing",
+  "Work outside the documented scope",
+  "Structural blocking, backing, and substrate repair",
   "Permits, filing, and controlled inspections",
 ];
 
@@ -66,12 +66,12 @@ export function BidReview({ data }: { data: BidData }) {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [subject, setSubject] = useState(
-    sv ? `${data.projectName ?? "Your project"} — window treatments · ${data.company.name}` : `Proposal — ${data.projectName ?? "your project"} · ${data.company.name}`,
+    sv ? `${data.projectName ?? "Your project"} — site visit · ${data.company.name}` : `Proposal — ${data.projectName ?? "your project"} · ${data.company.name}`,
   );
   const [body, setBody] = useState(
     sv
-      ? `Hi ${data.gcName ?? "there"},\n\nWe reviewed the documents for ${data.projectName ?? "this project"} and saw the window-treatment scope. The set calls it out but doesn't include a shade schedule or dimensioned plan, so rather than guess a number we'd like to do a quick field measure and send you an accurate, itemized quote.\n\nWe work right in your area and can turn this around fast — just reply to set up a visit.\n\nBest,\n${data.company.name}`
-      : `Hi ${data.gcName ?? "there"},\n\nThank you for the opportunity to bid ${data.projectName ?? "this project"}. Our proposal for the window-treatment scope is attached.\n\nHappy to walk through anything or adjust scope — just reply to this email and it comes straight to me.\n\nBest,\n${data.company.name}`,
+      ? `Hi ${data.gcName ?? "there"},\n\nWe reviewed the documents for ${data.projectName ?? "this project"} and saw our scope. The set calls it out but doesn't include a dimensioned schedule, so rather than guess a number we'd like to do a quick field measure and send you an accurate, itemized quote.\n\nWe work right in your area and can turn this around fast — just reply to set up a visit.\n\nBest,\n${data.company.name}`
+      : `Hi ${data.gcName ?? "there"},\n\nThank you for the opportunity to bid ${data.projectName ?? "this project"}. Our proposal for this scope is attached.\n\nHappy to walk through anything or adjust scope — just reply to this email and it comes straight to me.\n\nBest,\n${data.company.name}`,
   );
   const [ccMe, setCcMe] = useState(true);
 
@@ -195,7 +195,7 @@ export function BidReview({ data }: { data: BidData }) {
             <div>
               <div className="font-black text-[22px] tracking-tight leading-none">{data.company.name}</div>
               <div className="text-[12px] text-bw-muted mt-1.5">
-                {[data.company.address, data.company.website].filter(Boolean).join(" · ") || "Commercial Window Treatments"}
+                {[data.company.address, data.company.website].filter(Boolean).join(" · ") || "Commercial subcontractor"}
               </div>
             </div>
             <div className="text-right text-[12px] text-bw-muted font-mono">
@@ -224,7 +224,7 @@ export function BidReview({ data }: { data: BidData }) {
                 <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">What we read</div>
                 {data.notesToGc && <p className="text-[14px] text-bw-body leading-relaxed mb-4">{data.notesToGc}</p>}
                 <div className="rounded-xl bg-bw-green-tint/50 border border-bw-green-tint-2 px-4 py-3 text-[13px] text-bw-body">
-                  <span className="font-semibold text-bw-green-deep">Site visit requested.</span> The set names the window-treatment scope but has no shade schedule or dimensioned plan, so we&apos;ll field-measure and send an accurate, itemized quote — rather than guess a number.
+                  <span className="font-semibold text-bw-green-deep">Site visit requested.</span> The set names our scope but has no dimensioned schedule, so we&apos;ll field-measure and send an accurate, itemized quote — rather than guess a number.
                 </div>
               </div>
             )}

@@ -463,7 +463,7 @@ export const extractPricing = schemaTask({
       // rate card; window-treatments recovers shade/blind rates.
       if (category === "flooring") {
         const { dna, usage } = await extractFlooringPricingDna(merged);
-        logger.info("Flooring pricing DNA extracted", { systems: dna.systems.length, prep: dna.prepPerSqft, base: dna.baseTrimPerLf, mob: dna.mobilizationFee, tokens: usage });
+        logger.info("Flooring pricing DNA extracted", { systems: dna.systems.length, prep: dna.prepPerSqft, base: dna.baseTrimPerLf, charges: dna.globalCharges.length, tokens: usage });
         await setStatus({ status: "ready", error: null, category, ...dna });
         return { ok: true, systems: dna.systems.length };
       }

@@ -8,7 +8,7 @@ const SYSTEM =
   `- systems: for EACH floor system they install (e.g. self-leveling epoxy, urethane cement, carpet tile, broadloom, LVT, VCT, polished concrete, sealed concrete, hardwood, tile), the charged price PER SQUARE FOOT. Use the contractor's own wording for the system name.\n` +
   `- prepPerSqft: substrate prep charged per SF (grinding/shot-blast/moisture mitigation/leveling), if itemized.\n` +
   `- baseTrimPerLf: cove/wall base + transitions charged per linear foot, if itemized.\n` +
-  `- mobilizationFee: any flat mobilization/setup/minimum fee.\n` +
+  `- globalCharges: per-project charges added on top of the floor systems (mobilization, delivery, minimum). One entry each {label, amount, kind}. kind="flat" for a fixed $; kind="percent" if quoted as a % of the material/product total (amount is the percent). Empty if none.\n` +
   `- discountPct / taxPct: any standard discount and the sales-tax rate seen.\n` +
   `- paymentTerms, warranty, validityDays, exclusions: from the boilerplate.\n\n` +
   `Use ONLY rates you actually see. If something isn't present, leave it null / empty — never invent a price. ` +
