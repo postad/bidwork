@@ -59,9 +59,12 @@ const isOverflow = (e: unknown) => /too long|too large|request_too_large|maximum
 
 export async function runMultiTradeScan(docs: ScanDoc[], trades: TradeInput[]): Promise<ScanResult> {
   let usage = emptyUsage();
-  // slug → aggregate
-  const agg = new Map<string, { present: boolean; conf: number; reason: string; pages: Map<string, { documentId: string; page: number; kind: string }> }>();
-  for (const t of trades) agg.set(t.slug, { present: false, conf: 0, reason: "", pages: new Map() });
+  // slug → aggregate. Track PRESENT-evidence and ABSENT-evidence separately: a trade
+  // is BID if any chunk found scope, and its headline confidence + reason must then come
+  // from a PRESENT chunk — never bleed in from a confident "not here" chunk (that mix is
+  // what produced "BID · 99% — no window treatments specified").
+  const agg = new Map<string, { presentFound: boolean; presentConf: number; presentReason: string; absentConf: number; absentReason: string; pages: Map<string, { documentId: string; page: number; kind: string }> }>();
+  for (const t of trades) agg.set(t.slug, { presentFound: false, presentConf: 0, presentReason: "", absentConf: 0, absentReason: "", pages: new Map() });
   const contactsByKey = new Map<string, ScanContact>();
   const tradeList = trades.map((t) => t.slug).join(", ");
 
@@ -97,19 +100,19 @@ export async function runMultiTradeScan(docs: ScanDoc[], trades: TradeInput[]): 
       const a = agg.get(t.slug);
       if (!a) continue;
       if (t.scopePresent) {
-        a.present = true;
-        if (t.confidence > a.conf) {
-          a.conf = t.confidence;
-          a.reason = t.reason;
+        a.presentFound = true;
+        if (t.confidence > a.presentConf) {
+          a.presentConf = t.confidence;
+          a.presentReason = t.reason;
         }
         for (const p of t.relevantPages ?? []) {
           const globalPage = indices[p.pageInChunk - 1];
           if (globalPage == null) continue;
           a.pages.set(`${doc.id}:${globalPage}`, { documentId: doc.id, page: globalPage + 1, kind: p.kind });
         }
-      } else if (!a.present && t.confidence > a.conf) {
-        a.conf = t.confidence;
-        a.reason = t.reason;
+      } else if (t.confidence > a.absentConf) {
+        a.absentConf = t.confidence;
+        a.absentReason = t.reason;
       }
     }
     for (const c of data.contacts ?? []) {
@@ -133,12 +136,16 @@ export async function runMultiTradeScan(docs: ScanDoc[], trades: TradeInput[]): 
 
   const result: ScanTradeResult[] = trades.map((t) => {
     const a = agg.get(t.slug)!;
+    const present = a.presentFound;
+    // BID → report the strongest PRESENT chunk; NO-BID → the strongest ABSENT chunk, so
+    // the headline confidence + reason always AGREE with the verdict. (pages are only
+    // ever recorded on a present chunk, so a no-bid carries none.)
     return {
       slug: t.slug,
       label: t.label,
-      relevance: a.present ? "bid" : "no_bid",
-      confidence: a.conf,
-      reasoning: a.reason,
+      relevance: present ? "bid" : "no_bid",
+      confidence: present ? a.presentConf : a.absentConf,
+      reasoning: present ? a.presentReason : a.absentReason,
       relevantPages: [...a.pages.values()].sort((x, y) => x.page - y.page),
     };
   });
