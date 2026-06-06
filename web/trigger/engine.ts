@@ -402,22 +402,6 @@ export const extractBid = schemaTask({
         }
         bidsCreated++;
       }
-
-      // 4 · Contacts (with email) → this contractor's Network. email is the unit.
-      const contactRows = extraction.contacts
-        .filter((c) => c.email)
-        .map((c) => ({
-          workspace_id: cov.workspace_id,
-          name: c.name,
-          role: c.role,
-          company: c.company,
-          email: c.email,
-          found_in: c.source,
-          source_bid_request_id: bidRequestId,
-        }));
-      if (contactRows.length) {
-        await db.from("contacts").upsert(contactRows, { onConflict: "workspace_id,email", ignoreDuplicates: true });
-      }
     }
 
     metadata.set("status", "priced");

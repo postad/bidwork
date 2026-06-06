@@ -168,6 +168,34 @@ export async function dispatchBids(bidRequestId: string, bidIds: string[]) {
   );
   if (lErr) throw new Error(`write usage ledger: ${lErr.message}`);
 
+  // Network grows on ASSIGNMENT: the dispatched sub earns this project's contacts —
+  // people from a job actually given to them, not every in-coverage sub. Pulled from
+  // the request's extractions, deduped by email, scoped to each dispatched workspace.
+  // Service-role write (cross-workspace); best-effort — never block a dispatch over it.
+  const db = engineDb();
+  const { data: exs } = await db.from("extractions").select("result").eq("bid_request_id", bidRequestId);
+  const byEmail = new Map<string, { name: string; role: string; company: string | null; email: string; source: string }>();
+  for (const e of exs ?? []) {
+    const cs = (e.result as { contacts?: { name: string; role: string; company: string | null; email: string | null; source: string }[] } | null)?.contacts ?? [];
+    for (const c of cs) if (c.email && !byEmail.has(c.email)) byEmail.set(c.email, { ...c, email: c.email });
+  }
+  const dispatchedWorkspaces = [...new Set(dispatchable.map((b) => b.workspace_id))];
+  if (byEmail.size && dispatchedWorkspaces.length) {
+    const contactRows = dispatchedWorkspaces.flatMap((wsId) =>
+      [...byEmail.values()].map((c) => ({
+        workspace_id: wsId,
+        name: c.name,
+        role: c.role,
+        company: c.company,
+        email: c.email,
+        found_in: c.source,
+        source_bid_request_id: bidRequestId,
+      })),
+    );
+    const { error: ctErr } = await db.from("contacts").upsert(contactRows, { onConflict: "workspace_id,email", ignoreDuplicates: true });
+    if (ctErr) console.error("dispatch: contact enrichment failed", ctErr.message);
+  }
+
   const { error: sErr } = await supabase
     .from("bid_requests")
     .update({ status: "dispatched" })

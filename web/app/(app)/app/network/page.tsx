@@ -16,16 +16,26 @@ export default async function NetworkPage() {
     .single();
   if (!profile?.workspace_id) redirect("/app");
 
+  // The sub's category identity (workspace_trades → trades) — drives category-aware
+  // say-hi copy instead of the old window-treatments hardwiring.
+  const { data: myTrades } = await supabase.from("workspace_trades").select("trade_id").eq("workspace_id", profile.workspace_id);
+  const myTradeIds = (myTrades ?? []).map((w) => w.trade_id as string);
+  const { data: tradeRows } = myTradeIds.length
+    ? await supabase.from("trades").select("category_label").in("id", myTradeIds)
+    : { data: [] as { category_label: string | null }[] };
+  const categoryLabel = tradeRows?.[0]?.category_label ?? null;
+
   const { data: contacts } = await supabase
     .from("contacts")
     .select("id, name, role, company, email, found_in, source_bid_request_id, in_network")
+    .eq("workspace_id", profile.workspace_id)
     .not("email", "is", null)
     .order("created_at", { ascending: false });
   const list = contacts ?? [];
 
   // Outreach status per contact + project titles for "found in".
   const [{ data: emails }, { data: reqs }] = await Promise.all([
-    supabase.from("emails").select("contact_id, status").eq("stream", "outreach"),
+    supabase.from("emails").select("contact_id, status").eq("stream", "outreach").eq("workspace_id", profile.workspace_id),
     list.some((c) => c.source_bid_request_id)
       ? supabase.from("bid_requests").select("id, title").in("id", list.map((c) => c.source_bid_request_id).filter(Boolean) as string[])
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
@@ -57,6 +67,7 @@ export default async function NetworkPage() {
       contacts={contactsOut}
       stats={stats}
       companyName={profile.company_name ?? "Your Company"}
+      categoryLabel={categoryLabel}
       replyTo={profile.reply_to_email ?? profile.email ?? null}
     />
   );

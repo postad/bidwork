@@ -53,25 +53,27 @@ function statusPill(status: string | null) {
   }
 }
 
-function draft(first: string, role: string, company: string, project: string | null) {
+function draft(first: string, role: string, trade: string, company: string, project: string | null) {
   const proj = project ?? "your project";
-  const open = `Hi ${first},\n\nI'm reaching out from ${company} — we're a commercial window-treatment contractor here in the NYC metro (solar and roller shades, motorization, and drapery).\n\n`;
+  const open = `Hi ${first},\n\nI'm reaching out from ${company} — we're a commercial ${trade} contractor.\n\n`;
   const k = roleKey(role);
   const mid =
     k === "gc"
-      ? `I saw your team on the ${proj} documents and wanted to say hi. We'd love to be a go-to resource whenever window treatments are in scope.\n\n`
+      ? `I saw your team on the ${proj} documents and wanted to say hi. We'd love to be a go-to resource whenever ${trade} is in scope.\n\n`
       : k === "architect"
-      ? `We came across your window-treatment specs on ${proj} and wanted to say hi. We're glad to be a resource for product cut sheets, lead times, or quick budget numbers — on this or future projects.\n\n`
+      ? `We came across your ${trade} specs on ${proj} and wanted to say hi. We're glad to be a resource for product details, lead times, or quick budget numbers — on this or future projects.\n\n`
       : k === "owner"
-      ? `We noticed your team on ${proj} and wanted to introduce ourselves directly. We'd love to be at your service for window treatments whenever a project calls for them.\n\n`
+      ? `We noticed your team on ${proj} and wanted to introduce ourselves directly. We'd love to be at your service for ${trade} whenever a project calls for it.\n\n`
       : k === "designer"
-      ? `We saw your work referenced on ${proj} and wanted to say hi. We'd love to support your specs with fabric options, samples, and realistic budget numbers whenever it helps.\n\n`
+      ? `We saw your work referenced on ${proj} and wanted to say hi. We'd love to support your specs with options, samples, and realistic budget numbers whenever it helps.\n\n`
       : `We noticed your involvement on ${proj} and wanted to say hi.\n\n`;
-  return open + mid + `No need to reply — just wanted to be on your radar. If window treatments ever come up, we'd love to help.\n\nBest,\n${company}`;
+  return open + mid + `No need to reply — just wanted to be on your radar. If ${trade} ever comes up, we'd love to help.\n\nBest,\n${company}`;
 }
 
-export function NetworkList({ contacts, stats, companyName, replyTo }: { contacts: NetContact[]; stats: { peopleFound: number; saidHi: number; inNetwork: number; replies: number }; companyName: string; replyTo: string | null }) {
+export function NetworkList({ contacts, stats, companyName, categoryLabel, replyTo }: { contacts: NetContact[]; stats: { peopleFound: number; saidHi: number; inNetwork: number; replies: number }; companyName: string; categoryLabel: string | null; replyTo: string | null }) {
   const router = useRouter();
+  // The contractor's trade, in lowercase prose for the say-hi copy (e.g. "flooring").
+  const trade = (categoryLabel ?? "specialty trade").toLowerCase();
   const [seg, setSeg] = useState<Seg>("all");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<NetContact | null>(null);
@@ -95,7 +97,7 @@ export function NetworkList({ contacts, stats, companyName, replyTo }: { contact
   function openHi(c: NetContact) {
     setActive(c);
     setSubject(`Saying hi — ${companyName}`);
-    setBody(draft(c.name.split(/\s+/)[0] ?? c.name, c.role, companyName, c.project));
+    setBody(draft(c.name.split(/\s+/)[0] ?? c.name, c.role, trade, companyName, c.project));
     setCcMe(true);
     setError(null);
   }
