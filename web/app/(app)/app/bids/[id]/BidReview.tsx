@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveBidEdits, approveAndSend, type LineInput } from "./actions";
@@ -79,6 +79,12 @@ export function BidReview({ data }: { data: ProposalData }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const multi = sections.length > 1;
   const totals = useMemo(() => sections.map(sectionTotals), [sections]);
@@ -104,11 +110,14 @@ export function BidReview({ data }: { data: ProposalData }) {
     setBusy(true);
     setError(null);
     try {
+      let learned = 0;
       for (const s of sections) {
         const payload: LineInput[] = s.lines.map((l) => ({ id: l.id, location: l.location, description: l.description, qty: l.qty, unitPrice: l.unitPrice }));
-        await saveBidEdits(s.bidId, payload, s.discountPct, s.deliveryInstall);
+        const r = await saveBidEdits(s.bidId, payload, s.discountPct, s.deliveryInstall);
+        learned += r?.learned ?? 0;
       }
       setEditing(false);
+      setNotice(learned > 0 ? `Saved — added ${learned} product${learned === 1 ? "" : "s"} to your pricing for next time.` : "Saved.");
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -360,6 +369,14 @@ export function BidReview({ data }: { data: ProposalData }) {
           )}
         </div>
       </div>
+
+      {/* save confirmation toast (Pillar-3 learning feedback) */}
+      {notice && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-bw-text text-white text-[13px] font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7CD64F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+          {notice}
+        </div>
+      )}
 
       {/* send modal */}
       {modalOpen && (

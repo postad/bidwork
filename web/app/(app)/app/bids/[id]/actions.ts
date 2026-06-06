@@ -61,8 +61,8 @@ async function learnPricedProducts(
   tradeId: string,
   learned: { name: string; price: number }[],
   project: string | null,
-) {
-  if (!learned.length) return;
+): Promise<number> {
+  if (!learned.length) return 0;
   const { data: trade } = await supabase.from("trades").select("category").eq("id", tradeId).single();
   const isWt = trade?.category === "window-treatments";
 
@@ -76,7 +76,7 @@ async function learnPricedProducts(
   const bySystem = (((sysRow?.pricing as { bySystem?: Record<string, unknown>[] })?.bySystem) ?? []).slice();
   const have = new Set(bySystem.map((p) => normName(String(p.name ?? ""))));
 
-  let changed = false;
+  let added = 0;
   for (const item of learned) {
     const name = item.name.trim();
     if (!name || have.has(normName(name))) continue;
@@ -84,9 +84,9 @@ async function learnPricedProducts(
     const learnedMeta = { learned: true, learnedFrom: project ?? null, learnedAt: new Date().toISOString() };
     bySystem.push(isWt ? { name, prices: { small: null, standard: item.price, large: null }, ...learnedMeta } : { name, perSqft: item.price, ...learnedMeta });
     have.add(normName(name));
-    changed = true;
+    added++;
   }
-  if (!changed) return;
+  if (!added) return 0;
 
   await supabase.from("pricing_items").upsert(
     {
@@ -100,6 +100,7 @@ async function learnPricedProducts(
     },
     { onConflict: "workspace_id,trade_id,code" },
   );
+  return added;
 }
 
 /**
@@ -158,7 +159,7 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
       return name ? { name: String(name).trim(), price: l.unitPrice } : null;
     })
     .filter((x): x is { name: string; price: number } => x !== null);
-  await learnPricedProducts(supabase, bid.workspace_id as string, bid.trade_id as string, learned, bid.project_name ?? null);
+  const learnedCount = await learnPricedProducts(supabase, bid.workspace_id as string, bid.trade_id as string, learned, bid.project_name ?? null);
 
   const p = priceFromLines(lines, pct, install, Number(bid.tax_rate ?? 0));
   const { error: bErr } = await supabase
@@ -168,7 +169,7 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
   if (bErr) throw new Error(`update bid totals: ${bErr.message}`);
 
   revalidatePath(`/app/bids/${bidId}`);
-  return { total: p.total };
+  return { total: p.total, learned: learnedCount };
 }
 
 /**
