@@ -303,9 +303,10 @@ export default function OnboardingPage() {
                 </Card>
               )}
 
+              <p className="text-[12px] text-bw-muted pt-1">You can add or change systems and charges anytime in <span className="font-medium text-bw-text">Settings → pricing</span>.</p>
               <div className="flex items-center justify-between pt-2">
                 <button onClick={() => setStep(1)} className="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
-                <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Looks right — continue"}</Button>
+                <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Save & finish"}</Button>
               </div>
             </div>
           ) : dna ? (
