@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/tag";
 import { DispatchPanel, type SubGroup } from "./DispatchPanel";
+import { RequestTabs } from "./RequestTabs";
 import { DocsPanel } from "./DocsPanel";
 import { TradeOverrideButton } from "./TradeOverrideButton";
 import { acknowledgeGaps } from "./actions";
@@ -140,35 +141,28 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
   const totalPages = (docs ?? []).reduce((a, d) => a + (d.page_count || 0), 0);
 
   const statusTone = req.status === "needs_review" ? "amber" : req.status === "dispatched" ? "blue" : "neutral";
+  const dispatchableCount = subs.filter((s) => s.draftBidIds.length > 0).length;
 
-  return (
-    <div className="pb-28">
-      <Link href="/app/admin" className="inline-flex items-center gap-1.5 text-[13px] text-bw-body hover:text-bw-text mb-5">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
-        Bid requests
-      </Link>
+  // ── Tab 1: DISPATCH — the only thing the operator acts on ──
+  const dispatchTab = (
+    <section className="mb-9">
+      <p className="text-[13px] text-bw-body mb-4">One proposal per sub — each section priced from their own DNA. Tick a sub to dispatch their whole proposal; nothing reaches the GC until the sub approves it.</p>
+      {blockingGaps.length > 0 && (
+        <form action={async () => { "use server"; await acknowledgeGaps(req.id); }} className="flex items-center justify-between gap-3 bg-bw-red-tint/40 border border-bw-red/30 rounded-2xl px-4 py-3 mb-4">
+          <p className="text-[12.5px] text-bw-body">
+            <span className="font-semibold text-bw-red">{blockingGaps.length} critical gap{blockingGaps.length === 1 ? "" : "s"}</span> block dispatch. Acknowledge you&apos;re pricing off the available evidence (the contractor confirms at review).
+          </p>
+          <button className="flex-shrink-0 inline-flex items-center gap-2 bg-bw-text text-white font-semibold text-[13px] px-4 py-2 rounded-full transition hover:bg-bw-green">Acknowledge &amp; enable</button>
+        </form>
+      )}
+      <DispatchPanel bidRequestId={req.id} subs={subs} hasCriticalGap={blockingGaps.length > 0} warningCount={warningGaps.length} />
+    </section>
+  );
 
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
-        <div>
-          <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">Review &amp; dispatch</div>
-          <h1 className="text-[1.9rem] font-extrabold tracking-tight">{req.title}</h1>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-bw-body mt-2">
-            <span className="font-mono">
-              {fileCount} file{fileCount === 1 ? "" : "s"}
-              {totalPages > 0 ? ` · ${totalPages} pp` : ""}
-              {totalMb > 0 ? ` · ${totalMb.toFixed(1)} MB` : ""}
-            </span>
-            <span>{req.radius_mi} mi from {req.center_zip ?? "—"}</span>
-          </div>
-        </div>
-        {blockingGaps.length > 0 ? (
-          <Tag tone="red">{blockingGaps.length} critical gap{blockingGaps.length === 1 ? "" : "s"} block dispatch</Tag>
-        ) : (
-          <Tag tone={statusTone}>{req.status}</Tag>
-        )}
-      </div>
-
-      {/* 1 · Trade relevance */}
+  // ── Tab 2: DETAILS — relevance, documents, gaps, contacts (reference) ──
+  const detailsTab = (
+    <>
+      {/* Trade relevance */}
       <section className="mb-9">
         <div className="flex items-baseline gap-2 mb-1">
           <h2 className="text-[1.2rem] font-extrabold tracking-tight">Trade relevance</h2>
@@ -237,64 +231,30 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
           </div>
         ) : (
           <div className="space-y-3">
-            {[...criticalGaps, ...warningGaps].map((g, i) => {
-              const critical = g.severity === "critical";
-              const acknowledged = critical && g.acknowledged;
-              const tone = acknowledged ? "green" : critical ? "red" : "amber";
+            {criticalGaps.map((g, i) => {
+              const acknowledged = g.acknowledged;
               return (
-                <div
-                  key={i}
-                  className={`bg-white rounded-2xl border p-4 border-l-4 ${acknowledged ? "border-bw-border border-l-bw-green" : critical ? "border-bw-red/40 border-l-bw-red" : "border-bw-border border-l-bw-amber"}`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <Tag tone={tone}>{acknowledged ? "ACKNOWLEDGED" : critical ? "CRITICAL" : "WARNING"}</Tag>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[14px]">{g.message}</div>
-                        {g.kind && <div className="text-[11px] text-bw-muted font-mono mt-1">{g.kind}</div>}
-                      </div>
+                <div key={i} className={`bg-white rounded-2xl border p-4 border-l-4 ${acknowledged ? "border-bw-border border-l-bw-green" : "border-bw-red/40 border-l-bw-red"}`}>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Tag tone={acknowledged ? "green" : "red"}>{acknowledged ? "ACKNOWLEDGED" : "CRITICAL"}</Tag>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[14px]">{g.message}</div>
+                      {g.kind && <div className="text-[11px] text-bw-muted font-mono mt-1">{g.kind}</div>}
                     </div>
-                    {!critical && (
-                      <span className="text-[12px] font-medium text-bw-body bg-bw-surface border border-bw-border rounded-full px-3 py-1.5 flex-shrink-0">
-                        Will caveat
-                      </span>
-                    )}
                   </div>
                 </div>
               );
             })}
-            {blockingGaps.length > 0 && (
-              <form action={async () => { "use server"; await acknowledgeGaps(req.id); }} className="flex items-center justify-between gap-3 bg-bw-red-tint/40 border border-bw-red/30 rounded-2xl px-4 py-3">
-                <p className="text-[12.5px] text-bw-body">
-                  The resolution loop (upload the missing doc → re-score) lands in Stage 3. To dispatch now, acknowledge that you&apos;re pricing off the available evidence — the contractor confirms at review.
-                </p>
-                <button className="flex-shrink-0 inline-flex items-center gap-2 bg-bw-text text-white font-semibold text-[13px] px-4 py-2 rounded-full transition hover:bg-bw-green">
-                  Acknowledge &amp; enable dispatch
-                </button>
-              </form>
+            {warningGaps.length > 0 && (
+              <div className="bg-white rounded-2xl border border-bw-border border-l-4 border-l-bw-amber p-4 text-[13px] text-bw-body">
+                <span className="font-semibold text-bw-text">{warningGaps.length} warning{warningGaps.length === 1 ? "" : "s"}</span> — referenced sheets to confirm and low-confidence items. These dispatch as caveats; no action needed.
+              </div>
             )}
           </div>
         )}
       </section>
 
-      {/* 3 · Dispatch fan-out */}
-      <section className="mb-9">
-        <div className="flex items-baseline gap-2 mb-1">
-          <h2 className="text-[1.2rem] font-extrabold tracking-tight">Dispatch</h2>
-          <span className="text-[13px] text-bw-muted">— one priced proposal per matched contractor in range</span>
-        </div>
-        <p className="text-[13px] text-bw-body mb-4">
-          Each contractor gets a draft priced from their own Pricing DNA. Nothing sends until they approve it.
-        </p>
-        <DispatchPanel
-          bidRequestId={req.id}
-          subs={subs}
-          hasCriticalGap={blockingGaps.length > 0}
-          warningCount={warningGaps.length}
-        />
-      </section>
-
-      {/* 4 · Contacts found */}
+      {/* Contacts found */}
       <section className="mb-4">
         <div className="flex items-baseline gap-2 mb-1">
           <h2 className="text-[1.2rem] font-extrabold tracking-tight">Contacts found</h2>
@@ -337,6 +297,33 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
           </div>
         )}
       </section>
+    </>
+  );
+
+  return (
+    <div className="pb-28">
+      <Link href="/app/admin" className="inline-flex items-center gap-1.5 text-[13px] text-bw-body hover:text-bw-text mb-5">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
+        Bid requests
+      </Link>
+
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-bw-green mb-2">Review &amp; dispatch</div>
+          <h1 className="text-[1.9rem] font-extrabold tracking-tight">{req.title}</h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-bw-body mt-2">
+            <span className="font-mono">{fileCount} file{fileCount === 1 ? "" : "s"}{totalPages > 0 ? ` · ${totalPages} pp` : ""}{totalMb > 0 ? ` · ${totalMb.toFixed(1)} MB` : ""}</span>
+            <span>{req.radius_mi} mi from {req.center_zip ?? "—"}</span>
+          </div>
+        </div>
+        {blockingGaps.length > 0 ? (
+          <Tag tone="red">{blockingGaps.length} critical gap{blockingGaps.length === 1 ? "" : "s"} block dispatch</Tag>
+        ) : (
+          <Tag tone={statusTone}>{req.status}</Tag>
+        )}
+      </div>
+
+      <RequestTabs dispatchCount={dispatchableCount} dispatch={dispatchTab} details={detailsTab} />
     </div>
   );
 }
