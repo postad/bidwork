@@ -23,7 +23,7 @@ async function loadOwnedBid(bidId: string) {
   // RLS already scopes bids to the caller's workspace; this is a clear error if not.
   const { data: bid, error } = await supabase
     .from("bids")
-    .select("id, status, discount_label, delivery_install, tax_rate, gc_contact_email, project_name")
+    .select("id, status, workspace_id, trade_id, discount_label, delivery_install, tax_rate, gc_contact_email, project_name")
     .eq("id", bidId)
     .single();
   if (error || !bid) throw new Error(error?.message ?? "Bid not found");
@@ -44,6 +44,59 @@ function priceFromLines(lines: LineInput[], discountPct: number, install: number
   const tax = r2(subtotal * taxRate);
   const total = r2(subtotal + tax);
   return { products, discount, subtotal, tax, total };
+}
+
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/**
+ * Pillar 3 — learn priced corrections. When a contractor sets a price on a line the
+ * engine flagged "needs your price" (a product not in their rate card), add it to
+ * their card for this trade so the NEXT bid's AI match auto-prices it. Flooring stores
+ * {name, perSqft}; WT stores {name, prices:{small,standard,large}} — same SYS row the
+ * loaders read. We only ADD new products (never overwrite an existing one).
+ */
+async function learnPricedProducts(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  tradeId: string,
+  learned: { name: string; price: number }[],
+) {
+  if (!learned.length) return;
+  const { data: trade } = await supabase.from("trades").select("category").eq("id", tradeId).single();
+  const isWt = trade?.category === "window-treatments";
+
+  const { data: sysRow } = await supabase
+    .from("pricing_items")
+    .select("pricing")
+    .eq("workspace_id", workspaceId)
+    .eq("trade_id", tradeId)
+    .eq("code", "SYS")
+    .maybeSingle();
+  const bySystem = (((sysRow?.pricing as { bySystem?: Record<string, unknown>[] })?.bySystem) ?? []).slice();
+  const have = new Set(bySystem.map((p) => normName(String(p.name ?? ""))));
+
+  let changed = false;
+  for (const item of learned) {
+    const name = item.name.trim();
+    if (!name || have.has(normName(name))) continue;
+    bySystem.push(isWt ? { name, prices: { small: null, standard: item.price, large: null } } : { name, perSqft: item.price });
+    have.add(normName(name));
+    changed = true;
+  }
+  if (!changed) return;
+
+  await supabase.from("pricing_items").upsert(
+    {
+      workspace_id: workspaceId,
+      trade_id: tradeId,
+      code: "SYS",
+      label: isWt ? "Shade products ($/unit by size)" : "Floor systems ($/SF)",
+      unit: isWt ? "per-unit" : "per-sqft",
+      sell_price: null,
+      pricing: { bySystem },
+    },
+    { onConflict: "workspace_id,trade_id,code" },
+  );
 }
 
 /**
@@ -89,6 +142,20 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
     if (before && Number(before.unit_price) !== l.unitPrice) edits.push({ bid_id: bidId, line_item_id: l.id, category: "price", field: "unit_price", old_value: before.unit_price, new_value: l.unitPrice });
   }
   if (edits.length) await supabase.from("bid_edits").insert(edits);
+
+  // Pillar 3: a flagged "needs your price" line the contractor just priced → learn it
+  // into their rate card so the next bid auto-prices it (the AI match consults the card).
+  const learned = lines
+    .map((l) => {
+      const before = prev.get(l.id);
+      const wasFlagged = (before?.attrs as { unpriced?: boolean } | undefined)?.unpriced;
+      if (!wasFlagged || !(l.unitPrice > 0)) return null;
+      const a = (before?.attrs ?? {}) as Record<string, unknown>;
+      const name = (a.product as string) ?? (a.system as string) ?? (l.description ?? "").split(" — ")[0];
+      return name ? { name: String(name).trim(), price: l.unitPrice } : null;
+    })
+    .filter((x): x is { name: string; price: number } => x !== null);
+  await learnPricedProducts(supabase, bid.workspace_id as string, bid.trade_id as string, learned);
 
   const p = priceFromLines(lines, pct, install, Number(bid.tax_rate ?? 0));
   const { error: bErr } = await supabase
