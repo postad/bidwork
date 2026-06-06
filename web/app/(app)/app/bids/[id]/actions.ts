@@ -50,12 +50,14 @@ function priceFromLines(lines: LineInput[], discountPct: number, install: number
  * Persist the contractor's edits: rewrite line item qty/price/amount, recompute
  * the bid totals, and record field-level diffs in bid_edits (the learning loop).
  */
-export async function saveBidEdits(bidId: string, lines: LineInput[], discountPct?: number) {
+export async function saveBidEdits(bidId: string, lines: LineInput[], discountPct?: number, installFee?: number) {
   const { supabase, bid } = await loadOwnedBid(bidId);
   if (bid.status === "sent") throw new Error("This bid was already sent — it can't be edited.");
 
   // Discount is per-bid and editable. Clamp to a sane 0–100% and keep the label in sync.
   const pct = discountPct == null ? discountPctOf(bid.discount_label) : Math.min(1, Math.max(0, discountPct));
+  // Delivery & install (the global charges total) is a per-bid override too.
+  const install = installFee == null ? Number(bid.delivery_install ?? 0) : Math.max(0, installFee);
 
   const { data: existing } = await supabase
     .from("bid_line_items")
@@ -77,10 +79,10 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
   }
   if (edits.length) await supabase.from("bid_edits").insert(edits);
 
-  const p = priceFromLines(lines, pct, Number(bid.delivery_install ?? 0), Number(bid.tax_rate ?? 0));
+  const p = priceFromLines(lines, pct, install, Number(bid.tax_rate ?? 0));
   const { error: bErr } = await supabase
     .from("bids")
-    .update({ subtotal: p.subtotal, discount_amount: p.discount, discount_label: `${Math.round(pct * 100)}%`, tax_amount: p.tax, total: p.total })
+    .update({ subtotal: p.subtotal, discount_amount: p.discount, discount_label: `${Math.round(pct * 100)}%`, delivery_install: install, tax_amount: p.tax, total: p.total })
     .eq("id", bidId);
   if (bErr) throw new Error(`update bid totals: ${bErr.message}`);
 

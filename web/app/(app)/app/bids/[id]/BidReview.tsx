@@ -60,6 +60,7 @@ export function BidReview({ data }: { data: BidData }) {
 
   const [lines, setLines] = useState<BidLine[]>(data.lines);
   const [discountPct, setDiscountPct] = useState(data.discountPct);
+  const [install, setInstall] = useState(data.deliveryInstall);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function BidReview({ data }: { data: BidData }) {
   );
   const [ccMe, setCcMe] = useState(true);
 
-  const t = useMemo(() => computeTotals(lines, discountPct, data.deliveryInstall, data.taxRate), [lines, discountPct, data.deliveryInstall, data.taxRate]);
+  const t = useMemo(() => computeTotals(lines, discountPct, install, data.taxRate), [lines, discountPct, install, data.taxRate]);
 
   const grouped = useMemo(() => {
     const groups: { location: string; items: BidLine[] }[] = [];
@@ -99,7 +100,7 @@ export function BidReview({ data }: { data: BidData }) {
     setError(null);
     try {
       const payload: LineInput[] = lines.map((l) => ({ id: l.id, location: l.location, description: l.description, qty: l.qty, unitPrice: l.unitPrice }));
-      await saveBidEdits(data.id, payload, discountPct);
+      await saveBidEdits(data.id, payload, discountPct, install);
       setEditing(false);
       router.refresh();
     } catch (e) {
@@ -165,7 +166,7 @@ export function BidReview({ data }: { data: BidData }) {
         <div className="flex items-center gap-2">
           {editing ? (
             <>
-              <button onClick={() => { setLines(data.lines); setDiscountPct(data.discountPct); setEditing(false); }} disabled={busy} className="bg-white text-bw-body font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-surface">Cancel</button>
+              <button onClick={() => { setLines(data.lines); setDiscountPct(data.discountPct); setInstall(data.deliveryInstall); setEditing(false); }} disabled={busy} className="bg-white text-bw-body font-semibold text-[13px] px-4 py-2 rounded-full border border-bw-border hover:bg-bw-surface">Cancel</button>
               <button onClick={onSave} disabled={busy} className="bg-bw-text text-white font-semibold text-[13px] px-5 py-2 rounded-full hover:bg-bw-green disabled:opacity-50">{busy ? "Saving…" : "Save changes"}</button>
             </>
           ) : (
@@ -267,7 +268,25 @@ export function BidReview({ data }: { data: BidData }) {
                   ) : (
                     t.discount !== 0 && <FootRow label={`Discount (${Math.round(discountPct * 100)}%)`} value={`−${usd(Math.abs(t.discount))}`} green />
                   )}
-                  <FootRow label="Delivery & install" value={usd(data.deliveryInstall)} />
+                  {editing ? (
+                    <tr>
+                      <td colSpan={3} className="py-1.5 text-right text-bw-body">
+                        <span className="inline-flex items-center gap-1.5 justify-end">
+                          Delivery &amp; install
+                          <span className="text-bw-muted">$</span>
+                          <input
+                            type="number"
+                            value={install}
+                            onChange={(e) => setInstall(Number(e.target.value) || 0)}
+                            className="w-24 font-mono text-right border border-bw-green/40 rounded px-1 py-0.5 outline-none focus:border-bw-green"
+                          />
+                        </span>
+                      </td>
+                      <td className="text-right font-mono">{usd(install)}</td>
+                    </tr>
+                  ) : (
+                    <FootRow label="Delivery & install" value={usd(install)} />
+                  )}
                   <FootRow label={`Tax (${(data.taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)`} value={usd(t.tax)} />
                   <tr className="border-t border-bw-border">
                     <td colSpan={3} className="py-2.5 text-right font-semibold text-[15px]">Total bid</td>
@@ -335,11 +354,11 @@ export function BidReview({ data }: { data: BidData }) {
               <div className="space-y-2.5 text-[13px]">
                 <div className="flex justify-between"><span className="text-bw-body">Products</span><span className="font-mono">{usd(t.products)}</span></div>
                 {t.discount !== 0 && <div className="flex justify-between"><span className="text-bw-body">Discount</span><span className="font-mono text-bw-green">−{usd(Math.abs(t.discount))}</span></div>}
-                <div className="flex justify-between"><span className="text-bw-body">Delivery & install</span><span className="font-mono">{usd(data.deliveryInstall)}</span></div>
+                <div className="flex justify-between"><span className="text-bw-body">Delivery & install</span><span className="font-mono">{usd(install)}</span></div>
                 <div className="flex justify-between"><span className="text-bw-body">Tax</span><span className="font-mono">{usd(t.tax)}</span></div>
                 <div className="flex justify-between border-t border-bw-border pt-2.5"><span className="font-semibold">Total bid</span><span className="font-mono font-bold text-bw-green">{usd(t.total)}</span></div>
               </div>
-              {editing && <p className="text-[11px] text-bw-muted mt-3">Confirm ganging tiers &amp; blind widths above — the total updates live.</p>}
+              {editing && <p className="text-[11px] text-bw-muted mt-3">Adjust quantities, prices, discount &amp; install above — the total updates live.</p>}
             </div>
           )}
         </div>
