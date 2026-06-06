@@ -61,16 +61,27 @@ export async function saveBidEdits(bidId: string, lines: LineInput[], discountPc
 
   const { data: existing } = await supabase
     .from("bid_line_items")
-    .select("id, qty, unit_price")
+    .select("id, qty, unit_price, attrs")
     .eq("bid_id", bidId);
   const prev = new Map((existing ?? []).map((l) => [l.id, l]));
+
+  // Lines the contractor removed in edit mode → delete them from the bid.
+  const keep = new Set(lines.map((l) => l.id));
+  const removed = (existing ?? []).filter((l) => !keep.has(l.id)).map((l) => l.id);
+  if (removed.length) {
+    const { error } = await supabase.from("bid_line_items").delete().in("id", removed).eq("bid_id", bidId);
+    if (error) throw new Error(`remove lines: ${error.message}`);
+  }
 
   const edits: { bid_id: string; line_item_id: string; category: string; field: string; old_value: unknown; new_value: unknown }[] = [];
   for (const l of lines) {
     const before = prev.get(l.id);
+    const attrs = (before?.attrs ?? {}) as Record<string, unknown>;
+    // Pricing a flagged "needs your price" line clears the flag (so the send gate passes).
+    const nextAttrs = l.unitPrice > 0 && attrs.unpriced ? { ...attrs, unpriced: false } : attrs;
     const { error } = await supabase
       .from("bid_line_items")
-      .update({ qty: l.qty, unit_price: l.unitPrice, amount: r2(l.qty * l.unitPrice) })
+      .update({ description: l.description, location: l.location, qty: l.qty, unit_price: l.unitPrice, amount: r2(l.qty * l.unitPrice), attrs: nextAttrs })
       .eq("id", l.id)
       .eq("bid_id", bidId);
     if (error) throw new Error(`update line: ${error.message}`);
@@ -100,6 +111,12 @@ export async function approveAndSend(bidId: string, email: { subject: string; bo
   const { supabase, user, bid } = await loadOwnedBid(bidId);
   if (bid.status === "sent") throw new Error("This bid was already sent.");
   if (!bid.gc_contact_email) throw new Error("No GC email on this bid — can't send.");
+
+  // Don't let a "needs your price" line reach the GC — price or remove it in Edit first.
+  const { data: flagged } = await supabase.from("bid_line_items").select("attrs").eq("bid_id", bidId);
+  if ((flagged ?? []).some((l) => (l.attrs as { unpriced?: boolean })?.unpriced)) {
+    throw new Error('Some lines still say "needs your price." Price or remove them in Edit before sending.');
+  }
 
   const { data: profile } = await supabase
     .from("profiles")

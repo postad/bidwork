@@ -94,6 +94,12 @@ export function BidReview({ data }: { data: BidData }) {
   function setLine(id: string, patch: Partial<BidLine>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }
+  function removeLine(id: string) {
+    setLines((prev) => prev.filter((l) => l.id !== id));
+  }
+  function removeGroup(location: string) {
+    setLines((prev) => prev.filter((l) => (l.location ?? "General") !== location));
+  }
 
   async function onSave() {
     setBusy(true);
@@ -244,7 +250,7 @@ export function BidReview({ data }: { data: BidData }) {
                 </thead>
                 <tbody className="divide-y divide-bw-border">
                   {grouped.map((g) => (
-                    <GroupRows key={g.location} group={g} editing={editing} onChange={setLine} />
+                    <GroupRows key={g.location} group={g} editing={editing} onChange={setLine} onRemove={removeLine} onRemoveGroup={removeGroup} />
                   ))}
                 </tbody>
                 <tfoot>
@@ -405,19 +411,37 @@ export function BidReview({ data }: { data: BidData }) {
   );
 }
 
-function GroupRows({ group, editing, onChange }: { group: { location: string; items: BidLine[] }; editing: boolean; onChange: (id: string, patch: Partial<BidLine>) => void }) {
+function GroupRows({ group, editing, onChange, onRemove, onRemoveGroup }: { group: { location: string; items: BidLine[] }; editing: boolean; onChange: (id: string, patch: Partial<BidLine>) => void; onRemove: (id: string) => void; onRemoveGroup: (location: string) => void }) {
   return (
     <>
       <tr>
         <td colSpan={4} className="pt-4 pb-1">
-          <div className="text-[11px] font-bold text-bw-text uppercase tracking-[0.12em]">{group.location}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] font-bold text-bw-text uppercase tracking-[0.12em]">{group.location}</div>
+            {editing && (
+              <button type="button" onClick={() => onRemoveGroup(group.location)} className="text-[11px] font-semibold text-bw-red hover:underline">Remove section</button>
+            )}
+          </div>
         </td>
       </tr>
-      {group.items.map((l) => (
+      {group.items.map((l) => {
+        const flagged = (l.attrs as { unpriced?: boolean })?.unpriced;
+        return (
         <tr key={l.id}>
           <td className="py-3 align-top">
-            <div className="font-medium">{l.description ?? l.typeCode}</div>
-            {l.unit && <div className="text-[12px] text-bw-muted">{l.unit}</div>}
+            {editing ? (
+              <div className="flex items-start gap-2">
+                <textarea value={l.description ?? ""} onChange={(e) => onChange(l.id, { description: e.target.value })} rows={2} className="flex-1 text-[13px] border border-bw-green/40 rounded px-1.5 py-1 resize-y outline-none focus:border-bw-green" />
+                <button type="button" onClick={() => onRemove(l.id)} title="Remove line" className="w-7 h-7 flex-shrink-0 rounded border border-bw-border text-bw-muted hover:text-bw-red hover:border-bw-red/50 flex items-center justify-center">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="font-medium">{l.description ?? l.typeCode}</div>
+                {l.unit && <div className="text-[12px] text-bw-muted">{l.unit}</div>}
+              </>
+            )}
           </td>
           <td className="text-center align-top">
             {editing ? (
@@ -428,16 +452,17 @@ function GroupRows({ group, editing, onChange }: { group: { location: string; it
           </td>
           <td className="text-right align-top">
             {editing ? (
-              <input type="number" value={l.unitPrice} onChange={(e) => onChange(l.id, { unitPrice: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-green/40 rounded px-1 py-0.5 outline-none focus:border-bw-green" />
+              <input type="number" value={l.unitPrice} placeholder={flagged ? "set price" : undefined} onChange={(e) => onChange(l.id, { unitPrice: Number(e.target.value) })} className={`w-24 font-mono text-right border rounded px-1 py-0.5 outline-none focus:border-bw-green ${flagged ? "border-bw-amber/60 bg-bw-amber-tint/30" : "border-bw-green/40"}`} />
             ) : (
-              <span className="font-mono">{l.unitPrice.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}</span>
+              <span className={`font-mono ${flagged ? "text-bw-amber" : ""}`}>{flagged ? "needs price" : l.unitPrice.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}</span>
             )}
           </td>
           <td className="text-right align-top font-mono font-semibold">
             {(l.qty * l.unitPrice).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}
           </td>
         </tr>
-      ))}
+        );
+      })}
     </>
   );
 }
