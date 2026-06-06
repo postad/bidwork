@@ -12,12 +12,12 @@ import {
   getOnboardingContext,
   confirmWtPricingDna,
   confirmFlooringPricingDna,
-  saveOnboardingSettings,
   type ConfirmWtDna,
   type ConfirmFlooringDna,
 } from "./actions";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
+type Tier = "small" | "standard" | "large";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -49,8 +49,6 @@ export default function OnboardingPage() {
       active = false;
     };
   }, []);
-
-  const field = "w-full rounded-lg border border-bw-border px-3 py-2 text-[14px] outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green-tint";
 
   // ---------- Step 1: upload ----------
   const [files, setFiles] = useState<File[]>([]);
@@ -110,15 +108,24 @@ export default function OnboardingPage() {
               },
             );
           } else {
+            const num = (k: string) => (p[k] as number) ?? null;
             setDna((prev) =>
               prev ?? {
-                products: ((p.products as { name: string; perShade: number; size: string | null }[]) ?? []).map((x) => ({ name: x.name, perShade: x.perShade, size: x.size ?? null })),
-                mobilizationFee: (p.mobilizationFee as number) ?? null,
-                discountPct: (p.discountPct as number) ?? null,
-                taxPct: (p.taxPct as number) ?? null,
+                products: ((p.products as { name: string; priceStandard: number; priceSmall: number | null; priceLarge: number | null }[]) ?? []).map((x) => ({
+                  name: x.name,
+                  prices: { small: x.priceSmall ?? null, standard: x.priceStandard, large: x.priceLarge ?? null },
+                })),
+                buckets: {
+                  small: { maxW: num("smallMaxW"), maxH: num("smallMaxH") },
+                  standard: { maxW: num("standardMaxW"), maxH: num("standardMaxH") },
+                  large: { maxW: num("largeMaxW"), maxH: num("largeMaxH") },
+                },
+                mobilizationFee: num("mobilizationFee"),
+                discountPct: num("discountPct"),
+                taxPct: num("taxPct"),
                 paymentTerms: (p.paymentTerms as string) ?? null,
                 warranty: (p.warranty as string) ?? null,
-                validityDays: (p.validityDays as number) ?? null,
+                validityDays: num("validityDays"),
                 exclusions: (p.exclusions as string[]) ?? [],
               },
             );
@@ -149,41 +156,7 @@ export default function OnboardingPage() {
         if (!dna) return;
         await confirmWtPricingDna(dna);
       }
-      setStep(3);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function setProd(i: number, patch: Partial<{ name: string; perShade: number; size: string | null }>) {
-    setDna((d) => (d ? { ...d, products: d.products.map((p, j) => (j === i ? { ...p, ...patch } : p)) } : d));
-  }
-  function setSys(i: number, perSqft: number) {
-    setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
-  }
-
-  // ---------- Step 3: gap-fill ----------
-  const [defaultProduct, setDefaultProduct] = useState("Solar 5%");
-  const [minCharge, setMinCharge] = useState("2500");
-  const [leadTime, setLeadTime] = useState("6-8 weeks");
-  const [serviceArea, setServiceArea] = useState("");
-  const [noBid, setNoBid] = useState<string[]>([]);
-  function toggleNoBid(v: string) {
-    setNoBid((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
-  }
-  async function onFinish() {
-    setBusy(true);
-    setError(null);
-    try {
-      await saveOnboardingSettings({
-        defaultProduct,
-        minCharge: minCharge ? Number(minCharge) : null,
-        leadTime: leadTime || null,
-        serviceArea: serviceArea || null,
-        noBid,
-      });
+      // Confirm = finish — the inert ops step is gone; go straight to the dashboard.
       router.push("/app");
       router.refresh();
     } catch (e) {
@@ -192,19 +165,27 @@ export default function OnboardingPage() {
     }
   }
 
-  const noBidOptions = isFlooring
-    ? ["Residential / single-family", "Jobs under 1,000 SF", "Occupied / phased work", "Out-of-hours / night work only"]
-    : ["Residential / single-family", "Drive-thru / QSR only", "Drapery / soft goods", "Jobs under 10 windows"];
+  function setProdPrice(i: number, tier: Tier, v: string) {
+    const n = v === "" ? null : Number(v);
+    setDna((d) => (d ? { ...d, products: d.products.map((p, j) => (j === i ? { ...p, prices: { ...p.prices, [tier]: tier === "standard" ? (n ?? 0) : n } } : p)) } : d));
+  }
+  function setBucket(tier: Tier, dim: "maxW" | "maxH", v: string) {
+    const n = v === "" ? null : Number(v);
+    setDna((d) => (d ? { ...d, buckets: { ...d.buckets, [tier]: { ...d.buckets[tier], [dim]: n } } } : d));
+  }
+  function setSys(i: number, perSqft: number) {
+    setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
+  }
 
   return (
     <div className="max-w-[760px] mx-auto">
       {/* step rail */}
       <div className="flex items-center gap-2 mb-8 text-[12px] font-medium">
-        {([[1, "Show us your bids"], [2, "Confirm what we read"], [3, "A few last things"]] as const).map(([n, label], i) => (
+        {([[1, "Show us your bids"], [2, "Confirm what we read"]] as const).map(([n, label], i) => (
           <div key={n} className="flex items-center gap-2 flex-1">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold ${step >= n ? "bg-bw-green text-white" : "bg-bw-border text-bw-body"}`}>{n}</span>
             <span className={step >= n ? "text-bw-text" : "text-bw-muted"}>{label}</span>
-            {i < 2 && <span className="flex-1 h-px bg-bw-border" />}
+            {i < 1 && <span className="flex-1 h-px bg-bw-border" />}
           </div>
         ))}
       </div>
@@ -306,19 +287,44 @@ export default function OnboardingPage() {
             </div>
           ) : dna ? (
             <div className="space-y-4">
+              {/* Size buckets — set once, shared by every product */}
               <Card className="p-6">
-                <div className="font-semibold mb-1">Shade products — charged price each</div>
-                <div className="text-[12px] text-bw-muted mb-3">Each price is for the product&apos;s reference size — confirm or adjust the size we read.</div>
-                {dna.products.length === 0 && <p className="text-[13px] text-bw-muted">None found — add your products in Settings later.</p>}
+                <div className="font-semibold mb-1">Your size buckets</div>
+                <div className="text-[12px] text-bw-muted mb-3">Define Small / Standard / Large once (window W×H). Bids price at <span className="font-medium text-bw-text">Standard</span> unless the documents give a size.</div>
                 <div className="space-y-2">
-                  {dna.products.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-[14px] flex-1">{p.name}</span>
-                      <input value={p.size ?? ""} onChange={(e) => setProd(i, { size: e.target.value || null })} placeholder={'60"W x 96"H'} className="w-32 border border-bw-border rounded-lg px-2 py-1.5 text-[12px] text-bw-body" />
-                      <div className="flex items-center gap-1 flex-shrink-0"><span className="text-bw-muted">$</span><input type="number" step="0.01" value={p.perShade} onChange={(e) => setProd(i, { perShade: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" /><span className="text-bw-muted text-[12px]">each</span></div>
+                  {(["small", "standard", "large"] as const).map((tier) => (
+                    <div key={tier} className="flex items-center gap-2 text-[13px]">
+                      <span className="w-32 capitalize">{tier}{tier === "standard" && <span className="text-bw-muted text-[11px]"> · default</span>}</span>
+                      <span className="text-bw-muted text-[12px]">up to</span>
+                      <input type="number" value={dna.buckets[tier].maxW ?? ""} onChange={(e) => setBucket(tier, "maxW", e.target.value)} placeholder="W" className="w-16 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5" />
+                      <span className="text-bw-muted text-[12px]">&quot;W ×</span>
+                      <input type="number" value={dna.buckets[tier].maxH ?? ""} onChange={(e) => setBucket(tier, "maxH", e.target.value)} placeholder="H" className="w-16 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5" />
+                      <span className="text-bw-muted text-[12px]">&quot;H</span>
                     </div>
                   ))}
                 </div>
+              </Card>
+
+              {/* Products — one row each, three tier prices */}
+              <Card className="p-6">
+                <div className="font-semibold mb-1">Shade products — price each, by size</div>
+                <div className="text-[12px] text-bw-muted mb-3">Only <span className="font-medium text-bw-text">Standard</span> is required; Small / Large are optional.</div>
+                {dna.products.length === 0 && <p className="text-[13px] text-bw-muted">None found — add your products in Settings later.</p>}
+                {dna.products.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] text-bw-muted font-semibold">
+                      <span className="flex-1">Product</span><span className="w-[68px] text-right">Small</span><span className="w-[68px] text-right">Standard</span><span className="w-[68px] text-right">Large</span>
+                    </div>
+                    {dna.products.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-[14px] flex-1">{p.name}</span>
+                        <input type="number" step="0.01" value={p.prices.small ?? ""} onChange={(e) => setProdPrice(i, "small", e.target.value)} placeholder="—" className="w-[68px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
+                        <input type="number" step="0.01" value={p.prices.standard || ""} onChange={(e) => setProdPrice(i, "standard", e.target.value)} className="w-[68px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
+                        <input type="number" step="0.01" value={p.prices.large ?? ""} onChange={(e) => setProdPrice(i, "large", e.target.value)} placeholder="—" className="w-[68px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
 
               <div className="grid sm:grid-cols-2 gap-4">
@@ -330,6 +336,14 @@ export default function OnboardingPage() {
                   <DnaNum label="Sales tax" suffix="%" value={dna.taxPct} onChange={(v) => setDna((d) => (d ? { ...d, taxPct: v } : d))} />
                 </Card>
               </div>
+
+              {/* Boilerplate review */}
+              <Card className="p-6 space-y-3">
+                <div className="font-semibold">Your terms</div>
+                <TxtRow label="Payment terms" value={dna.paymentTerms} onChange={(v) => setDna((d) => (d ? { ...d, paymentTerms: v } : d))} />
+                <TxtRow label="Warranty" value={dna.warranty} onChange={(v) => setDna((d) => (d ? { ...d, warranty: v } : d))} />
+                <DnaNum label="Quote valid" suffix="days" value={dna.validityDays} onChange={(v) => setDna((d) => (d ? { ...d, validityDays: v } : d))} />
+              </Card>
 
               {dna.exclusions.length > 0 && (
                 <Card className="p-6">
@@ -343,58 +357,10 @@ export default function OnboardingPage() {
 
               <div className="flex items-center justify-between pt-2">
                 <button onClick={() => setStep(1)} className="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
-                <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Looks right — continue"}</Button>
+                <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Save & finish"}</Button>
               </div>
             </div>
           ) : null}
-        </div>
-      )}
-
-      {step === 3 && (
-        <div>
-          <h1 className="text-[1.8rem] font-extrabold tracking-tight mb-2">A few things your bids don&apos;t say.</h1>
-          <p className="text-[15px] text-bw-body mb-6 max-w-[56ch]">Quick, non-sensitive details that make your auto-generated bids sharper.</p>
-          <div className="space-y-4">
-            {!isFlooring && (
-              <Card className="p-6">
-                <label className="block font-semibold mb-1">When the spec doesn&apos;t name a product, default to…</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
-                  {["Solar 5%", "Solar 3%", "Roller", "Ask me"].map((p) => (
-                    <button key={p} type="button" onClick={() => setDefaultProduct(p)} className={`border rounded-xl px-3 py-2.5 text-[13px] font-medium text-center ${defaultProduct === p ? "border-bw-green bg-bw-green-tint text-bw-text" : "border-bw-border text-bw-body"}`}>{p}</button>
-                  ))}
-                </div>
-              </Card>
-            )}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Card className="p-6">
-                <label className="block font-semibold mb-1">Minimum job charge</label>
-                <p className="text-[13px] text-bw-body mb-3">We won&apos;t generate a bid below this.</p>
-                <div className="flex items-center gap-1.5"><span className="text-bw-muted">$</span><input value={minCharge} onChange={(e) => setMinCharge(e.target.value)} className={field} /></div>
-              </Card>
-              <Card className="p-6">
-                <label className="block font-semibold mb-1">Typical lead time</label>
-                <p className="text-[13px] text-bw-body mb-3">Stated on the proposal.</p>
-                <input value={leadTime} onChange={(e) => setLeadTime(e.target.value)} className={field} />
-              </Card>
-            </div>
-            <Card className="p-6">
-              <label className="block font-semibold mb-1">Where do you take work?</label>
-              <p className="text-[13px] text-bw-body mb-3">Projects outside this get flagged as no-bid before you waste time.</p>
-              <input value={serviceArea} onChange={(e) => setServiceArea(e.target.value)} placeholder="NYC five boroughs, Westchester, Northern NJ" className={field} />
-            </Card>
-            <Card className="p-6">
-              <label className="block font-semibold mb-1">Anything you don&apos;t bid?</label>
-              <div className="grid sm:grid-cols-2 gap-2 text-[13px] mt-3">
-                {noBidOptions.map((v) => (
-                  <label key={v} className="flex items-center gap-2.5"><input type="checkbox" checked={noBid.includes(v)} onChange={() => toggleNoBid(v)} className="accent-bw-green w-4 h-4" /> {v}</label>
-                ))}
-              </div>
-            </Card>
-            <div className="flex items-center justify-between pt-2">
-              <button onClick={() => setStep(2)} className="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
-              <Button onClick={onFinish} disabled={busy}>{busy ? "Saving…" : "Save my base model"}</Button>
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -452,6 +418,15 @@ function DnaNum({ label, suffix, value, onChange }: { label: string; suffix: str
         <input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" />
         <span className="text-bw-muted text-[12px]">{suffix}</span>
       </div>
+    </div>
+  );
+}
+
+function TxtRow({ label, value, onChange }: { label: string; value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[14px] flex-shrink-0">{label}</span>
+      <input value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} className="flex-1 max-w-[60%] rounded-lg border border-bw-border px-2 py-1.5 text-[13px] outline-none focus:border-bw-green" />
     </div>
   );
 }

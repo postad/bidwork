@@ -74,7 +74,8 @@ export async function runWtPipeline(docs: PipelineDoc[], cfg: WtVerticalConfig):
     const product = sysByRef.get(norm(it.system)) ?? it.system;
     const where = [it.level, it.room].filter(Boolean).join(" / ") || undefined;
     if (it.qty != null && it.qty > 0) {
-      priceable.push({ product, qty: it.qty, location: where });
+      // Carry size when stated → drives the S/M/L tier; absent → priced at Standard.
+      priceable.push({ product, qty: it.qty, location: where, widthInches: it.widthInches, heightInches: it.heightInches });
       if (it.widthInches == null || it.heightInches == null) anyMissingSize = true;
     } else {
       // No count → can't price (count × rate). EXCLUDE + note for the GC, per the
@@ -83,7 +84,7 @@ export async function runWtPipeline(docs: PipelineDoc[], cfg: WtVerticalConfig):
     }
   }
   if (priceable.length && anyMissingSize) {
-    clarifications.push("Shades priced by product type at standard sizes; field dimensions to be confirmed.");
+    clarifications.push("Shades priced at the Standard size tier where the documents give no size; field dimensions to be confirmed.");
   }
 
   const scope: WtScope = { items: priceable, clarifications };

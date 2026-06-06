@@ -1,25 +1,33 @@
 import { z } from "zod";
 
 /**
- * Pricing-DNA extracted from a window-treatments contractor's OWN past proposals.
- * Maps onto the per-product WT pricing model (lib/engine/wt-price.ts): a charged
- * price PER SHADE for each product the contractor installs, plus mobilization, the
- * tenant's typical discount/tax, and boilerplate. Mirrors the flooring DNA schema,
- * with `products` ($/shade) in place of `systems` ($/SF).
+ * Pricing-DNA from a window-treatments contractor's OWN past proposals → the per-PRODUCT,
+ * per-SIZE-TIER WT model (lib/engine/wt-price.ts). Each product has up to three prices
+ * (small / STANDARD / large); the workspace's S/M/L size cutoffs are recovered once.
  *
- * Flat shape (scalars + arrays only, no top-level objects). See [[engine-flat-tool-schemas]].
+ * Flat shape (scalars + arrays only, no top-level objects — see [[engine-flat-tool-schemas]]):
+ * the size buckets are flattened to six top-level numbers; each product carries three
+ * scalar prices.
  */
 export const WtPricingDnaExtract = z.object({
   products: z
     .array(z.object({
-      name: z.string().describe("Shade product as the contractor names it, e.g. 'Motorized solar roller shade', 'Manual room-darkening dual shade', 'Manual aluminum blind'. Do NOT split by ganging (1/2/3-on-a-motor) — that grouping discount is captured separately; recover ONE per-unit price per product."),
-      perShade: z.number().describe("charged price per UNIT (one shade/blind) for this product, at its reference size"),
-      size: z.string().nullable().describe('The window/shade size this price corresponds to, as the DEFAULT/reference size, formatted EXACTLY as `60"W x 96"H`. Read it from the proposal (the size that price was quoted for; if several, the most representative). If sizes drive different prices for the same product, this is how you DISTINGUISH otherwise-identical products. Null only if no size is stated anywhere.'),
+      name: z.string().describe("Shade product as the contractor names it, by OPERATION + FABRIC (e.g. 'Motorized solar roller shade', 'Manual aluminum blind'). Do NOT split by ganging — that grouping discount is captured in discountPct."),
+      priceStandard: z.number().describe("Charged price per UNIT at the STANDARD (default) size. If the proposal shows only one price for this product, put it here."),
+      priceSmall: z.number().nullable().describe("Per-unit price for the SMALL size tier, if the proposal shows a cheaper price for smaller units of this same product; else null."),
+      priceLarge: z.number().nullable().describe("Per-unit price for the LARGE size tier, if the proposal shows a higher price for larger units of this same product; else null."),
       source: z.string().nullable(),
     }))
-    .describe("Per-unit charged price for each shade product the contractor installs, each with the reference size that price is for. Empty if not found."),
+    .describe("One row per distinct shade product (by operation+fabric). When the same product appears at multiple sizes/prices, fold them into ONE row's small/standard/large — never two rows for the same product."),
+  // Workspace S/M/L size cutoffs (in INCHES), inferred from the sizes seen in the proposals.
+  smallMaxW: z.number().nullable().describe('SMALL bucket: max width in inches (a shade up to this W and smallMaxH prices at Small). Null if not inferable.'),
+  smallMaxH: z.number().nullable().describe("SMALL bucket: max height in inches."),
+  standardMaxW: z.number().nullable().describe("STANDARD bucket: max width in inches (the default size band)."),
+  standardMaxH: z.number().nullable().describe("STANDARD bucket: max height in inches."),
+  largeMaxW: z.number().nullable().describe("LARGE bucket: max width in inches."),
+  largeMaxH: z.number().nullable().describe("LARGE bucket: max height in inches."),
   mobilizationFee: z.number().nullable().describe("Flat mobilization / setup / minimum fee per project"),
-  discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10"),
+  discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10 (also where grouped/ganged savings land)"),
   taxPct: z.number().nullable().describe("Sales tax rate as a percent, e.g. 8.875"),
   paymentTerms: z.string().nullable().describe("e.g. '50% deposit, 50% on completion'"),
   warranty: z.string().nullable(),

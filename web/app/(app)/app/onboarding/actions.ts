@@ -120,8 +120,11 @@ export async function getPendingDna() {
   return (settings.pendingDna ?? null) as Record<string, unknown> | null;
 }
 
+type SizeBucket = { maxW: number | null; maxH: number | null };
+export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBucket };
 export type ConfirmWtDna = {
-  products: { name: string; perShade: number; size: string | null }[];
+  products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
+  buckets: WtBuckets;
   mobilizationFee: number | null;
   discountPct: number | null;
   taxPct: number | null;
@@ -131,26 +134,27 @@ export type ConfirmWtDna = {
   exclusions: string[];
 };
 
-/** WT training: write the confirmed per-PRODUCT ($/shade) rate card to pricing_items
- *  for EACH window-treatments sub-trade the workspace covers, plus boilerplate to
- *  settings. Same codes/shape as flooring (SYS/MOB/TAX/DISCOUNT) — SYS.bySystem
- *  entries carry `perShade`. Mirrors confirmFlooringPricingDna. */
+/** WT training: write the confirmed per-PRODUCT, per-size-tier rate card to
+ *  pricing_items for EACH window-treatments sub-trade the workspace covers, plus the
+ *  workspace S/M/L size buckets (SIZES) and boilerplate. Codes mirror flooring
+ *  (SYS/MOB/TAX/DISCOUNT) + SIZES. Marks the workspace onboarded (confirm = finish). */
 export async function confirmWtPricingDna(dna: ConfirmWtDna) {
   const { workspaceId } = await requireContractor();
   const db = engineDb();
   const wtTrades = (await workspaceTradeRows(db, workspaceId)).filter((t) => t.category === "window-treatments");
   if (!wtTrades.length) throw new Error("No window-treatments sub-trades selected for this workspace.");
 
-  const products = dna.products.filter((p) => p.name && p.perShade != null);
+  const products = dna.products.filter((p) => p.name && p.prices && p.prices.standard != null);
   // Guard: a confirm writes SYS to EVERY covered WT trade, so an empty extraction
   // would wipe a card you already trained. Refuse rather than silently overwrite.
   if (!products.length) {
-    throw new Error("No shade products were found in those proposals — nothing to save here. Add or edit your products in Settings → Edit full pricing model.");
+    throw new Error("No shade products with a Standard price were found — nothing to save here. Add or edit your products in Settings → Edit full pricing model.");
   }
   type Row = { workspace_id: string; trade_id: string; code: string; label: string; unit: string; sell_price: number | null; pricing: Record<string, unknown> };
   const rows: Row[] = [];
   for (const t of wtTrades) {
-    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Shade products ($/shade)", unit: "per-shade", sell_price: null, pricing: { bySystem: products } });
+    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Shade products ($/unit by size)", unit: "per-unit", sell_price: null, pricing: { bySystem: products } });
+    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SIZES", label: "Size buckets (S/M/L)", unit: "inches", sell_price: null, pricing: dna.buckets });
     if (dna.mobilizationFee != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "MOB", label: "Mobilization Fee", unit: "flat", sell_price: dna.mobilizationFee, pricing: {} });
     if (dna.taxPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "TAX", label: "Sales Tax Rate", unit: "percent", sell_price: dna.taxPct, pricing: {} });
     if (dna.discountPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "DISCOUNT", label: "Default Proposal Discount", unit: "percent", sell_price: dna.discountPct, pricing: {} });
@@ -159,17 +163,19 @@ export async function confirmWtPricingDna(dna: ConfirmWtDna) {
   const { error } = await db.from("pricing_items").upsert(rows, { onConflict: "workspace_id,trade_id,code" });
   if (error) throw new Error(`save pricing: ${error.message}`);
 
-  // Boilerplate → workspace settings; clear the staged DNA.
+  // Boilerplate → workspace settings; clear the staged DNA; mark onboarded (confirm = finish).
   const { data: ws } = await db.from("workspaces").select("settings").eq("id", workspaceId).single();
   const settings = (ws?.settings ?? {}) as Record<string, unknown>;
   const next = {
     ...settings,
     boilerplate: { paymentTerms: dna.paymentTerms, warranty: dna.warranty, validityDays: dna.validityDays, exclusions: dna.exclusions },
     pendingDna: null,
+    onboardedAt: settings.onboardedAt ?? new Date().toISOString(),
   };
   await db.from("workspaces").update({ settings: next }).eq("id", workspaceId);
 
   revalidatePath("/app/onboarding");
+  revalidatePath("/app");
   return { ok: true };
 }
 
@@ -222,10 +228,12 @@ export async function confirmFlooringPricingDna(dna: ConfirmFlooringDna) {
     ...settings,
     boilerplate: { paymentTerms: dna.paymentTerms, warranty: dna.warranty, validityDays: dna.validityDays, exclusions: dna.exclusions },
     pendingDna: null,
+    onboardedAt: settings.onboardedAt ?? new Date().toISOString(),
   };
   await db.from("workspaces").update({ settings: next }).eq("id", workspaceId);
 
   revalidatePath("/app/onboarding");
+  revalidatePath("/app");
   return { ok: true };
 }
 

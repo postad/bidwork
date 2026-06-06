@@ -13,7 +13,7 @@ function flooringComplete(c: FlooringCard) {
   return c.systems.filter((s) => s.perSqft != null && s.perSqft > 0).length > 0;
 }
 function wtComplete(c: WtCard) {
-  return c.products.filter((p) => p.perShade != null && p.perShade > 0).length > 0;
+  return c.products.filter((p) => p.prices?.standard != null && p.prices.standard > 0).length > 0;
 }
 
 /** Small hover tooltip — plain-language help for non-technical contractors. */
@@ -240,30 +240,57 @@ function FlooringForm({ label, card, onChange }: { label: string; card: Flooring
 
 function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => void }) {
   const [showAddons, setShowAddons] = useState(card.mobilizationFee != null || card.discountPct != null || card.taxPct != null);
-  const setProduct = (i: number, k: "name" | "perShade" | "size", v: string) =>
-    onChange({
-      ...card,
-      products: card.products.map((p, j) => (j === i ? { ...p, [k]: k === "perShade" ? (v === "" ? 0 : Number(v)) : k === "size" ? (v || null) : v } : p)),
-    });
-  const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", perShade: 0, size: null }] });
+  const buckets = card.buckets ?? { small: { maxW: null, maxH: null }, standard: { maxW: null, maxH: null }, large: { maxW: null, maxH: null } };
+  const tiers = ["small", "standard", "large"] as const;
+
+  const setPrice = (i: number, tier: (typeof tiers)[number], v: string) => {
+    const n = v === "" ? null : Number(v);
+    onChange({ ...card, products: card.products.map((p, j) => (j === i ? { ...p, prices: { ...p.prices, [tier]: tier === "standard" ? (n ?? 0) : n } } : p)) });
+  };
+  const setName = (i: number, v: string) => onChange({ ...card, products: card.products.map((p, j) => (j === i ? { ...p, name: v } : p)) });
+  const setBucket = (tier: (typeof tiers)[number], dim: "maxW" | "maxH", v: string) =>
+    onChange({ ...card, buckets: { ...buckets, [tier]: { ...buckets[tier], [dim]: v === "" ? null : Number(v) } } });
+  const addProduct = () => onChange({ ...card, products: [...card.products, { name: "", prices: { small: null, standard: 0, large: null } }] });
   const removeProduct = (i: number) => onChange({ ...card, products: card.products.filter((_, j) => j !== i) });
 
   return (
     <div className="space-y-5">
+      {/* Size buckets — set once, shared by every product */}
       <div>
         <label className="text-[14px] font-semibold inline-flex items-center">
-          Your shade products — price each
-          <Info text="Each shade/blind product you install and the charged price per unit (all-in). Name by operation + fabric (e.g. 'Motorized solar roller shade'); the size is the window size that price is for — the engine matches by product and notes the size on the bid." />
+          Your size buckets
+          <Info text="Define Small / Standard / Large once (window W×H, inches). The engine prices a shade at Standard unless the spec gives a size; bigger than Large is flagged for you to price." />
         </label>
         <div className="space-y-2 mt-2">
+          {tiers.map((tier) => (
+            <div key={tier} className="flex items-center gap-2 text-[13px]">
+              <span className="w-28 capitalize">{tier}{tier === "standard" && <span className="text-bw-muted text-[11px]"> · default</span>}</span>
+              <span className="text-bw-muted text-[12px]">up to</span>
+              <input type="number" className="w-16 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5" placeholder="W" value={buckets[tier].maxW ?? ""} onChange={(e) => setBucket(tier, "maxW", e.target.value)} />
+              <span className="text-bw-muted text-[12px]">&quot;W ×</span>
+              <input type="number" className="w-16 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5" placeholder="H" value={buckets[tier].maxH ?? ""} onChange={(e) => setBucket(tier, "maxH", e.target.value)} />
+              <span className="text-bw-muted text-[12px]">&quot;H</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Products — one row each, three tier prices */}
+      <div className="border-t border-bw-border pt-4">
+        <label className="text-[14px] font-semibold inline-flex items-center">
+          Your shade products — price by size
+          <Info text="Each shade/blind product you install, named by operation + fabric (e.g. 'Motorized solar roller shade'). Only Standard is required; Small/Large are optional. The engine matches by product and prices by size bucket." />
+        </label>
+        <div className="space-y-2 mt-2">
+          <div className="flex items-center gap-2 text-[11px] text-bw-muted font-semibold">
+            <span className="flex-1">Product</span><span className="w-[64px] text-right">Small</span><span className="w-[64px] text-right">Standard</span><span className="w-[64px] text-right">Large</span><span className="w-9" />
+          </div>
           {card.products.map((p, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input className={txtCls + " flex-1"} placeholder="Product name (e.g. Motorized solar roller shade)" value={p.name} onChange={(e) => setProduct(i, "name", e.target.value)} />
-              <input className="w-32 rounded-lg border border-bw-border px-2 py-2 text-[12px] text-bw-body outline-none focus:border-bw-green flex-shrink-0" placeholder={'60"W x 96"H'} value={p.size ?? ""} onChange={(e) => setProduct(i, "size", e.target.value)} />
-              <div className="flex items-center gap-1 flex-shrink-0"><span className="text-bw-muted">$</span>
-                <input type="number" step="0.01" className={numCls} value={p.perShade || ""} onChange={(e) => setProduct(i, "perShade", e.target.value)} />
-                <span className="text-bw-muted text-[12px]">each</span>
-              </div>
+              <input className={txtCls + " flex-1"} placeholder="Product name (e.g. Motorized solar roller shade)" value={p.name} onChange={(e) => setName(i, e.target.value)} />
+              <input type="number" step="0.01" className="w-[64px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" placeholder="—" value={p.prices.small ?? ""} onChange={(e) => setPrice(i, "small", e.target.value)} />
+              <input type="number" step="0.01" className="w-[64px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" value={p.prices.standard || ""} onChange={(e) => setPrice(i, "standard", e.target.value)} />
+              <input type="number" step="0.01" className="w-[64px] font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" placeholder="—" value={p.prices.large ?? ""} onChange={(e) => setPrice(i, "large", e.target.value)} />
               <button type="button" onClick={() => removeProduct(i)} className="w-9 h-9 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text hover:bg-bw-surface flex items-center justify-center flex-shrink-0" aria-label="Remove">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
               </button>
@@ -286,7 +313,7 @@ function WtForm({ card, onChange }: { card: WtCard; onChange: (c: WtCard) => voi
         )}
       </div>
 
-      <p className="text-[12px] text-bw-muted">Name each product by operation + fabric so the engine matches it to the spec; the per-shade price is what gets bid.</p>
+      <p className="text-[12px] text-bw-muted">Name each product by operation + fabric; Standard price is the default the engine bids.</p>
     </div>
   );
 }

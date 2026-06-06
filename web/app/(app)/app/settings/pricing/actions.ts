@@ -31,12 +31,17 @@ export type FlooringCard = {
   taxPct: number | null;
   discountPct: number | null;
 };
+type SizeBucket = { maxW: number | null; maxH: number | null };
+export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBucket };
 export type WtCard = {
-  products: { name: string; perShade: number; size: string | null }[];
+  products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
+  buckets: WtBuckets;
   mobilizationFee: number | null;
   taxPct: number | null;
   discountPct: number | null;
 };
+
+const EMPTY_BUCKETS: WtBuckets = { small: { maxW: null, maxH: null }, standard: { maxW: null, maxH: null }, large: { maxW: null, maxH: null } };
 export type TradeCard = {
   tradeId: string;
   slug: string;
@@ -60,10 +65,14 @@ function buildFlooring(items: Item[]): { card: FlooringCard; complete: boolean }
 
 function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   const by = new Map(items.map((i) => [i.code, i]));
-  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; perShade: number; size?: string | null }[] })?.bySystem ?? []).map((p) => ({ name: p.name, perShade: Number(p.perShade), size: p.size ?? null }));
+  const products = ((by.get("SYS")?.pricing as { bySystem?: { name: string; prices?: { small?: number | null; standard?: number | null; large?: number | null } }[] })?.bySystem ?? []).map((p) => ({
+    name: p.name,
+    prices: { small: p.prices?.small ?? null, standard: Number(p.prices?.standard ?? 0), large: p.prices?.large ?? null },
+  }));
+  const buckets = (by.get("SIZES")?.pricing as WtBuckets) ?? EMPTY_BUCKETS;
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
-  const card: WtCard = { products, mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
-  return { card, complete: products.filter((p) => p.perShade != null && p.perShade > 0).length > 0 };
+  const card: WtCard = { products, buckets, mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
+  return { card, complete: products.filter((p) => p.prices.standard != null && p.prices.standard > 0).length > 0 };
 }
 
 /**
@@ -162,8 +171,9 @@ export async function savePricingCard(tradeId: string, category: string, card: F
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
   } else if (category === "window-treatments") {
     const c = card as WtCard;
-    const products = c.products.filter((p) => p.name && p.perShade != null);
-    push("SYS", "Shade products ($/shade)", "per-shade", null, { bySystem: products });
+    const products = c.products.filter((p) => p.name && p.prices && p.prices.standard != null);
+    push("SYS", "Shade products ($/unit by size)", "per-unit", null, { bySystem: products });
+    push("SIZES", "Size buckets (S/M/L)", "inches", null, c.buckets ?? EMPTY_BUCKETS);
     if (c.mobilizationFee != null) push("MOB", "Mobilization Fee", "flat", c.mobilizationFee);
     if (c.taxPct != null) push("TAX", "Sales Tax Rate", "percent", c.taxPct);
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
