@@ -11,7 +11,7 @@ const SYSTEM =
   `  • If the same product appears at several sizes/prices, FOLD them into ONE row's small/standard/large — NEVER create two rows for the same product.\n` +
   `  • Do NOT split by ganging ("2 on 1 motor", "3 on 1 motor") — recover one per-unit price; grouped savings go in discountPct.\n` +
   `- size buckets (in INCHES): infer the workspace's Small / Standard / Large cutoffs (max width + height of each) from the window sizes you see across the proposals. Leave null if you can't tell.\n` +
-  `- mobilizationFee: any flat mobilization/setup/minimum fee.\n` +
+  `- globalCharges: any FLAT per-project charges added on top of the shades — installation, delivery, mobilization/setup, minimum job charge. One entry each {label, amount}. Empty if none.\n` +
   `- discountPct / taxPct: any standard discount (and grouped-shade savings) and the sales-tax rate seen.\n` +
   `- paymentTerms, warranty, validityDays, exclusions: from the boilerplate.\n\n` +
   `Use ONLY rates you actually see. If something isn't present, leave it null / empty — never invent a price. ` +

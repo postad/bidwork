@@ -125,7 +125,7 @@ export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBu
 export type ConfirmWtDna = {
   products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
   buckets: WtBuckets;
-  mobilizationFee: number | null;
+  globalCharges: { label: string; amount: number }[];
   discountPct: number | null;
   taxPct: number | null;
   paymentTerms: string | null;
@@ -155,7 +155,7 @@ export async function confirmWtPricingDna(dna: ConfirmWtDna) {
   for (const t of wtTrades) {
     rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Shade products ($/unit by size)", unit: "per-unit", sell_price: null, pricing: { bySystem: products } });
     rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SIZES", label: "Size buckets (S/M/L)", unit: "inches", sell_price: null, pricing: dna.buckets });
-    if (dna.mobilizationFee != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "MOB", label: "Mobilization Fee", unit: "flat", sell_price: dna.mobilizationFee, pricing: {} });
+    rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "CHARGES", label: "Global charges", unit: "flat", sell_price: null, pricing: { items: dna.globalCharges } });
     if (dna.taxPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "TAX", label: "Sales Tax Rate", unit: "percent", sell_price: dna.taxPct, pricing: {} });
     if (dna.discountPct != null) rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "DISCOUNT", label: "Default Proposal Discount", unit: "percent", sell_price: dna.discountPct, pricing: {} });
   }
@@ -233,6 +233,43 @@ export async function confirmFlooringPricingDna(dna: ConfirmFlooringDna) {
   await db.from("workspaces").update({ settings: next }).eq("id", workspaceId);
 
   revalidatePath("/app/onboarding");
+  revalidatePath("/app");
+  return { ok: true };
+}
+
+const DEFAULT_WT_PRODUCTS = [
+  "Manual solar roller shade",
+  "Motorized solar roller shade",
+  "Manual room-darkening roller shade",
+  "Motorized room-darkening roller shade",
+  "Manual aluminum blind",
+].map((name) => ({ name, prices: { small: null, standard: 0, large: null } }));
+const DEFAULT_WT_BUCKETS: WtBuckets = { small: { maxW: 48, maxH: 72 }, standard: { maxW: 72, maxH: 96 }, large: { maxW: 120, maxH: 144 } };
+
+/** "I have no past proposals" — seed a starter card the contractor fills in Settings,
+ *  then mark onboarded. WT gets default products (priced $0) + size buckets; other
+ *  categories are just marked onboarded (their Settings editor adds systems). */
+export async function skipOnboarding(category: string) {
+  const { workspaceId } = await requireContractor();
+  const db = engineDb();
+  const trades = (await workspaceTradeRows(db, workspaceId)).filter((t) => t.category === category);
+
+  if (category === "window-treatments" && trades.length) {
+    type Row = { workspace_id: string; trade_id: string; code: string; label: string; unit: string; sell_price: number | null; pricing: Record<string, unknown> };
+    const rows: Row[] = [];
+    for (const t of trades) {
+      rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SYS", label: "Shade products ($/unit by size)", unit: "per-unit", sell_price: null, pricing: { bySystem: DEFAULT_WT_PRODUCTS } });
+      rows.push({ workspace_id: workspaceId, trade_id: t.id, code: "SIZES", label: "Size buckets (S/M/L)", unit: "inches", sell_price: null, pricing: DEFAULT_WT_BUCKETS });
+    }
+    const { error } = await db.from("pricing_items").upsert(rows, { onConflict: "workspace_id,trade_id,code" });
+    if (error) throw new Error(`seed default card: ${error.message}`);
+  }
+
+  const { data: ws } = await db.from("workspaces").select("settings").eq("id", workspaceId).single();
+  const settings = (ws?.settings ?? {}) as Record<string, unknown>;
+  await db.from("workspaces").update({ settings: { ...settings, onboardedAt: settings.onboardedAt ?? new Date().toISOString() } }).eq("id", workspaceId);
+
+  revalidatePath("/app/settings/pricing");
   revalidatePath("/app");
   return { ok: true };
 }

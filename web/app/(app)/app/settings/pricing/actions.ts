@@ -36,7 +36,7 @@ export type WtBuckets = { small: SizeBucket; standard: SizeBucket; large: SizeBu
 export type WtCard = {
   products: { name: string; prices: { small: number | null; standard: number; large: number | null } }[];
   buckets: WtBuckets;
-  mobilizationFee: number | null;
+  globalCharges: { label: string; amount: number }[];
   taxPct: number | null;
   discountPct: number | null;
 };
@@ -71,7 +71,10 @@ function buildWt(items: Item[]): { card: WtCard; complete: boolean } {
   }));
   const buckets = (by.get("SIZES")?.pricing as WtBuckets) ?? EMPTY_BUCKETS;
   const num = (c: string) => (by.get(c)?.sell_price != null ? Number(by.get(c)!.sell_price) : null);
-  const card: WtCard = { products, buckets, mobilizationFee: num("MOB"), taxPct: num("TAX"), discountPct: num("DISCOUNT") };
+  const chargeItems = (by.get("CHARGES")?.pricing as { items?: { label: string; amount: number }[] })?.items ?? [];
+  const mob = num("MOB");
+  const globalCharges = chargeItems.length ? chargeItems.map((c) => ({ label: c.label, amount: Number(c.amount) })) : mob != null ? [{ label: "Mobilization", amount: mob }] : [];
+  const card: WtCard = { products, buckets, globalCharges, taxPct: num("TAX"), discountPct: num("DISCOUNT") };
   return { card, complete: products.filter((p) => p.prices.standard != null && p.prices.standard > 0).length > 0 };
 }
 
@@ -174,7 +177,7 @@ export async function savePricingCard(tradeId: string, category: string, card: F
     const products = c.products.filter((p) => p.name && p.prices && p.prices.standard != null);
     push("SYS", "Shade products ($/unit by size)", "per-unit", null, { bySystem: products });
     push("SIZES", "Size buckets (S/M/L)", "inches", null, c.buckets ?? EMPTY_BUCKETS);
-    if (c.mobilizationFee != null) push("MOB", "Mobilization Fee", "flat", c.mobilizationFee);
+    push("CHARGES", "Global charges", "flat", null, { items: (c.globalCharges ?? []).filter((g) => g.label) });
     if (c.taxPct != null) push("TAX", "Sales Tax Rate", "percent", c.taxPct);
     if (c.discountPct != null) push("DISCOUNT", "Default Proposal Discount", "percent", c.discountPct);
   } else {

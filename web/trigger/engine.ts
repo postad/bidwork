@@ -470,7 +470,7 @@ export const extractPricing = schemaTask({
 
       // Window treatments — per-product ($/shade) rate card recovered from proposals.
       const { dna, usage } = await extractWtPricingDna(merged);
-      logger.info("WT pricing DNA extracted", { products: dna.products.length, mob: dna.mobilizationFee, tokens: usage });
+      logger.info("WT pricing DNA extracted", { products: dna.products.length, charges: dna.globalCharges.length, tokens: usage });
 
       await setStatus({ status: "ready", error: null, category, ...dna });
       return { ok: true, products: dna.products.length };

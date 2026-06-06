@@ -26,7 +26,9 @@ export const WtPricingDnaExtract = z.object({
   standardMaxH: z.number().nullable().describe("STANDARD bucket: max height in inches."),
   largeMaxW: z.number().nullable().describe("LARGE bucket: max width in inches."),
   largeMaxH: z.number().nullable().describe("LARGE bucket: max height in inches."),
-  mobilizationFee: z.number().nullable().describe("Flat mobilization / setup / minimum fee per project"),
+  globalCharges: z
+    .array(z.object({ label: z.string().describe('e.g. "Installation", "Delivery", "Mobilization", "Minimum job charge"'), amount: z.number() }))
+    .describe("Flat per-project charges the contractor adds on top of products (installation, delivery, mobilization, minimum). Empty if none."),
   discountPct: z.number().nullable().describe("Typical proposal discount as a percent, e.g. 10 (also where grouped/ganged savings land)"),
   taxPct: z.number().nullable().describe("Sales tax rate as a percent, e.g. 8.875"),
   paymentTerms: z.string().nullable().describe("e.g. '50% deposit, 50% on completion'"),

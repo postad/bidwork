@@ -12,6 +12,7 @@ import {
   getOnboardingContext,
   confirmWtPricingDna,
   confirmFlooringPricingDna,
+  skipOnboarding,
   type ConfirmWtDna,
   type ConfirmFlooringDna,
 } from "./actions";
@@ -75,6 +76,21 @@ export default function OnboardingPage() {
     }
   }
 
+  // No past proposals → seed a starter card and go straight to Settings to fill prices.
+  async function onSkip() {
+    if (!category) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await skipOnboarding(category);
+      router.push("/app/settings/pricing");
+      router.refresh();
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
+
   // ---------- Step 2: poll + confirm DNA ----------
   const [dnaStatus, setDnaStatus] = useState<"extracting" | "ready" | "error" | null>(null);
   const [dna, setDna] = useState<ConfirmWtDna | null>(null);
@@ -120,7 +136,7 @@ export default function OnboardingPage() {
                   standard: { maxW: num("standardMaxW"), maxH: num("standardMaxH") },
                   large: { maxW: num("largeMaxW"), maxH: num("largeMaxH") },
                 },
-                mobilizationFee: num("mobilizationFee"),
+                globalCharges: ((p.globalCharges as { label: string; amount: number }[]) ?? []).map((c) => ({ label: c.label, amount: c.amount })),
                 discountPct: num("discountPct"),
                 taxPct: num("taxPct"),
                 paymentTerms: (p.paymentTerms as string) ?? null,
@@ -173,6 +189,15 @@ export default function OnboardingPage() {
     const n = v === "" ? null : Number(v);
     setDna((d) => (d ? { ...d, buckets: { ...d.buckets, [tier]: { ...d.buckets[tier], [dim]: n } } } : d));
   }
+  function addCharge() {
+    setDna((d) => (d ? { ...d, globalCharges: [...d.globalCharges, { label: "", amount: 0 }] } : d));
+  }
+  function setCharge(i: number, patch: Partial<{ label: string; amount: number }>) {
+    setDna((d) => (d ? { ...d, globalCharges: d.globalCharges.map((c, j) => (j === i ? { ...c, ...patch } : c)) } : d));
+  }
+  function removeCharge(i: number) {
+    setDna((d) => (d ? { ...d, globalCharges: d.globalCharges.filter((_, j) => j !== i) } : d));
+  }
   function setSys(i: number, perSqft: number) {
     setFloorDna((d) => (d ? { ...d, systems: d.systems.map((s, j) => (j === i ? { ...s, perSqft } : s)) } : d));
   }
@@ -224,6 +249,9 @@ export default function OnboardingPage() {
             <Button onClick={onUpload} disabled={busy || !files.length || !category}>{busy ? "Working…" : "Upload & read my bids"}</Button>
             {status && <span className="text-[13px] text-bw-body">{status}</span>}
           </div>
+          <button onClick={onSkip} disabled={busy || !category} className="text-[13px] text-bw-body hover:text-bw-text underline mt-4">
+            I don&apos;t have past proposals — skip and set my prices myself
+          </button>
         </div>
       )}
 
@@ -327,10 +355,29 @@ export default function OnboardingPage() {
                 )}
               </Card>
 
+              {/* Global charges — flat fees added to every quote (Installation, Delivery, …) */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="font-semibold">Global charges</div>
+                  <button onClick={addCharge} className="text-[13px] text-bw-green font-semibold">+ Add charge</button>
+                </div>
+                <div className="text-[12px] text-bw-muted mb-3">Flat fees added to every quote — e.g. Installation, Delivery, Minimum.</div>
+                <div className="space-y-2">
+                  {dna.globalCharges.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input value={c.label} onChange={(e) => setCharge(i, { label: e.target.value })} placeholder="Installation" className="flex-1 rounded-lg border border-bw-border px-2 py-1.5 text-[13px] outline-none focus:border-bw-green" />
+                      <span className="text-bw-muted">$</span>
+                      <input type="number" step="0.01" value={c.amount || ""} onChange={(e) => setCharge(i, { amount: Number(e.target.value) })} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[13px]" />
+                      <button type="button" onClick={() => removeCharge(i)} className="w-8 h-8 rounded-lg border border-bw-border text-bw-muted hover:text-bw-text flex items-center justify-center flex-shrink-0" aria-label="Remove">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  {dna.globalCharges.length === 0 && <p className="text-[13px] text-bw-muted">None — add Installation or other flat fees if you charge them.</p>}
+                </div>
+              </Card>
+
               <div className="grid sm:grid-cols-2 gap-4">
-                <Card className="p-6 space-y-3">
-                  <DnaNum label="Mobilization fee" suffix="flat" value={dna.mobilizationFee} onChange={(v) => setDna((d) => (d ? { ...d, mobilizationFee: v } : d))} />
-                </Card>
                 <Card className="p-6 space-y-3">
                   <DnaNum label="Default discount" suffix="%" value={dna.discountPct} onChange={(v) => setDna((d) => (d ? { ...d, discountPct: v } : d))} />
                   <DnaNum label="Sales tax" suffix="%" value={dna.taxPct} onChange={(v) => setDna((d) => (d ? { ...d, taxPct: v } : d))} />
@@ -355,6 +402,7 @@ export default function OnboardingPage() {
                 </Card>
               )}
 
+              <p className="text-[12px] text-bw-muted pt-1">You can add or change products, charges, and sizes anytime in <span className="font-medium text-bw-text">Settings → pricing</span>.</p>
               <div className="flex items-center justify-between pt-2">
                 <button onClick={() => setStep(1)} className="text-[14px] font-semibold text-bw-body hover:text-bw-text">Back</button>
                 <Button onClick={onConfirmDna} disabled={busy}>{busy ? "Saving…" : "Save & finish"}</Button>
@@ -414,7 +462,7 @@ function DnaNum({ label, suffix, value, onChange }: { label: string; suffix: str
     <div className="flex items-center justify-between gap-3">
       <span className="text-[14px]">{label}</span>
       <div className="flex items-center gap-1">
-        {suffix !== "%" && <span className="text-bw-muted">$</span>}
+        {suffix !== "%" && suffix !== "days" && <span className="text-bw-muted">$</span>}
         <input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} className="w-24 font-mono text-right border border-bw-border rounded-lg px-2 py-1.5 text-[14px]" />
         <span className="text-bw-muted text-[12px]">{suffix}</span>
       </div>
