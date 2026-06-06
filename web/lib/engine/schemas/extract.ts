@@ -48,7 +48,7 @@ export const Contact = z.object({
   name: z.string(),
   role: CONTACT_ROLE,
   company: z.string().nullable(),
-  email: z.string().nullable().describe("Null if not found. A contact with no email is excluded downstream."),
+  email: z.string().nullable().describe("The contact's email address EXACTLY as printed (e.g. 'jt@taylorarchitects.com', 'info@firm.com'). Look hard: title blocks and project-team lists often print it beside Tel/Voice/Fax, and firm blocks carry a general 'info@' address. If an email appears anywhere for this contact, put it HERE — never only in `source`. Null ONLY when no email is printed. A contact with no email is dropped downstream, so don't miss one that is there."),
   source: z.string().describe("Where found, e.g. 'title block A-000', 'spec cover'"),
 });
 

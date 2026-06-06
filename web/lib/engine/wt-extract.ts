@@ -25,7 +25,7 @@ const SYSTEM = (cfg: WtVerticalConfig) =>
   `- SCOPE ONLY — include an opening ONLY if it RECEIVES a new window treatment in this contract. EXCLUDE any opening marked "existing to remain", "NIC"/"not in contract", or "by others".\n` +
   `- The spec may say some items are "furnished for installation by others" or coordinated with other sections (ceiling pockets under 09 51 13, wiring by Division 26) — these affect scope but are not separate shade products.\n` +
   `- Every field carries a confidence (0..1) and a citation (sheet/page). NEVER invent a value to fill the schema.\n` +
-  `- Capture project-team contacts from title blocks / spec covers, with email when present (email may be null).\n` +
+  `- Capture project-team contacts from title blocks, project-team lists, and spec covers. For EACH, pull their EMAIL ADDRESS into the email field whenever one is printed anywhere on the page — title blocks and team blocks often show it beside Tel/Voice/Fax, and firms list a general "info@" address. Put the literal email in the email field, NOT only in the citation. Set email null only when none is printed (a contact with no email is dropped downstream, so don't miss one that's there).\n` +
   `- List any sheets/specs the documents reference but that may not be present (e.g. "see A-601"), for downstream gap-chasing.\n` +
   `- Score trade relevance (bid/no-bid). No-bid signals: ${cfg.noBidSignals.join("; ")}.\n` +
   (cfg.disambiguation ? `- Disambiguation: ${cfg.disambiguation}\n` : "") +
