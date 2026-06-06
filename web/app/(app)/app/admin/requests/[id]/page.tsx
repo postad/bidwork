@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/tag";
-import { DispatchPanel, type TradeGroup, type ContractorRow } from "./DispatchPanel";
+import { DispatchPanel, type SubGroup } from "./DispatchPanel";
 import { DocsPanel } from "./DocsPanel";
 import { TradeOverrideButton } from "./TradeOverrideButton";
 import { acknowledgeGaps } from "./actions";
@@ -85,33 +85,54 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
   const reqCenter =
     req.center_lat != null && req.center_lng != null ? { lat: req.center_lat, lng: req.center_lng } : null;
 
-  const groups: TradeGroup[] = bidScores.map((s) => {
-    const trade = tradeBySlug.get(s.slug);
-    const cov = (coverage ?? []).filter((c: any) => c.trade_id === trade?.id);
-    const contractors: ContractorRow[] = cov
-      .map((c: any): ContractorRow | null => {
-        const name = c.workspaces?.name ?? "Unknown";
-        const bid = (bids ?? []).find((b) => b.workspace_id === c.workspace_id && b.trade_id === trade?.id);
-        let distanceLabel = "in coverage";
-        if (reqCenter && c.center_lat != null && c.center_lng != null) {
-          const mi = milesBetween(reqCenter, { lat: c.center_lat, lng: c.center_lng });
-          if (mi > (req.radius_mi ?? c.radius_mi ?? 100)) return null; // out of range
-          distanceLabel = `${Math.round(mi)} mi`;
-        }
-        return {
-          workspaceId: c.workspace_id,
-          name,
-          initials: initials(name),
-          distanceLabel,
-          bidId: bid?.id ?? null,
-          total: bid?.total != null ? Number(bid.total) : null,
-          status: bid?.status ?? null,
-          kind: bid?.kind ?? null,
-        };
-      })
-      .filter((x): x is ContractorRow => x !== null);
-    return { slug: s.slug, label: trade?.label ?? s.label, contractors };
-  });
+  // Invert to ONE proposal per sub (workspace): each sub's YES-trade bids become its
+  // sections (lazy grouping over the per-trade `bids` rows; total = sum of sections).
+  type WsCov = { name: string; centerLat: number | null; centerLng: number | null; radiusMi: number | null; tradeIds: Set<string> };
+  const byWs = new Map<string, WsCov>();
+  for (const c of (coverage ?? []) as Array<{ workspace_id: string; trade_id: string; center_lat: number | null; center_lng: number | null; radius_mi: number | null; workspaces?: { name?: string } | null }>) {
+    let w = byWs.get(c.workspace_id);
+    if (!w) {
+      w = { name: c.workspaces?.name ?? "Unknown", centerLat: c.center_lat ?? null, centerLng: c.center_lng ?? null, radiusMi: c.radius_mi ?? null, tradeIds: new Set() };
+      byWs.set(c.workspace_id, w);
+    }
+    w.tradeIds.add(c.trade_id);
+  }
+
+  const subs: SubGroup[] = [...byWs.entries()]
+    .map(([wsId, w]): SubGroup | null => {
+      let distanceLabel = "in coverage";
+      if (reqCenter && w.centerLat != null && w.centerLng != null) {
+        const mi = milesBetween(reqCenter, { lat: w.centerLat, lng: w.centerLng });
+        if (mi > (req.radius_mi ?? w.radiusMi ?? 100)) return null; // out of range → no proposal
+        distanceLabel = `${Math.round(mi)} mi`;
+      }
+      const sections = bidScores
+        .filter((s) => {
+          const t = tradeBySlug.get(s.slug);
+          return t && w.tradeIds.has(t.id);
+        })
+        .map((s) => {
+          const t = tradeBySlug.get(s.slug)!;
+          const bid = (bids ?? []).find((b) => b.workspace_id === wsId && b.trade_id === t.id);
+          return { tradeLabel: t.label ?? s.label, bidId: bid?.id ?? null, total: bid?.total != null ? Number(bid.total) : null, status: bid?.status ?? null, kind: bid?.kind ?? null };
+        });
+      if (!sections.length) return null;
+      const draftBidIds = sections.filter((x) => x.bidId && x.status === "draft").map((x) => x.bidId as string);
+      const proposalTotal = sections.reduce((a, x) => a + (x.total ?? 0), 0);
+      const dispatchedCount = sections.filter((x) => x.bidId && x.status && x.status !== "draft").length;
+      return {
+        workspaceId: wsId,
+        name: w.name,
+        initials: initials(w.name),
+        distanceLabel,
+        sections: sections.map(({ tradeLabel, total, status, kind }) => ({ tradeLabel, total, status, kind })),
+        proposalTotal,
+        draftBidIds,
+        dispatchedCount,
+      };
+    })
+    .filter((x): x is SubGroup => x !== null)
+    .sort((a, b) => Number(b.draftBidIds.length > 0) - Number(a.draftBidIds.length > 0) || a.name.localeCompare(b.name));
 
   const withEmail = (contacts ?? []).filter((c) => c.email);
   const fileCount = docs?.length ?? 0;
@@ -267,7 +288,7 @@ export default async function ReviewDispatchPage({ params }: { params: { id: str
         </p>
         <DispatchPanel
           bidRequestId={req.id}
-          groups={groups}
+          subs={subs}
           hasCriticalGap={blockingGaps.length > 0}
           warningCount={warningGaps.length}
         />
